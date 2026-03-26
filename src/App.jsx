@@ -68,9 +68,9 @@ const DEFAULT_COLORS = [
 ];
 const DEFAULT_SIZES_AVAILABILITY = { S: true, M: true, L: true, XL: true };
 
+// ВАЖЛИВО: Очікує оплати прибрано з відображення для адміна
 const STATUS_MAP = {
-  'pending_payment': { label: 'Очікує оплати', color: 'text-orange-500' },
-  'new': { label: 'Нове (Оплачено)', color: 'text-blue-400' },
+  'new': { label: 'Нове', color: 'text-blue-400' },
   'processing': { label: 'В обробці', color: 'text-yellow-400' },
   'shipped': { label: 'Відправлено', color: 'text-purple-400' },
   'completed': { label: 'Отримано', color: 'text-green-400' },
@@ -107,10 +107,6 @@ const TelegramIcon = ({ size = 24, className = "" }) => (
     <path d="M22 2 11 13" />
   </svg>
 );
-
-const MOCK_PRODUCTS = [
-  { id: '1', name: 'Футболка "Onyx"', price: 1500, category: 'Футболки', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80'] },
-];
 
 // --- HEADER ---
 function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, setIsMobileMenuOpen, user, categories }) {
@@ -187,6 +183,11 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   
+  // Додані стани завантаження даних, щоб уникнути моргання картинок і товарів
+  const [isProductsLoaded, setIsProductsLoaded] = useState(false);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  
   const [route, setRoute] = useState(() => sessionStorage.getItem('sliniavskiy_route') || 'home');
   const [routeParams, setRouteParams] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('sliniavskiy_routeParams') || '{}'); } 
@@ -206,13 +207,15 @@ export default function App() {
 
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_cart') || '[]'));
   const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_wishlist') || '[]'));
+  
+  // Єдине джерело істини для товарів (тільки з Бази Даних)
   const [dbProducts, setDbProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [promocodes, setPromocodes] = useState([]);
-  const [isInitialDataLoad, setIsInitialDataLoad] = useState(true);
   
-  const activeProducts = dbProducts.length > 0 ? dbProducts : MOCK_PRODUCTS;
+  // Активні товари - тільки ті, що збережені в базі
+  const activeProducts = dbProducts;
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
   
   // Cookie Consent State
@@ -300,10 +303,10 @@ export default function App() {
 
   // Sync state to Firestore on change
   useEffect(() => {
-    if (isInitialDataLoad || !user) return;
+    if (!isUserDataLoaded || !user) return;
     const userStoreRef = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'store');
     setDoc(userStoreRef, { cart, wishlist }, { merge: true }).catch(console.error);
-  }, [cart, wishlist, user, isInitialDataLoad]);
+  }, [cart, wishlist, user, isUserDataLoaded]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -330,21 +333,28 @@ export default function App() {
     if (!user) return;
     
     const unsubProducts = onSnapshot(getProductsRef(), 
-      (s) => setDbProducts(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.error(err)
+      (s) => {
+        setDbProducts(s.docs.map(d => ({ id: d.id, ...d.data() })));
+        setIsProductsLoaded(true);
+      },
+      (err) => { console.error(err); setIsProductsLoaded(true); }
     );
 
-    const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), (d) => {
-      if (d.exists()) {
-        const data = d.data();
-        setSiteSettings(data);
-        setSettingsFormUrl(data.heroImage || '');
-        setSettingsFormUrlMobile(data.heroImageMobile || '');
-        setSettingsCategories(data.categories?.join(', ') || DEFAULT_CATEGORIES.join(', '));
-      } else {
-        setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
-      }
-    });
+    const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), 
+      (d) => {
+        if (d.exists()) {
+          const data = d.data();
+          setSiteSettings(data);
+          setSettingsFormUrl(data.heroImage || '');
+          setSettingsFormUrlMobile(data.heroImageMobile || '');
+          setSettingsCategories(data.categories?.join(', ') || DEFAULT_CATEGORIES.join(', '));
+        } else {
+          setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
+        }
+        setIsSettingsLoaded(true);
+      },
+      (err) => { console.error(err); setIsSettingsLoaded(true); }
+    );
 
     const unsubOrders = onSnapshot(getOrdersRef(), 
       (s) => setOrders(s.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -381,7 +391,7 @@ export default function App() {
       } catch (err) {
         console.error("Error loading user store", err);
       } finally {
-        setIsInitialDataLoad(false);
+        setIsUserDataLoaded(true);
       }
     };
     loadUserData();
@@ -698,11 +708,11 @@ export default function App() {
     const productData = {
       name: editForm.name || 'Товар без назви',
       price: Number(editForm.price) || 0,
-      category: editForm.category,
+      category: editForm.category || activeCategories[0] || 'Категорія',
       images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
       sizeGuide: editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
-      isVisible: editForm.isVisible,
-      inStock: editForm.inStock,
+      isVisible: editForm.isVisible !== false,
+      inStock: editForm.inStock !== false,
       colors: editForm.colors.length > 0 ? editForm.colors : DEFAULT_COLORS,
       sizes: editForm.sizes || DEFAULT_SIZES_AVAILABILITY
     };
@@ -714,7 +724,7 @@ export default function App() {
         await addDoc(getProductsRef(), productData);
         showToast('Товар додано');
       }
-      setEditingProduct(null);
+      setEditingProduct(null); // Закриваємо форму і оновлюємо список
     } catch(err) { console.error(err); showToast('Помилка збереження'); }
   };
 
@@ -732,7 +742,10 @@ export default function App() {
       showToast(`Промокод ${code} створено!`);
       setNewPromoPercent(10);
       setNewPromoProductId('all');
-    } catch(e) { showToast('Помилка'); }
+    } catch(err) { 
+      console.error(err);
+      showToast('Помилка створення промокоду'); 
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -851,7 +864,10 @@ export default function App() {
     }));
   };
 
-  if (authLoading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white"><Loader2 className="animate-spin w-10 h-10"/></div>;
+  // Обов'язково чекаємо повного завантаження даних, щоб не було "моргання"
+  if (authLoading || !isProductsLoaded || !isSettingsLoaded || !isUserDataLoaded) {
+    return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white"><Loader2 className="animate-spin w-10 h-10"/></div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden">
@@ -951,6 +967,10 @@ export default function App() {
                   const limit = isMobileView ? 5 : 10;
                   const displayedProducts = showAllProducts ? filteredProducts : filteredProducts.slice(0, limit);
                   
+                  if (filteredProducts.length === 0) {
+                     return <div className="col-span-3 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">Товарів в цій категорії ще немає</div>;
+                  }
+
                   return (
                     <>
                       {displayedProducts.map(p => (
@@ -1466,6 +1486,7 @@ export default function App() {
 
                   <div className="space-y-6">
                     {orders
+                      .filter(o => o.status !== 'pending_payment') // ПРИХОВУЄМО "ОЧІКУЄ ОПЛАТИ" ЗІ СПИСКУ
                       .filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus)
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                       .map(order => (
@@ -1515,7 +1536,7 @@ export default function App() {
                          </div>
                       </div>
                     ))}
-                    {orders.filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus).length === 0 && (
+                    {orders.filter(o => o.status !== 'pending_payment' && (orderFilterStatus === 'all' || o.status === orderFilterStatus)).length === 0 && (
                       <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">Замовлень не знайдено</p>
                     )}
                   </div>
@@ -1527,7 +1548,7 @@ export default function App() {
                 <section className="animate-in fade-in duration-500">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
                     <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">Каталог</h2>
-                    <button onClick={() => { setEditingProduct({}); setEditForm({ name: '', price: '', category: activeCategories[0], images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY }); }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                    <button onClick={() => { setEditingProduct({}); setEditForm({ name: '', price: '', category: activeCategories[0] || 'Категорія', images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY }); }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
                       <Plus size={14}/> Додати товар
                     </button>
                   </div>
@@ -1619,20 +1640,24 @@ export default function App() {
                     </form>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    {dbProducts.map(p => (
-                      <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                        <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
-                        <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
-                        <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
-                        <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
-                        <div className="flex gap-2 w-full">
-                          <button onClick={() => { setEditingProduct(p); setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: p.colors || DEFAULT_COLORS, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
-                          <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
+                  {dbProducts.length === 0 && !editingProduct ? (
+                     <div className="text-center py-20 text-zinc-500 uppercase font-black tracking-widest text-xs border border-dashed border-white/20">Товарів ще немає. Додайте перший товар!</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                      {dbProducts.map(p => (
+                        <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
+                          <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
+                          <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
+                          <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
+                          <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
+                          <div className="flex gap-2 w-full">
+                            <button onClick={() => { setEditingProduct(p); setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: p.colors || DEFAULT_COLORS, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
+                            <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -1828,6 +1853,7 @@ export default function App() {
                             
                             // Filter orders
                             let filteredOrders = orders.filter(o => {
+                              if (o.status === 'pending_payment') return false; // ПРИХОВУЄМО ОЧІКУЄ ОПЛАТИ
                               if (o.referralCode !== refFilterPartner) return false;
                               if (refFilterStatus !== 'all' && o.status !== refFilterStatus) return false;
                               const oDate = o.createdAt.slice(0, 10);
