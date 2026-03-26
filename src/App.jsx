@@ -69,7 +69,8 @@ const DEFAULT_COLORS = [
 const DEFAULT_SIZES_AVAILABILITY = { S: true, M: true, L: true, XL: true };
 
 const STATUS_MAP = {
-  'new': { label: 'Нове', color: 'text-blue-400' },
+  'pending_payment': { label: 'Очікує оплати', color: 'text-orange-500' },
+  'new': { label: 'Нове (Оплачено)', color: 'text-blue-400' },
   'processing': { label: 'В обробці', color: 'text-yellow-400' },
   'shipped': { label: 'Відправлено', color: 'text-purple-400' },
   'completed': { label: 'Отримано', color: 'text-green-400' },
@@ -108,11 +109,7 @@ const TelegramIcon = ({ size = 24, className = "" }) => (
 );
 
 const MOCK_PRODUCTS = [
-  { id: '1', name: 'Футболка "Onyx"', price: 1500, category: 'Футболки', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80'] },
-  { id: '2', name: 'Футболка "Shadow"', price: 1800, category: 'Футболки', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80'] },
-  { id: '3', name: 'Штани "Eclipse"', price: 3200, category: 'Штани', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1517438476312-10d79c077509?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=80'] },
-  { id: '4', name: 'Худі "Gravity"', price: 2800, category: 'Футболки', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80'] },
-  { id: '5', name: 'Джинси "Void"', price: 3500, category: 'Джинси', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1517438476312-10d79c077509?auto=format&fit=crop&w=800&q=80'] },
+  { id: '1', name: 'Футболка "Onyx"', price: 1500, category: 'Футболки', isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY, sizeGuide: DEFAULT_SIZE_GUIDE, images: ['https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80'] },
 ];
 
 // --- HEADER ---
@@ -234,8 +231,11 @@ export default function App() {
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedColor, setSelectedColor] = useState(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(null);
+  
   const [isCheckoutForm, setIsCheckoutForm] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
+  const [currentPendingOrderId, setCurrentPendingOrderId] = useState(null);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   // Delivery Form State
@@ -244,7 +244,7 @@ export default function App() {
   const [appliedPromo, setAppliedPromo] = useState(null);
 
   // Admin & Settings States
-  const [adminTab, setAdminTab] = useState('orders'); // 'orders', 'products', 'promos', 'referrals', 'settings'
+  const [adminTab, setAdminTab] = useState('orders');
   const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
   
@@ -260,7 +260,6 @@ export default function App() {
 
   // Orders Admin State
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
-  const [orderFilterMonth, setOrderFilterMonth] = useState('');
 
   // Promo Admin States
   const [newPromoPercent, setNewPromoPercent] = useState(10);
@@ -271,7 +270,9 @@ export default function App() {
   const [refFilterPartner, setRefFilterPartner] = useState('');
   const [refFilterDateFrom, setRefFilterDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); });
   const [refFilterDateTo, setRefFilterDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [refFilterStatus, setRefFilterStatus] = useState('all');
   const [refSortConfig, setRefSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [refCalcMonth, setRefCalcMonth] = useState(() => new Date().toISOString().slice(0, 7)); // Для кнопки подсчета
 
   // States for Email/Password Auth
   const [authEmail, setAuthEmail] = useState('');
@@ -304,14 +305,12 @@ export default function App() {
     setDoc(userStoreRef, { cart, wishlist }, { merge: true }).catch(console.error);
   }, [cart, wishlist, user, isInitialDataLoad]);
 
-  // FIX: Protect from logouts on refresh by properly handling auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setAuthLoading(false);
       } else {
-        // Only initialize anonymous or custom token if NO user exists in session
         try {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             await signInWithCustomToken(auth, __initial_auth_token);
@@ -320,7 +319,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("Auth init error", err);
-          setAuthLoading(false); // Make sure to stop loading if error
+          setAuthLoading(false);
         }
       }
     });
@@ -330,13 +329,11 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     
-    // Load products
     const unsubProducts = onSnapshot(getProductsRef(), 
       (s) => setDbProducts(s.docs.map(d => ({ id: d.id, ...d.data() }))),
       (err) => console.error(err)
     );
 
-    // Load settings
     const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), (d) => {
       if (d.exists()) {
         const data = d.data();
@@ -349,19 +346,16 @@ export default function App() {
       }
     });
 
-    // Load orders
     const unsubOrders = onSnapshot(getOrdersRef(), 
       (s) => setOrders(s.docs.map(d => ({ id: d.id, ...d.data() }))),
       (err) => console.error(err)
     );
 
-    // Load Promocodes
     const unsubPromos = onSnapshot(getPromocodesRef(),
       (s) => setPromocodes(s.docs.map(d => ({ id: d.id, ...d.data() }))),
       (err) => console.error(err)
     );
 
-    // Load Referrals (only matters for Admin, but safe to listen)
     const unsubReferrals = onSnapshot(getReferralsRef(), 
       (s) => {
         const refs = s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -373,7 +367,6 @@ export default function App() {
       (err) => console.error(err)
     );
 
-    // Load Personal Data (Cart & Wishlist)
     const loadUserData = async () => {
       try {
         const userStoreRef = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'store');
@@ -383,7 +376,6 @@ export default function App() {
           if (data.cart && data.cart.length > 0) setCart(data.cart);
           if (data.wishlist && data.wishlist.length > 0) setWishlist(data.wishlist);
         } else {
-          // Sync current browser state up to DB on first session
           await setDoc(userStoreRef, { cart, wishlist }, { merge: true });
         }
       } catch (err) {
@@ -571,7 +563,7 @@ export default function App() {
       cartId: `${p.id}-${selectedSize}-${activeColor.name}`
     };
 
-    const imgUrl = p.images[activeColor.imageIndex] ? p.images[activeColor.imageIndex] : p.images[0];
+    const imgUrl = p.images && p.images[activeColor.imageIndex] ? p.images[activeColor.imageIndex] : p.images[0];
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
@@ -599,9 +591,40 @@ export default function App() {
     setCart(prev => prev.filter(item => item.cartId !== cartId));
   };
 
-  const handleOrderSubmit = (e) => {
+  const handleOrderSubmit = async (e) => {
     e.preventDefault();
-    setCheckoutStep(2);
+    
+    const itemsToSave = cart.map(item => {
+      const realPrice = activeProducts.find(p => p.id === item.id)?.price || item.price || 0;
+      return { ...item, price: realPrice };
+    });
+    
+    const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
+
+    const orderData = {
+      userId: user.uid,
+      customer: deliveryForm,
+      items: itemsToSave,
+      total: cartTotal,
+      status: 'pending_payment', // ЗАКАЗ СОЗДАН, НО НЕ ОПЛАЧЕН
+      referralCode: appliedRef,
+      promocode: appliedPromo ? appliedPromo.code : null,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const docRef = await addDoc(getOrdersRef(), orderData);
+      setCurrentPendingOrderId(docRef.id);
+      
+      if (appliedPromo) {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'promocodes', appliedPromo.id), { isUsed: true });
+      }
+      
+      setCheckoutStep(2); 
+    } catch (err) {
+      console.error("Помилка збереження попереднього замовлення", err);
+      showToast('Помилка обробки замовлення.');
+    }
   };
   
   const handleApplyPromo = () => {
@@ -622,78 +645,61 @@ export default function App() {
   };
 
   const handleFinalizePayment = async () => {
-    // Фіксація цін на момент замовлення
-    const itemsToSave = cart.map(item => {
-      const realPrice = activeProducts.find(p => p.id === item.id)?.price || item.price || 0;
-      return { ...item, price: realPrice };
-    });
-    
-    const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
-
-    // Створення документу замовлення в БД
-    const orderData = {
-      userId: user.uid,
-      customer: deliveryForm,
-      items: itemsToSave,
-      total: cartTotal,
-      status: 'new',
-      referralCode: appliedRef,
-      promocode: appliedPromo ? appliedPromo.code : null,
-      createdAt: new Date().toISOString()
-    };
+    if (!currentPendingOrderId) return showToast('Помилка: Замовлення не знайдено');
 
     try {
-      await addDoc(getOrdersRef(), orderData);
-      if (appliedPromo) {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'promocodes', appliedPromo.id), { isUsed: true });
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'orders', currentPendingOrderId), { 
+        status: 'new' 
+      });
+
+      const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
+      let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
+      text += `👤 <b>ПІБ:</b> ${deliveryForm.name}\n`;
+      text += `📞 <b>Телефон:</b> ${deliveryForm.phone}\n`;
+      text += `📍 <b>Місто:</b> ${deliveryForm.city}\n`;
+      text += `🏢 <b>Відділення:</b> ${deliveryForm.branch}\n`;
+      if (appliedRef) {
+        text += `🤝 <b>Реферал:</b> ${appliedRef}\n`;
       }
+      if (appliedPromo) {
+        text += `🎟 <b>Промокод:</b> ${appliedPromo.code} (-${appliedPromo.discountPercent}%)\n`;
+      }
+      text += `\n🛒 <b>Товари:</b>\n`;
+      cart.forEach(item => {
+        text += `- ${item.name} (${item.selectedSize} / ${item.selectedColor}) x${item.quantity}\n`;
+      });
+      text += `\n💳 <b>Сплачено:</b> ${cartTotal} ₴`;
+
+      await sendTelegramMessage(text);
+
+      showToast('Оплата успішна! Замовлення оформлено.');
+      setCart([]);
+      setDeliveryForm({ name: '', phone: '', city: '', branch: '' });
+      setAppliedPromo(null);
+      setCheckoutPromo('');
+      setCurrentPendingOrderId(null);
+      setIsCartOpen(false);
+      setIsCheckoutForm(false);
+      setCheckoutStep(1);
+      
+      navigate('home');
+      
     } catch (err) {
-      console.error("Помилка збереження замовлення у БД", err);
-      showToast('Помилка збереження замовлення.');
-      return;
+      console.error("Помилка підтвердження оплати", err);
+      showToast('Помилка підтвердження оплати.');
     }
-
-    // Відправка в Telegram
-    let text = `🔥 <b>Нове замовлення!</b>\n\n`;
-    text += `👤 <b>ПІБ:</b> ${deliveryForm.name}\n`;
-    text += `📞 <b>Телефон:</b> ${deliveryForm.phone}\n`;
-    text += `📍 <b>Місто:</b> ${deliveryForm.city}\n`;
-    text += `🏢 <b>Відділення:</b> ${deliveryForm.branch}\n`;
-    if (appliedRef) {
-      text += `🤝 <b>Реферал:</b> ${appliedRef}\n`;
-    }
-    if (orderData.promocode) {
-      text += `🎟 <b>Промокод:</b> ${orderData.promocode} (-${appliedPromo?.discountPercent || 0}%)\n`;
-    }
-    text += `\n🛒 <b>Товари:</b>\n`;
-    itemsToSave.forEach(item => {
-      text += `- ${item.name} (${item.selectedSize} / ${item.selectedColor}) x${item.quantity} - ${item.price * item.quantity} ₴\n`;
-    });
-    text += `\n💳 <b>До сплати:</b> ${cartTotal} ₴`;
-
-    await sendTelegramMessage(text);
-
-    showToast('Замовлення успішно оформлено!');
-    setCart([]);
-    setDeliveryForm({ name: '', phone: '', city: '', branch: '' });
-    setAppliedPromo(null);
-    setCheckoutPromo('');
-    setIsCartOpen(false);
-    setIsCheckoutForm(false);
-    setCheckoutStep(1);
-    
-    // Редирект на главную страницу после оплаты
-    navigate('home');
   };
 
   // Admin Actions
   const handleSaveProduct = async (e) => {
     e.preventDefault();
+    const parsedImages = editForm.images ? editForm.images.split('\n').map(u => u.trim()).filter(Boolean) : [];
+    
     const productData = {
-      name: editForm.name,
-      price: Number(editForm.price),
+      name: editForm.name || 'Товар без назви',
+      price: Number(editForm.price) || 0,
       category: editForm.category,
-      images: editForm.images.split('\n').map(u => u.trim()).filter(u => u),
+      images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
       sizeGuide: editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
       isVisible: editForm.isVisible,
       inStock: editForm.inStock,
@@ -753,6 +759,25 @@ export default function App() {
     }
   };
 
+  const handleHeroUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setIsUploadingFile(true);
+    try {
+      const fileRef = ref(storage, `artifacts/${appId}/settings/${Date.now()}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      if (type === 'desktop') setSettingsFormUrl(url);
+      if (type === 'mobile') setSettingsFormUrlMobile(url);
+      showToast('Зображення завантажено!');
+    } catch (error) {
+      console.error("Помилка завантаження зображення", error);
+      showToast('Помилка завантаження');
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Видалити товар?')) return;
     try {
@@ -766,12 +791,12 @@ export default function App() {
     try {
       const parsedCategories = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), { 
-        heroImage: settingsFormUrl,
-        heroImageMobile: settingsFormUrlMobile,
+        heroImage: settingsFormUrl || siteSettings.heroImage,
+        heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile,
         categories: parsedCategories
       }, { merge: true });
       showToast('Налаштування оновлено!');
-    } catch(err) { console.error(err); showToast('Помилка'); }
+    } catch(err) { console.error(err); showToast('Помилка збереження налаштувань'); }
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -788,7 +813,6 @@ export default function App() {
     e.preventDefault();
     if (!newReferralName.trim()) return;
     
-    // Generate a simple, unique code from name
     const code = newReferralName.trim().replace(/\s+/g, '-').toLowerCase() + '-' + Math.random().toString(36).substr(2, 4);
     
     try {
@@ -810,7 +834,6 @@ export default function App() {
       navigator.clipboard.writeText(text);
       showToast('Посилання скопійовано!');
     } catch (err) {
-      // Fallback
       const textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
@@ -879,7 +902,7 @@ export default function App() {
                   <div key={p.id} className="group cursor-pointer" onClick={() => navigate('product', { id: p.id })}>
                     <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-4 md:mb-6 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
                       {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">Sold Out</div>}
-                      <img src={p.images[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
+                      <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
                       <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                         <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                       </button>
@@ -934,7 +957,7 @@ export default function App() {
                         <div key={p.id} onClick={() => navigate('product', { id: p.id })} className="cursor-pointer group">
                           <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
                             {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">Sold Out</div>}
-                            <img src={p.images[0]} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
+                            <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                             </button>
@@ -1160,9 +1183,9 @@ export default function App() {
                   <div className="space-y-4">
                     <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                       {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">Немає в наявності</div>}
-                      <img src={p.images[activeImageIndex] || p.images[0]} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
+                      <img src={p.images[activeImageIndex] || p.images[0] || 'https://via.placeholder.com/800'} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
                     </div>
-                    {p.images.length > 1 && (
+                    {p.images && p.images.length > 1 && (
                       <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
                         {p.images.map((img, idx) => (
                           <button 
@@ -1335,6 +1358,7 @@ export default function App() {
                     <p>Час роботи: Пн-Пт, 10:00 - 19:00</p>
                     <ul className="list-none mt-4 space-y-2">
                       <li><strong>Email:</strong> sliniavskiy.support@gmail.com</li>
+                      <li><strong>Телефон:</strong> +380 (XX) XXX-XX-XX (Для консультацій)</li>
                     </ul>
                   </section>
                   <section>
@@ -1416,7 +1440,7 @@ export default function App() {
                 <button 
                   key={tab.id}
                   onClick={() => setAdminTab(tab.id)}
-                  className={`snap-start shrink-0 flex items-center gap-2 px-6 py-4 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border-b-2 ${adminTab === tab.id ? 'text-[#d4af37] border-[#d4af37] bg-white/5' : 'text-zinc-500 border-transparent hover:text-white hover:bg-white/5'}`}
+                  className={`snap-start shrink-0 flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${adminTab === tab.id ? 'text-[#d4af37] border-[#d4af37] bg-white/5' : 'text-zinc-500 border-transparent hover:text-white hover:bg-white/5'}`}
                 >
                   {tab.icon} {tab.label}
                 </button>
@@ -1431,41 +1455,37 @@ export default function App() {
                   
                   {/* ORDERS FILTER */}
                   <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl">
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                        <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Фільтр за статусом</label>
                        <select value={orderFilterStatus} onChange={e=>setOrderFilterStatus(e.target.value)} className="w-full bg-black border border-white/10 p-3 text-[10px] uppercase font-black outline-none focus:border-white transition-colors cursor-pointer">
                           <option value="all">Всі статуси</option>
                           {Object.entries(STATUS_MAP).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
                        </select>
                     </div>
-                    <div className="flex-1">
-                       <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Фільтр за місяцем</label>
-                       <input type="month" value={orderFilterMonth} onChange={e=>setOrderFilterMonth(e.target.value)} className="w-full bg-black border border-white/10 p-3 text-[10px] uppercase font-black outline-none focus:border-white transition-colors" />
-                    </div>
                   </div>
 
                   <div className="space-y-6">
                     {orders
-                      .filter(o => (orderFilterStatus === 'all' || o.status === orderFilterStatus) && (!orderFilterMonth || o.createdAt.startsWith(orderFilterMonth)))
+                      .filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus)
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                       .map(order => (
                       <div key={order.id} className="border border-white/10 p-4 md:p-6 bg-zinc-900/40 shadow-xl flex flex-col">
                          <div className="flex flex-col lg:flex-row justify-between gap-6 mb-6">
-                            <div>
-                               <h4 className="font-black text-[#d4af37] mb-2 uppercase tracking-widest text-xs md:text-sm">Замовлення #{order.id.slice(0,8)}</h4>
+                            <div className="w-full">
+                               <h4 className="font-black text-[#d4af37] mb-2 uppercase tracking-widest text-xs md:text-sm break-words">Замовлення #{order.id.slice(0,8)}</h4>
                                <p className="text-[9px] md:text-[10px] text-zinc-400 uppercase tracking-widest mb-3">{new Date(order.createdAt).toLocaleString()}</p>
                                <p className="text-[11px] md:text-xs font-bold mb-1 break-words">👤 {order.customer.name} <span className="text-zinc-500 mx-1 md:mx-2">|</span> 📞 {order.customer.phone}</p>
                                <p className="text-[11px] md:text-xs text-zinc-400 break-words mb-2">📍 {order.customer.city}, Відділення: {order.customer.branch}</p>
                                <div className="flex flex-wrap gap-2 mt-2">
                                  {order.referralCode && (
-                                   <p className="inline-block px-3 py-1 bg-white/10 text-[#d4af37] text-[9px] font-black uppercase tracking-widest rounded-sm border border-[#d4af37]/30">Реферал: {order.referralCode}</p>
+                                   <p className="inline-block px-3 py-1 bg-white/10 text-[#d4af37] text-[9px] font-black uppercase tracking-widest rounded-sm border border-[#d4af37]/30 break-all">Реферал: {order.referralCode}</p>
                                  )}
                                  {order.promocode && (
-                                   <p className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[9px] font-black uppercase tracking-widest rounded-sm border border-green-500/30">Промокод: {order.promocode}</p>
+                                   <p className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[9px] font-black uppercase tracking-widest rounded-sm border border-green-500/30 break-all">Промокод: {order.promocode}</p>
                                  )}
                                </div>
                             </div>
-                            <div className="text-left lg:text-right flex flex-col lg:items-end w-full lg:w-auto">
+                            <div className="text-left lg:text-right flex flex-col lg:items-end w-full lg:w-auto mt-4 lg:mt-0">
                                <p className="text-lg md:text-xl font-black mb-3">{order.total} ₴</p>
                                <select 
                                  value={order.status}
@@ -1473,7 +1493,7 @@ export default function App() {
                                  className={`w-full lg:w-auto bg-black border border-white/20 text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 px-4 outline-none focus:border-white transition-colors cursor-pointer ${STATUS_MAP[order.status]?.color || 'text-white'}`}
                                >
                                  {Object.entries(STATUS_MAP).map(([val, {label}]) => (
-                                   <option key={val} value={val} className="text-white">{label}</option>
+                                   <option key={val} value={val} className="bg-black text-white">{label}</option>
                                  ))}
                                </select>
                             </div>
@@ -1483,8 +1503,8 @@ export default function App() {
                             {order.items.map((item, idx) => (
                                <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs border-b border-white/5 pb-3">
                                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                                    <img src={item.images?.[0] || item.image} className="w-10 h-12 md:w-8 md:h-10 object-cover bg-zinc-900 border border-white/10 shrink-0" alt="" />
-                                    <span className="font-bold flex-1">{item.name} <span className="text-zinc-500 font-normal break-words">({item.selectedColor}, {item.selectedSize})</span></span>
+                                    <img src={item.images?.[0] || item.image || 'https://via.placeholder.com/100'} className="w-10 h-12 md:w-8 md:h-10 object-cover bg-zinc-900 border border-white/10 shrink-0" alt="" />
+                                    <span className="font-bold flex-1 break-words">{item.name} <span className="text-zinc-500 font-normal">({item.selectedColor}, {item.selectedSize})</span></span>
                                  </div>
                                  <div className="text-left sm:text-right w-full sm:w-auto bg-white/5 sm:bg-transparent p-2 sm:p-0 flex justify-between sm:block">
                                     <span className="text-zinc-400 sm:mr-4">Кількість: x{item.quantity}</span>
@@ -1495,7 +1515,7 @@ export default function App() {
                          </div>
                       </div>
                     ))}
-                    {orders.filter(o => (orderFilterStatus === 'all' || o.status === orderFilterStatus) && (!orderFilterMonth || o.createdAt.startsWith(orderFilterMonth))).length === 0 && (
+                    {orders.filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus).length === 0 && (
                       <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">Замовлень не знайдено</p>
                     )}
                   </div>
@@ -1521,11 +1541,11 @@ export default function App() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Назва</label>
-                          <input required type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none" />
+                          <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none" />
                         </div>
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ціна (₴)</label>
-                          <input required type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none" />
+                          <input type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none" />
                         </div>
                         <div>
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Категорія</label>
@@ -1533,7 +1553,7 @@ export default function App() {
                             {activeCategories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
-                        <div className="flex flex-col justify-center gap-4 bg-black border border-white/10 p-4">
+                        <div className="flex flex-col justify-center gap-4 bg-black border border-white/10 p-4 w-full">
                           <label className="flex items-center gap-3 cursor-pointer">
                             <input type="checkbox" checked={editForm.isVisible} onChange={e => setEditForm({...editForm, isVisible: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Показувати на вітрині</span>
@@ -1586,13 +1606,13 @@ export default function App() {
                           {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлів у хмару. Зачекайте...</p>}
                           
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-6 mb-2">2. Або посилання на фото (додавайте 3-5 фото, кожне з нового рядка)</label>
-                          <textarea required value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" placeholder="https://image1.jpg&#10;https://image2.jpg&#10;https://image3.jpg" />
+                          <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" placeholder="https://image1.jpg&#10;https://image2.jpg&#10;https://image3.jpg" />
                         </div>
 
                         <div className="md:col-span-2">
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Індивідуальна розмірна сітка (для цього конкретного товару)</label>
                           <p className="text-[8px] text-zinc-500 mb-2">Формат CSV: Рядок 1 - Заголовки, далі Дані. Якщо залишити порожнім або не змінювати, буде використана стандартна сітка.</p>
-                          <textarea required value={editForm.sizeGuide} onChange={e => setEditForm({...editForm, sizeGuide: e.target.value})} rows={6} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none font-mono text-zinc-300" placeholder={DEFAULT_SIZE_GUIDE} />
+                          <textarea value={editForm.sizeGuide} onChange={e => setEditForm({...editForm, sizeGuide: e.target.value})} rows={6} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none font-mono text-zinc-300" placeholder={DEFAULT_SIZE_GUIDE} />
                         </div>
                       </div>
                       <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-zinc-200 transition-all">Зберегти товар</button>
@@ -1602,13 +1622,13 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {dbProducts.map(p => (
                       <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                        <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images[0]} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
+                        <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
                         <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
                         <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
                         <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingProduct(p); setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images.join('\n'), sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: p.colors || DEFAULT_COLORS, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center"><Edit size={14}/></button>
-                          <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center"><Trash2 size={14}/></button>
+                        <div className="flex gap-2 w-full">
+                          <button onClick={() => { setEditingProduct(p); setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: p.colors || DEFAULT_COLORS, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
+                          <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                         </div>
                       </div>
                     ))}
@@ -1621,7 +1641,7 @@ export default function App() {
                 <section className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     {/* Create New Promo */}
-                    <div className="lg:col-span-1 border border-white/10 p-6 bg-zinc-900/20 h-fit">
+                    <div className="lg:col-span-1 border border-white/10 p-4 md:p-6 bg-zinc-900/20 h-fit w-full">
                       <h3 className="font-black uppercase tracking-widest text-sm mb-4 text-[#d4af37]">Згенерувати промокод</h3>
                       <form onSubmit={handleGeneratePromo} className="space-y-4">
                         <div>
@@ -1642,23 +1662,23 @@ export default function App() {
                             onChange={e => setNewPromoProductId(e.target.value)}
                             className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
                           >
-                            <option value="all">На всі товари</option>
+                            <option value="all">Для всіх речей</option>
                             {dbProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
                         <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2">
-                          <Percent size={14} /> Згенерувати
+                          <Percent size={14} /> Згенерувати код
                         </button>
                       </form>
                     </div>
 
                     {/* Promos List */}
-                    <div className="lg:col-span-2 border border-white/10 p-6 bg-zinc-900/20">
+                    <div className="lg:col-span-2 border border-white/10 p-4 md:p-6 bg-zinc-900/20 w-full overflow-hidden">
                       <h3 className="font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
                         Список промокодів
                       </h3>
-                      <div className="overflow-x-auto no-scrollbar border border-white/5">
-                        <table className="w-full text-left text-xs">
+                      <div className="overflow-x-auto no-scrollbar border border-white/5 w-full">
+                        <table className="w-full text-left text-xs min-w-[500px]">
                           <thead className="bg-white/5 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                             <tr>
                               <th className="p-4">Код</th>
@@ -1699,7 +1719,7 @@ export default function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
                     {/* Create New Referral */}
-                    <div className="lg:col-span-1 border border-white/10 p-6 bg-zinc-900/20 h-fit">
+                    <div className="lg:col-span-1 border border-white/10 p-4 md:p-6 bg-zinc-900/20 h-fit w-full">
                       <h3 className="font-black uppercase tracking-widest text-sm mb-4">Створити реферала</h3>
                       <form onSubmit={handleAddReferral} className="space-y-4">
                         <div>
@@ -1717,47 +1737,87 @@ export default function App() {
                           <LinkIcon size={14} /> Згенерувати посилання
                         </button>
                       </form>
+
+                      {/* CALCULATE SUM BY MONTH */}
+                      <div className="mt-8 pt-8 border-t border-white/10">
+                         <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Підрахунок суми за місяць</h4>
+                         <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Оберіть місяць</label>
+                         <input 
+                            type="month" 
+                            value={refCalcMonth}
+                            onChange={e => setRefCalcMonth(e.target.value)}
+                            className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-4"
+                         />
+                         {(() => {
+                           if (!refFilterPartner || !refCalcMonth) return null;
+                           const calcOrders = orders.filter(o => 
+                             o.referralCode === refFilterPartner && 
+                             o.createdAt.startsWith(refCalcMonth) && 
+                             o.status !== 'cancelled' && 
+                             o.status !== 'pending_payment'
+                           );
+                           const calcSum = calcOrders.reduce((sum, o) => sum + o.total, 0);
+                           return (
+                             <div className="bg-black/50 border border-white/10 p-4 text-center">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Загальний дохід за {refCalcMonth}</p>
+                                <p className="text-2xl font-black text-green-400">{calcSum} ₴</p>
+                                <p className="text-[8px] text-zinc-600 mt-2 uppercase tracking-widest">({calcOrders.length} успішних замовлень)</p>
+                             </div>
+                           )
+                         })()}
+                      </div>
                     </div>
 
                     {/* Referrals List & Stats */}
-                    <div className="lg:col-span-2 border border-white/10 p-6 bg-zinc-900/20">
+                    <div className="lg:col-span-2 border border-white/10 p-4 md:p-6 bg-zinc-900/20 w-full overflow-hidden">
                       <h3 className="font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
-                        <BarChart size={18} className="text-[#d4af37]" /> Аналітика продажів
+                        <BarChart size={18} className="text-[#d4af37]" /> Аналітика продажів та Фільтри
                       </h3>
                       
                       {referrals.length === 0 ? (
                         <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest text-center py-10">Ще немає жодного реферала</p>
                       ) : (
                         <>
-                          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                            <div className="flex-1">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Оберіть партнера</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div className="w-full">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Партнер</label>
                               <select 
                                 value={refFilterPartner} 
                                 onChange={e => setRefFilterPartner(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
+                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
                               >
                                 {referrals.map(r => (
-                                  <option key={r.id} value={r.code}>{r.name} ({r.code})</option>
+                                  <option key={r.id} value={r.code}>{r.name}</option>
                                 ))}
                               </select>
                             </div>
-                            <div className="flex-1">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">З дати</label>
+                            <div className="w-full">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Статус</label>
+                              <select 
+                                value={refFilterStatus} 
+                                onChange={e => setRefFilterStatus(e.target.value)}
+                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
+                              >
+                                <option value="all">Всі статуси</option>
+                                {Object.entries(STATUS_MAP).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                              </select>
+                            </div>
+                            <div className="w-full">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Від дати</label>
                               <input 
                                 type="date" 
                                 value={refFilterDateFrom}
                                 onChange={e => setRefFilterDateFrom(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
+                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
                               />
                             </div>
-                            <div className="flex-1">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">По дату</label>
+                            <div className="w-full">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">До дати</label>
                               <input 
                                 type="date" 
                                 value={refFilterDateTo}
                                 onChange={e => setRefFilterDateTo(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
+                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
                               />
                             </div>
                           </div>
@@ -1769,6 +1829,7 @@ export default function App() {
                             // Filter orders
                             let filteredOrders = orders.filter(o => {
                               if (o.referralCode !== refFilterPartner) return false;
+                              if (refFilterStatus !== 'all' && o.status !== refFilterStatus) return false;
                               const oDate = o.createdAt.slice(0, 10);
                               if (refFilterDateFrom && oDate < refFilterDateFrom) return false;
                               if (refFilterDateTo && oDate > refFilterDateTo) return false;
@@ -1786,39 +1847,24 @@ export default function App() {
                               return 0;
                             });
                             
-                            const totalRevenue = filteredOrders
-                              .filter(o => o.status !== 'cancelled') // do not count cancelled
-                              .reduce((sum, o) => sum + o.total, 0);
-
                             return (
                               <div className="space-y-6">
                                 {selectedRef && (
-                                  <div className="bg-black/50 border border-white/10 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                  <div className="bg-black/50 border border-white/10 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
                                     <div className="overflow-hidden w-full">
                                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Унікальне посилання партнера</p>
-                                      <input readOnly value={refLink} className="w-full bg-transparent text-xs text-[#d4af37] font-mono outline-none truncate" />
+                                      <input readOnly value={refLink} className="w-full bg-transparent text-[10px] md:text-xs text-[#d4af37] font-mono outline-none truncate" />
                                     </div>
-                                    <button onClick={() => copyToClipboard(refLink)} className="px-4 py-2 border border-white/20 hover:bg-white hover:text-black transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 shrink-0">
+                                    <button onClick={() => copyToClipboard(refLink)} className="px-4 py-3 sm:py-2 border border-white/20 hover:bg-white hover:text-black transition-colors text-[9px] font-black uppercase tracking-widest flex justify-center items-center gap-2 shrink-0 w-full sm:w-auto">
                                       <Copy size={12}/> Копіювати
                                     </button>
                                   </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div className="border border-white/5 bg-black/30 p-4">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Всього замовлень</p>
-                                    <p className="text-2xl font-black">{filteredOrders.length}</p>
-                                  </div>
-                                  <div className="border border-white/5 bg-black/30 p-4">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Сума продажів</p>
-                                    <p className="text-2xl font-black text-green-400">{totalRevenue} ₴</p>
-                                  </div>
-                                </div>
-
-                                <div className="mt-8">
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">Список замовлень</h4>
-                                  <div className="overflow-x-auto no-scrollbar border border-white/5">
-                                    <table className="w-full text-left text-xs">
+                                <div className="mt-8 w-full overflow-hidden">
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">Список замовлень (відфільтровано: {filteredOrders.length})</h4>
+                                  <div className="overflow-x-auto no-scrollbar border border-white/5 w-full">
+                                    <table className="w-full text-left text-xs min-w-[600px]">
                                       <thead className="bg-white/5 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                                         <tr>
                                           <th className="p-4 cursor-pointer hover:text-white" onClick={() => handleRefSort('date')}>
@@ -1836,7 +1882,7 @@ export default function App() {
                                       </thead>
                                       <tbody>
                                         {filteredOrders.length === 0 ? (
-                                          <tr><td colSpan="5" className="p-4 text-center text-zinc-500">Замовлень не знайдено</td></tr>
+                                          <tr><td colSpan="5" className="p-4 text-center text-zinc-500">Замовлень не знайдено за цими фільтрами</td></tr>
                                         ) : (
                                           filteredOrders.map(o => (
                                             <tr key={o.id} className="border-t border-white/5 hover:bg-white/5 transition-colors">
@@ -1866,31 +1912,43 @@ export default function App() {
 
               {/* --- SETTINGS TAB --- */}
               {adminTab === 'settings' && (
-                <section className="animate-in fade-in duration-500 space-y-8 max-w-2xl">
+                <section className="animate-in fade-in duration-500 space-y-8 max-w-2xl w-full">
                   
-                  <div className="border border-white/10 p-6 md:p-8 bg-zinc-900/20">
+                  <div className="border border-white/10 p-4 md:p-8 bg-zinc-900/20 w-full">
                     <h2 className="text-lg md:text-xl font-black uppercase tracking-widest mb-6">Головне фото сайту (Hero Image)</h2>
-                    <form onSubmit={handleSaveSettings} className="flex flex-col gap-4">
-                      <label className="block text-[10px] font-black uppercase mb-2">Для комп'ютера (Горизонтальне 16:9)</label>
-                      <input 
-                        type="url" 
-                        value={settingsFormUrl} 
-                        onChange={e => setSettingsFormUrl(e.target.value)}
-                        className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors"
-                        placeholder="https://..."
-                        required
-                      />
-                      <img src={settingsFormUrl || siteSettings.heroImage} alt="Preview PC" className="w-full h-48 md:h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                    <form onSubmit={handleSaveSettings} className="flex flex-col gap-4 w-full">
                       
-                      <label className="block text-[10px] font-black uppercase mt-4 mb-2">Для телефону (Вертикальне 9:16)</label>
-                      <input 
-                        type="url" 
-                        value={settingsFormUrlMobile} 
-                        onChange={e => setSettingsFormUrlMobile(e.target.value)}
-                        className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors"
-                        placeholder="https://... (Необов'язково)"
-                      />
-                      {settingsFormUrlMobile && <img src={settingsFormUrlMobile} alt="Preview Mobile" className="w-full max-w-[200px] h-64 object-cover border border-white/10 mt-2 opacity-80" />}
+                      {/* ЗАГРУЗКА ДЛЯ ПК */}
+                      <div className="border border-white/10 p-4 bg-black/50">
+                        <label className="block text-[10px] font-black uppercase mb-2">Для комп'ютера (Точний розмір: 1920x1080)</label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleHeroUpload(e, 'desktop')}
+                          disabled={isUploadingFile}
+                          className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
+                        />
+                        {settingsFormUrl || siteSettings.heroImage ? (
+                          <img src={settingsFormUrl || siteSettings.heroImage} alt="Preview PC" className="w-full h-48 md:h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                        ) : null}
+                      </div>
+                      
+                      {/* ЗАГРУЗКА ДЛЯ ТЕЛЕФОНА */}
+                      <div className="border border-white/10 p-4 bg-black/50">
+                        <label className="block text-[10px] font-black uppercase mt-2 mb-2">Для телефону (Точний розмір: 1080x1920)</label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleHeroUpload(e, 'mobile')}
+                          disabled={isUploadingFile}
+                          className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
+                        />
+                        {settingsFormUrlMobile || siteSettings.heroImageMobile ? (
+                          <img src={settingsFormUrlMobile || siteSettings.heroImageMobile} alt="Preview Mobile" className="w-full max-w-[200px] h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                        ) : null}
+                      </div>
+
+                      {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлу в базу...</p>}
 
                       <div className="mt-6">
                         <label className="block text-[10px] font-black uppercase mb-2">Категорії товарів (моделі) через кому</label>
@@ -1903,7 +1961,8 @@ export default function App() {
                         />
                       </div>
 
-                      <button type="submit" className="w-full sm:w-auto self-start px-8 py-4 md:py-4 mt-4 bg-white text-black font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-zinc-200 transition-all">Зберегти налаштування</button>
+                      {/* КНОПКА СОХРАНИТЬ РАБОТАЕТ */}
+                      <button type="submit" disabled={isUploadingFile} className="w-full sm:w-auto self-start px-8 py-4 md:py-4 mt-4 bg-white text-black font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50">Зберегти налаштування</button>
                     </form>
                   </div>
                 </section>
@@ -2041,7 +2100,7 @@ export default function App() {
                   {searchResults.map(p => (
                     <div key={p.id} onClick={() => navigate('product', {id: p.id})} className="cursor-pointer group text-left relative">
                       <div className="aspect-[3/4] bg-zinc-900 overflow-hidden mb-3 md:mb-6 border border-white/5 relative">
-                        <img src={p.images[0]} className="w-full h-full object-cover md:group-hover:scale-105 transition-all duration-700 opacity-80" />
+                        <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover md:group-hover:scale-105 transition-all duration-700 opacity-80" />
                         <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-3 md:right-3 z-20 p-2 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                           <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                         </button>
@@ -2070,7 +2129,7 @@ export default function App() {
                  wishlist.map((item, idx) => (
                    <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5 cursor-pointer group" onClick={() => { setIsWishlistOpen(false); navigate('product', { id: item.id }); }}>
                       <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
-                        <img src={item.images[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img src={item.images && item.images[0] ? item.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       </div>
                       <div className="flex-1 text-left flex flex-col justify-center">
                          <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2">{item.name}</h4>
