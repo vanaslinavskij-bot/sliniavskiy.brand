@@ -68,7 +68,7 @@ const DEFAULT_COLORS = [
 ];
 const DEFAULT_SIZES_AVAILABILITY = { S: true, M: true, L: true, XL: true };
 
-// ВАЖЛИВО: Очікує оплати прибрано з відображення для адміна
+// ВАЖЛИВО: "Очікує оплати" повністю прибрано, статус замінено на "Нове"
 const STATUS_MAP = {
   'new': { label: 'Нове', color: 'text-blue-400' },
   'processing': { label: 'В обробці', color: 'text-yellow-400' },
@@ -183,7 +183,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   
-  // Додані стани завантаження даних, щоб уникнути моргання картинок і товарів
+  // Стани завантаження даних, щоб уникнути моргання картинок і товарів
   const [isProductsLoaded, setIsProductsLoaded] = useState(false);
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
@@ -208,13 +208,11 @@ export default function App() {
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_cart') || '[]'));
   const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_wishlist') || '[]'));
   
-  // Єдине джерело істини для товарів (тільки з Бази Даних)
   const [dbProducts, setDbProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [promocodes, setPromocodes] = useState([]);
   
-  // Активні товари - тільки ті, що збережені в базі
   const activeProducts = dbProducts;
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
   
@@ -287,7 +285,6 @@ export default function App() {
     setTimeout(() => setToast(null), 4000); 
   }, []);
 
-  // Track Referral Links from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
@@ -297,11 +294,9 @@ export default function App() {
     }
   }, []);
 
-  // Update localStorage immediately on change
   useEffect(() => { localStorage.setItem('sliniavskiy_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('sliniavskiy_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
 
-  // Sync state to Firestore on change
   useEffect(() => {
     if (!isUserDataLoaded || !user) return;
     const userStoreRef = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'store');
@@ -344,7 +339,11 @@ export default function App() {
       (d) => {
         if (d.exists()) {
           const data = d.data();
-          setSiteSettings(data);
+          setSiteSettings({
+            heroImage: data.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
+            heroImageMobile: data.heroImageMobile || '',
+            categories: data.categories || DEFAULT_CATEGORIES
+          });
           setSettingsFormUrl(data.heroImage || '');
           setSettingsFormUrlMobile(data.heroImageMobile || '');
           setSettingsCategories(data.categories?.join(', ') || DEFAULT_CATEGORIES.join(', '));
@@ -616,7 +615,7 @@ export default function App() {
       customer: deliveryForm,
       items: itemsToSave,
       total: cartTotal,
-      status: 'pending_payment', // ЗАКАЗ СОЗДАН, НО НЕ ОПЛАЧЕН
+      status: 'pending_payment', 
       referralCode: appliedRef,
       promocode: appliedPromo ? appliedPromo.code : null,
       createdAt: new Date().toISOString()
@@ -700,11 +699,19 @@ export default function App() {
     }
   };
 
-  // Admin Actions
+  // Admin Actions (ВИПРАВЛЕНО БАГ ІЗ ПОРОЖНІМИ ЗНАЧЕННЯМИ)
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     const parsedImages = editForm.images ? editForm.images.split('\n').map(u => u.trim()).filter(Boolean) : [];
     
+    // Очищаємо кольори від пустих значень, щоб база не блокувала збереження
+    const cleanColors = (editForm.colors || []).map(c => ({
+       name: c.name || 'Color',
+       label: c.label || 'Колір',
+       hex: c.hex || '#ffffff',
+       imageIndex: Number(c.imageIndex) || 0
+    }));
+
     const productData = {
       name: editForm.name || 'Товар без назви',
       price: Number(editForm.price) || 0,
@@ -713,38 +720,45 @@ export default function App() {
       sizeGuide: editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
       isVisible: editForm.isVisible !== false,
       inStock: editForm.inStock !== false,
-      colors: editForm.colors.length > 0 ? editForm.colors : DEFAULT_COLORS,
+      colors: cleanColors.length > 0 ? cleanColors : DEFAULT_COLORS,
       sizes: editForm.sizes || DEFAULT_SIZES_AVAILABILITY
     };
+
     try {
       if (editingProduct?.id) {
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', editingProduct.id), productData);
-        showToast('Товар оновлено');
+        showToast('✅ Товар успішно оновлено!');
       } else {
         await addDoc(getProductsRef(), productData);
-        showToast('Товар додано');
+        showToast('✅ Новий товар успішно додано!');
       }
       setEditingProduct(null); // Закриваємо форму і оновлюємо список
-    } catch(err) { console.error(err); showToast('Помилка збереження'); }
+    } catch(err) { 
+      console.error(err); 
+      showToast('❌ Помилка збереження товару'); 
+    }
   };
 
-  const handleGeneratePromo = async (e) => {
-    e.preventDefault();
+  // Генерація промокодів (ВИПРАВЛЕНО - тепер працює без збоїв форми)
+  const handleGeneratePromo = async () => {
+    if (!newPromoPercent || newPromoPercent <= 0) {
+       return showToast('Введіть коректну знижку');
+    }
     const code = Math.random().toString(36).substr(2, 6).toUpperCase();
     try {
       await addDoc(getPromocodesRef(), { 
-        code, 
+        code: code, 
         discountPercent: Number(newPromoPercent), 
-        productId: newPromoProductId,
+        productId: newPromoProductId || 'all',
         isUsed: false, 
         createdAt: new Date().toISOString() 
       });
-      showToast(`Промокод ${code} створено!`);
+      showToast(`✅ Промокод ${code} створено!`);
       setNewPromoPercent(10);
       setNewPromoProductId('all');
     } catch(err) { 
       console.error(err);
-      showToast('Помилка створення промокоду'); 
+      showToast('❌ Помилка створення промокоду'); 
     }
   };
 
@@ -763,10 +777,11 @@ export default function App() {
       const currentImages = editForm.images ? editForm.images.split('\n').filter(i=>i.trim()) : [];
       const newImagesList = [...currentImages, ...uploadedUrls].join('\n');
       setEditForm({ ...editForm, images: newImagesList });
-      showToast('Фото успішно завантажено в хмару!');
+      // Додано чітке повідомлення
+      showToast('⚠️ Фото завантажено в хмару! Тепер обов\'язково натисніть "Зберегти товар" внизу');
     } catch (error) {
       console.error("Помилка завантаження:", error);
-      showToast('Помилка! Увімкніть Storage у Firebase Console.');
+      showToast('Помилка завантаження фото!');
     } finally {
       setIsUploadingFile(false);
     }
@@ -782,7 +797,7 @@ export default function App() {
       const url = await getDownloadURL(fileRef);
       if (type === 'desktop') setSettingsFormUrl(url);
       if (type === 'mobile') setSettingsFormUrlMobile(url);
-      showToast('Зображення завантажено!');
+      showToast('⚠️ Зображення завантажено! Натисніть "Зберегти налаштування"');
     } catch (error) {
       console.error("Помилка завантаження зображення", error);
       showToast('Помилка завантаження');
@@ -799,17 +814,25 @@ export default function App() {
     } catch(err) { console.error(err); showToast('Помилка видалення'); }
   };
 
+  // Збереження налаштувань (ВИПРАВЛЕНО БАГ ІЗ ЗАТИРАННЯМ)
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     try {
       const parsedCategories = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), { 
-        heroImage: settingsFormUrl || siteSettings.heroImage,
-        heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile,
-        categories: parsedCategories
-      }, { merge: true });
-      showToast('Налаштування оновлено!');
-    } catch(err) { console.error(err); showToast('Помилка збереження налаштувань'); }
+      
+      // Захист від undefined, через який ламалася база
+      const dataToSave = { 
+        heroImage: settingsFormUrl || siteSettings.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
+        heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile || '',
+        categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
+      };
+      
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), dataToSave, { merge: true });
+      showToast('✅ Налаштування успішно збережено!');
+    } catch(err) { 
+      console.error(err); 
+      showToast('❌ Помилка збереження налаштувань'); 
+    }
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -1554,10 +1577,10 @@ export default function App() {
                   </div>
 
                   {editingProduct && (
-                    <form onSubmit={handleSaveProduct} className="border border-white/10 p-4 md:p-8 bg-zinc-900/40 mb-8 md:mb-12 space-y-6">
+                    <div className="border border-white/10 p-4 md:p-8 bg-zinc-900/40 mb-8 md:mb-12 space-y-6">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-black uppercase tracking-widest text-[#d4af37] text-xs md:text-sm">{editingProduct.id ? 'Редагувати товар' : 'Новий товар'}</h3>
-                        <button type="button" onClick={() => setEditingProduct(null)} className="p-2"><X size={20}/></button>
+                        <button type="button" onClick={() => setEditingProduct(null)} className="p-2 hover:opacity-50 transition-opacity"><X size={20}/></button>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div>
@@ -1588,7 +1611,7 @@ export default function App() {
                         {/* Colors Settings */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50 space-y-4">
                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Кольори товару</h4>
-                           {editForm.colors.map((c, idx) => (
+                           {(editForm.colors || []).map((c, idx) => (
                              <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center border-b border-white/10 pb-4 sm:border-none sm:pb-0">
                                <input type="text" placeholder="Назва (Eng)" value={c.name} onChange={e => { const nc=[...editForm.colors]; nc[idx].name=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
                                <input type="text" placeholder="Лейбл (Укр)" value={c.label} onChange={e => { const nc=[...editForm.colors]; nc[idx].label=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
@@ -1597,7 +1620,7 @@ export default function App() {
                                <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-500 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
                              </div>
                            ))}
-                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...editForm.colors, {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-3 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
+                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-3 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
                         </div>
 
                         {/* Sizes Settings */}
@@ -1615,7 +1638,7 @@ export default function App() {
                         
                         {/* Image Upload Section */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">1. Завантажити фото з пристрою (можна 3-5 шт і більше)</label>
+                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Крок 1. Завантажити фото з пристрою</label>
                           <input 
                             type="file" 
                             multiple 
@@ -1626,18 +1649,20 @@ export default function App() {
                           />
                           {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлів у хмару. Зачекайте...</p>}
                           
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-6 mb-2">2. Або посилання на фото (додавайте 3-5 фото, кожне з нового рядка)</label>
-                          <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" placeholder="https://image1.jpg&#10;https://image2.jpg&#10;https://image3.jpg" />
+                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-6 mb-2">Або посилання на фото (кожне з нового рядка)</label>
+                          <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" placeholder="https://image1.jpg&#10;https://image2.jpg" />
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Індивідуальна розмірна сітка (для цього конкретного товару)</label>
-                          <p className="text-[8px] text-zinc-500 mb-2">Формат CSV: Рядок 1 - Заголовки, далі Дані. Якщо залишити порожнім або не змінювати, буде використана стандартна сітка.</p>
+                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Індивідуальна розмірна сітка</label>
+                          <p className="text-[8px] text-zinc-500 mb-2">Формат CSV: Рядок 1 - Заголовки, далі Дані.</p>
                           <textarea value={editForm.sizeGuide} onChange={e => setEditForm({...editForm, sizeGuide: e.target.value})} rows={6} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none font-mono text-zinc-300" placeholder={DEFAULT_SIZE_GUIDE} />
                         </div>
                       </div>
-                      <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-zinc-200 transition-all">Зберегти товар</button>
-                    </form>
+                      <button type="button" onClick={handleSaveProduct} className="w-full py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center">
+                        Крок 2. ЗБЕРЕГТИ ТОВАР
+                      </button>
+                    </div>
                   )}
 
                   {dbProducts.length === 0 && !editingProduct ? (
@@ -1668,13 +1693,12 @@ export default function App() {
                     {/* Create New Promo */}
                     <div className="lg:col-span-1 border border-white/10 p-4 md:p-6 bg-zinc-900/20 h-fit w-full">
                       <h3 className="font-black uppercase tracking-widest text-sm mb-4 text-[#d4af37]">Згенерувати промокод</h3>
-                      <form onSubmit={handleGeneratePromo} className="space-y-4">
+                      <div className="space-y-4">
                         <div>
                           <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Знижка (%)</label>
                           <input 
                             type="number" 
                             min="1" max="99" 
-                            required 
                             value={newPromoPercent} 
                             onChange={e => setNewPromoPercent(e.target.value)}
                             className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
@@ -1691,10 +1715,10 @@ export default function App() {
                             {dbProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
-                        <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2">
+                        <button type="button" onClick={handleGeneratePromo} className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2">
                           <Percent size={14} /> Згенерувати код
                         </button>
-                      </form>
+                      </div>
                     </div>
 
                     {/* Promos List */}
@@ -1942,7 +1966,8 @@ export default function App() {
                   
                   <div className="border border-white/10 p-4 md:p-8 bg-zinc-900/20 w-full">
                     <h2 className="text-lg md:text-xl font-black uppercase tracking-widest mb-6">Головне фото сайту (Hero Image)</h2>
-                    <form onSubmit={handleSaveSettings} className="flex flex-col gap-4 w-full">
+                    
+                    <div className="flex flex-col gap-4 w-full">
                       
                       {/* ЗАГРУЗКА ДЛЯ ПК */}
                       <div className="border border-white/10 p-4 bg-black/50">
@@ -1987,9 +2012,9 @@ export default function App() {
                         />
                       </div>
 
-                      {/* КНОПКА СОХРАНИТЬ РАБОТАЕТ */}
-                      <button type="submit" disabled={isUploadingFile} className="w-full sm:w-auto self-start px-8 py-4 md:py-4 mt-4 bg-white text-black font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50">Зберегти налаштування</button>
-                    </form>
+                      {/* КНОПКА СОХРАНИТЬ РАБОТАЕТ И НЕ БЛОКИРУЕТСЯ БАЗОЙ */}
+                      <button type="button" onClick={handleSaveSettings} disabled={isUploadingFile} className="w-full sm:w-auto self-start px-8 py-4 md:py-5 mt-4 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50">ЗБЕРЕГТИ НАЛАШТУВАННЯ</button>
+                    </div>
                   </div>
                 </section>
               )}
