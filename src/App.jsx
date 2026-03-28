@@ -19,6 +19,7 @@ import {
   signInWithCustomToken,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
@@ -57,7 +58,6 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'sliniavskiy-app';
 const getProductsRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'products');
 const getOrdersRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'orders');
 const getReferralsRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'referrals');
-const getPromocodesRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'promocodes');
 
 const ADMIN_EMAIL = 'sliniavskiy.brand@gmail.com';
 const DEFAULT_CATEGORIES = ['Футболки', 'Штани', 'Джинси', 'Брюки', 'Шорти'];
@@ -209,7 +209,6 @@ export default function App() {
   const [dbProducts, setDbProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [referrals, setReferrals] = useState([]);
-  const [promocodes, setPromocodes] = useState([]);
   
   const activeProducts = dbProducts;
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
@@ -237,8 +236,6 @@ export default function App() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const [deliveryForm, setDeliveryForm] = useState({ name: '', phone: '', city: '', branch: '' });
-  const [checkoutPromo, setCheckoutPromo] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState(null);
 
   const [adminTab, setAdminTab] = useState('orders');
   const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
@@ -254,16 +251,13 @@ export default function App() {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
 
-  const [newPromoPercent, setNewPromoPercent] = useState(10);
-  const [newPromoProductId, setNewPromoProductId] = useState('all');
-
   const [newReferralName, setNewReferralName] = useState('');
   const [refFilterPartner, setRefFilterPartner] = useState('');
   const [refFilterDateFrom, setRefFilterDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); });
   const [refFilterDateTo, setRefFilterDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [refFilterStatus, setRefFilterStatus] = useState('all');
   const [refSortConfig, setRefSortConfig] = useState({ key: 'date', direction: 'desc' });
-  const [refCalcMonth, setRefCalcMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [refCalcDate, setRefCalcDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -293,21 +287,24 @@ export default function App() {
   }, [cart, wishlist, user, isUserDataLoaded]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setAuthLoading(false);
-      } else {
-        try {
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth); 
-          }
-        } catch (err) {
-          console.error("Auth init error", err);
-          setAuthLoading(false);
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth); 
         }
+      } catch (err) {
+        console.error("Auth init error", err);
+        setAuthLoading(false);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setAuthLoading(false);
       }
     });
     return () => unsubscribe();
@@ -349,11 +346,6 @@ export default function App() {
       (err) => console.error(err)
     );
 
-    const unsubPromos = onSnapshot(getPromocodesRef(),
-      (s) => setPromocodes(s.docs.map(d => ({ id: d.id, ...d.data() }))),
-      (err) => console.error(err)
-    );
-
     const unsubReferrals = onSnapshot(getReferralsRef(), 
       (s) => {
         const refs = s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -384,7 +376,7 @@ export default function App() {
     };
     loadUserData();
 
-    return () => { unsubProducts(); unsubSettings(); unsubOrders(); unsubReferrals(); unsubPromos(); };
+    return () => { unsubProducts(); unsubSettings(); unsubOrders(); unsubReferrals(); };
   }, [user]);
 
   const searchResults = useMemo(() => {
@@ -462,8 +454,13 @@ export default function App() {
     setAuthError('');
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      showToast('Успішний вхід');
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+        showToast('Успішний вхід');
+      }
     } catch (err) {
       if (err.code === 'auth/unauthorized-domain') {
          setAuthError('Помилка: Цей домен не додано до списку авторизованих у Firebase Console (Authentication -> Settings -> Authorized domains).');
@@ -528,24 +525,7 @@ export default function App() {
     return total + (realPrice * item.quantity);
   }, 0), [cart, activeProducts]);
 
-  const cartTotal = useMemo(() => {
-    if (appliedPromo) {
-      let total = 0;
-      cart.forEach(item => {
-        const realProduct = activeProducts.find(p => p.id === item.id);
-        const realPrice = realProduct ? realProduct.price : 0;
-        const itemTotal = realPrice * item.quantity;
-        
-        if (!appliedPromo.productId || appliedPromo.productId === 'all' || appliedPromo.productId === item.id) {
-          total += itemTotal * (1 - appliedPromo.discountPercent / 100);
-        } else {
-          total += itemTotal;
-        }
-      });
-      return Math.round(total);
-    }
-    return cartSubtotal;
-  }, [cart, activeProducts, appliedPromo, cartSubtotal]);
+  const cartTotal = cartSubtotal;
 
   const addToCart = (p) => {
     if (p.inStock === false) return showToast('На жаль, товару немає в наявності');
@@ -558,7 +538,7 @@ export default function App() {
       ...p,
       selectedSize,
       selectedColor: activeColor.label,
-      cartId: `${p.id}-${selectedSize}-${activeColor.name}`
+      cartId: `${p.id}-${selectedSize}-${activeColor.name}-${activeColor.hex}`
     };
 
     const imgUrl = p.images && p.images[activeColor.imageIndex] ? p.images[activeColor.imageIndex] : p.images[0];
@@ -606,7 +586,6 @@ export default function App() {
       total: cartTotal,
       status: 'pending_payment', 
       referralCode: appliedRef,
-      promocode: appliedPromo ? appliedPromo.code : null,
       createdAt: new Date().toISOString()
     };
 
@@ -616,31 +595,10 @@ export default function App() {
       const docRef = await addDoc(getOrdersRef(), safeData);
       setCurrentPendingOrderId(docRef.id);
       
-      if (appliedPromo) {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'promocodes', appliedPromo.id), { isUsed: true });
-      }
-      
       setCheckoutStep(2); 
     } catch (err) {
       console.error("Помилка збереження попереднього замовлення", err);
       showToast('Помилка обробки замовлення.');
-    }
-  };
-  
-  const handleApplyPromo = () => {
-    const promo = promocodes.find(p => p.code === checkoutPromo.toUpperCase());
-    if (promo && !promo.isUsed) {
-      if (promo.productId && promo.productId !== 'all') {
-        const hasProduct = cart.some(item => item.id === promo.productId);
-        if (!hasProduct) {
-          return showToast('Цей промокод діє лише на певний товар, якого немає у кошику');
-        }
-      }
-      setAppliedPromo(promo);
-      showToast(`Промокод застосовано (-${promo.discountPercent}%)`);
-    } else {
-      setAppliedPromo(null);
-      showToast('Недійсний або використаний промокод');
     }
   };
 
@@ -661,9 +619,6 @@ export default function App() {
       if (appliedRef) {
         text += `🤝 <b>Реферал:</b> ${appliedRef}\n`;
       }
-      if (appliedPromo) {
-        text += `🎟 <b>Промокод:</b> ${appliedPromo.code} (-${appliedPromo.discountPercent}%)\n`;
-      }
       text += `\n🛒 <b>Товари:</b>\n`;
       cart.forEach(item => {
         text += `- ${item.name} (${item.selectedSize} / ${item.selectedColor}) x${item.quantity}\n`;
@@ -675,8 +630,6 @@ export default function App() {
       showToast('Оплата успішна! Замовлення оформлено.');
       setCart([]);
       setDeliveryForm({ name: '', phone: '', city: '', branch: '' });
-      setAppliedPromo(null);
-      setCheckoutPromo('');
       setCurrentPendingOrderId(null);
       setIsCartOpen(false);
       setIsCheckoutForm(false);
@@ -688,6 +641,71 @@ export default function App() {
       console.error("Помилка підтвердження оплати", err);
       showToast('Помилка підтвердження оплати.');
     }
+  };
+
+  const handleWayForPayPayment = () => {
+    // Завантажуємо скрипт віджета WayForPay, якщо його ще немає
+    const scriptId = 'wayforpay-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://secure.wayforpay.com/server/pay-widget.js';
+      script.onload = () => openWfpWidget();
+      document.body.appendChild(script);
+    } else {
+      openWfpWidget();
+    }
+  };
+
+  const openWfpWidget = () => {
+    if (!window.Wayforpay) return showToast("Помилка завантаження платіжної системи");
+    const wayforpay = new window.Wayforpay();
+
+    // ВАЖЛИВО: Ці дані видасть WayForPay після реєстрації
+    const merchantAccount = "test_merch_n1"; // Замініть на свій мерчант
+    const merchantDomainName = window.location.hostname;
+    const orderReference = currentPendingOrderId;
+    const orderDate = Math.floor(Date.now() / 1000);
+    const amount = cartTotal;
+    const currency = "UAH";
+
+    // Формуємо списки товарів для чеку
+    const productName = cart.map(item => `${item.name} (${item.selectedSize})`);
+    const productCount = cart.map(item => item.quantity);
+    const productPrice = cart.map(item => item.price);
+
+    // УВАГА: Підпис (Signature) має генеруватися на сервері за допомогою секретного ключа (HMAC_MD5).
+    // Поки у вас немає ключів, це заглушка.
+    const merchantSignature = "TEST_SIGNATURE_PLACEHOLDER";
+
+    wayforpay.run({
+        merchantAccount: merchantAccount,
+        merchantDomainName: merchantDomainName,
+        orderReference: orderReference,
+        orderDate: orderDate,
+        amount: amount,
+        currency: currency,
+        productName: productName,
+        productCount: productCount,
+        productPrice: productPrice,
+        merchantSignature: merchantSignature,
+        clientFirstName: deliveryForm.name.split(' ')[0] || "Client",
+        clientLastName: deliveryForm.name.split(' ')[1] || "",
+        clientPhone: deliveryForm.phone,
+        language: "UA"
+    },
+    function (response) {
+        // Успішна оплата (on approved)
+        handleFinalizePayment();
+    },
+    function (response) {
+        // Відхилено або закрито вікно (on declined)
+        showToast("Оплату скасовано або відхилено.");
+    },
+    function (response) {
+        // В обробці (on pending)
+        showToast("Оплата в процесі обробки...");
+    });
   };
 
   // 100% НАДЕЖНОЕ СОХРАНЕНИЕ ТОВАРОВ
@@ -734,33 +752,6 @@ export default function App() {
     } catch(err) { 
       console.error(err); 
       showToast(`❌ Помилка бази: ${err.message}`); 
-    }
-  };
-
-  // 100% НАДЕЖНОЕ СОЗДАНИЕ ПРОМОКОДА
-  const handleGeneratePromo = async () => {
-    if (!newPromoPercent || newPromoPercent <= 0) {
-       return showToast('❌ Введіть коректну знижку');
-    }
-    const code = Math.random().toString(36).substr(2, 6).toUpperCase();
-    
-    const promoData = { 
-      code: code, 
-      discountPercent: Number(newPromoPercent), 
-      productId: newPromoProductId || 'all',
-      isUsed: false, 
-      createdAt: new Date().toISOString() 
-    };
-
-    try {
-      const safeData = JSON.parse(JSON.stringify(promoData));
-      await addDoc(getPromocodesRef(), safeData);
-      showToast(`✅ Промокод ${code} створено!`);
-      setNewPromoPercent(10);
-      setNewPromoProductId('all');
-    } catch(err) { 
-      console.error(err);
-      showToast(`❌ Помилка створення: ${err.message}`); 
     }
   };
 
@@ -1260,15 +1251,17 @@ export default function App() {
                     <div className="mb-8 md:mb-10">
                       <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 md:mb-6">Колір: {activeColor.label}</h4>
                       <div className="flex gap-4">
-                        {colors.map((color, i) => (
+                        {colors.map((color, i) => {
+                          const isSelected = activeColor.name === color.name && activeColor.hex === color.hex;
+                          return (
                           <button
                             key={i}
                             onClick={() => { setSelectedColor(color); setActiveImageIndex(color.imageIndex || 0); }}
-                            className={`w-10 h-10 rounded-full border-2 transition-all p-0.5 ${activeColor.name === color.name ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/50'}`}
+                            className={`w-10 h-10 rounded-full border-2 transition-all p-0.5 ${isSelected ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/50'}`}
                           >
                             <div className="w-full h-full rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
                           </button>
-                        ))}
+                        )})}
                       </div>
                     </div>
 
@@ -1321,7 +1314,7 @@ export default function App() {
                   <p>Ця Політика конфіденційності регулює збір та захист персональних даних користувачів інтернет-магазину SLINIAVSKIY BRAND відповідно до законодавства України, зокрема Закону України «Про захист персональних даних».</p>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">1. Збір інформації</h3>
-                    <p>Ми збираємо персональні дані (ПІБ, телефон, e-mail, адреса доставки) виключно для обробки, підтвердження та відправки замовлень. Здійснюючи замовлення, ви надаєте згоду на обробку своїх персональних даних.</p>
+                    <p>Ми збираємо персональні данные (ПІБ, телефон, e-mail, адреса доставки) виключно для обробки, підтвердження та відправки замовлень. Здійснюючи замовлення, ви надаєте згоду на обробку своїх персональних даних.</p>
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">2. Передача третім особам</h3>
@@ -1479,7 +1472,6 @@ export default function App() {
               {[
                 { id: 'orders', label: 'Замовлення', icon: <Package size={16} /> },
                 { id: 'products', label: 'Товари', icon: <Box size={16} /> },
-                { id: 'promos', label: 'Промокоди', icon: <Percent size={16} /> },
                 { id: 'referrals', label: 'Реферали', icon: <Users size={16} /> },
                 { id: 'settings', label: 'Налаштування', icon: <Settings size={16} /> }
               ].map(tab => (
@@ -1526,9 +1518,6 @@ export default function App() {
                                <div className="flex flex-wrap gap-2 mt-2">
                                  {order.referralCode && (
                                    <p className="inline-block px-3 py-1 bg-white/10 text-[#d4af37] text-[9px] font-black uppercase tracking-widest rounded-sm border border-[#d4af37]/30 break-all">Реферал: {order.referralCode}</p>
-                                 )}
-                                 {order.promocode && (
-                                   <p className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[9px] font-black uppercase tracking-widest rounded-sm border border-green-500/30 break-all">Промокод: {order.promocode}</p>
                                  )}
                                </div>
                             </div>
@@ -1641,7 +1630,12 @@ export default function App() {
                         
                         {/* Image Upload Section */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
-                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Крок 1. Завантажити фото з пристрою</label>
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                            <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Крок 1. Завантажити фото з пристрою</label>
+                            <span className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 border border-white/10">
+                              Ідеальний розмір: пропорція 3:4 (напр. 800x1067 px)
+                            </span>
+                          </div>
                           <input 
                             type="file" 
                             multiple 
@@ -1691,82 +1685,6 @@ export default function App() {
                 </section>
               )}
 
-              {/* --- PROMOS TAB --- */}
-              {adminTab === 'promos' && (
-                <section className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                    {/* Create New Promo */}
-                    <div className="lg:col-span-1 border border-white/10 p-4 md:p-6 bg-zinc-900/20 h-fit w-full">
-                      <h3 className="font-black uppercase tracking-widest text-sm mb-4 text-[#d4af37]">Згенерувати промокод</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Знижка (%)</label>
-                          <input 
-                            type="number" 
-                            min="1" max="99" 
-                            value={newPromoPercent} 
-                            onChange={e => setNewPromoPercent(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">На який товар діє?</label>
-                          <select 
-                            value={newPromoProductId} 
-                            onChange={e => setNewPromoProductId(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
-                          >
-                            <option value="all">Для всіх речей</option>
-                            {dbProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </div>
-                        <button type="button" onClick={handleGeneratePromo} className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2">
-                          <Percent size={14} /> Згенерувати код
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Promos List */}
-                    <div className="lg:col-span-2 border border-white/10 p-4 md:p-6 bg-zinc-900/20 w-full overflow-hidden">
-                      <h3 className="font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
-                        Список промокодів
-                      </h3>
-                      <div className="overflow-x-auto no-scrollbar border border-white/5 w-full">
-                        <table className="w-full text-left text-xs min-w-[500px]">
-                          <thead className="bg-white/5 text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                            <tr>
-                              <th className="p-4">Код</th>
-                              <th className="p-4">Знижка</th>
-                              <th className="p-4">Товар</th>
-                              <th className="p-4 text-right">Статус</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {promocodes.length === 0 ? (
-                              <tr><td colSpan="4" className="p-4 text-center text-zinc-500">Немає промокодів</td></tr>
-                            ) : (
-                              promocodes.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(p => {
-                                const targetProduct = p.productId && p.productId !== 'all' ? dbProducts.find(prod => prod.id === p.productId)?.name : 'Всі товари';
-                                return (
-                                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="p-4 whitespace-nowrap font-mono font-bold">{p.code}</td>
-                                    <td className="p-4 font-black text-[#d4af37]">-{p.discountPercent}%</td>
-                                    <td className="p-4 truncate max-w-[150px]">{targetProduct}</td>
-                                    <td className={`p-4 text-right font-black uppercase tracking-widest text-[9px] ${p.isUsed ? 'text-red-500' : 'text-green-500'}`}>
-                                      {p.isUsed ? 'Використаний' : 'Активний'}
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
               {/* --- REFERRALS TAB --- */}
               {adminTab === 'referrals' && (
                 <section className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
@@ -1792,28 +1710,32 @@ export default function App() {
                         </button>
                       </form>
 
-                      {/* CALCULATE SUM BY MONTH */}
+                      {/* CALCULATE SUM BY MONTH (USING FULL DATE PICKER) */}
                       <div className="mt-8 pt-8 border-t border-white/10">
                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Підрахунок суми за місяць</h4>
-                         <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Оберіть місяць</label>
+                         <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Оберіть будь-яку дату (порахує за весь її місяць)</label>
                          <input 
-                            type="month" 
-                            value={refCalcMonth}
-                            onChange={e => setRefCalcMonth(e.target.value)}
-                            className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-4"
+                            type="date" 
+                            value={refCalcDate}
+                            onChange={e => setRefCalcDate(e.target.value)}
+                            className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-4 text-white [color-scheme:dark] cursor-pointer"
                          />
                          {(() => {
-                           if (!refFilterPartner || !refCalcMonth) return null;
+                           if (!refFilterPartner || !refCalcDate) return null;
+                           
+                           // Отримуємо "YYYY-MM" з обраної дати
+                           const targetMonth = refCalcDate.slice(0, 7);
+                           
                            const calcOrders = orders.filter(o => 
                              o.referralCode === refFilterPartner && 
-                             o.createdAt.startsWith(refCalcMonth) && 
+                             o.createdAt.startsWith(targetMonth) && 
                              o.status !== 'cancelled' && 
                              o.status !== 'pending_payment'
                            );
                            const calcSum = calcOrders.reduce((sum, o) => sum + o.total, 0);
                            return (
                              <div className="bg-black/50 border border-white/10 p-4 text-center">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Загальний дохід за {refCalcMonth}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Загальний дохід за {targetMonth}</p>
                                 <p className="text-2xl font-black text-green-400">{calcSum} ₴</p>
                                 <p className="text-[8px] text-zinc-600 mt-2 uppercase tracking-widest">({calcOrders.length} успішних замовлень)</p>
                              </div>
@@ -1856,23 +1778,32 @@ export default function App() {
                                 {Object.entries(STATUS_MAP).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
                               </select>
                             </div>
-                            <div className="w-full">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Від дати</label>
-                              <input 
-                                type="date" 
-                                value={refFilterDateFrom}
-                                onChange={e => setRefFilterDateFrom(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
-                              />
-                            </div>
-                            <div className="w-full">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">До дати</label>
-                              <input 
-                                type="date" 
-                                value={refFilterDateTo}
-                                onChange={e => setRefFilterDateTo(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
-                              />
+                            
+                            {/* Оновлене зручне меню вибору дат */}
+                            <div className="w-full sm:col-span-2">
+                              <div className="flex justify-between items-end mb-2">
+                                <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500">Період (Від - До)</label>
+                                <div className="flex gap-2">
+                                  <button onClick={() => { const d = new Date(); setRefFilterDateFrom(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)); setRefFilterDateTo(d.toISOString().slice(0, 10)); }} className="text-[8px] text-[#d4af37] hover:text-white uppercase font-black tracking-widest transition-colors">Цей місяць</button>
+                                  <span className="text-zinc-600 text-[8px]">|</span>
+                                  <button onClick={() => { setRefFilterDateFrom(''); setRefFilterDateTo(''); }} className="text-[8px] text-zinc-400 hover:text-white uppercase font-black tracking-widest transition-colors">Весь час</button>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                <input 
+                                  type="date" 
+                                  value={refFilterDateFrom}
+                                  onChange={e => setRefFilterDateFrom(e.target.value)}
+                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer"
+                                />
+                                <span className="text-zinc-500 font-bold">-</span>
+                                <input 
+                                  type="date" 
+                                  value={refFilterDateTo}
+                                  onChange={e => setRefFilterDateTo(e.target.value)}
+                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer"
+                                />
+                              </div>
                             </div>
                           </div>
 
@@ -2006,18 +1937,98 @@ export default function App() {
 
                       {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлу в базу...</p>}
 
-                      <div className="mt-6">
-                        <label className="block text-[10px] font-black uppercase mb-2">Категорії товарів (моделі) через кому</label>
-                        <p className="text-[8px] text-zinc-500 mb-2 uppercase tracking-widest">Тут можна додавати або видаляти моделі товарів (наприклад, піджаки, футболки). Усі додані тут категорії з'являться на сайті та при додаванні товару.</p>
-                        <textarea 
-                          value={settingsCategories} 
-                          onChange={e => setSettingsCategories(e.target.value)} 
-                          className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors h-24" 
-                          placeholder="Футболки, Штани, Джинси, Брюки, Шорти, Піджаки"
-                        />
+                      <div className="mt-8 border-t border-white/10 pt-6">
+                        <label className="block text-[10px] font-black uppercase mb-4 text-[#d4af37]">Керування категоріями товарів</label>
+                        <p className="text-[8px] text-zinc-500 mb-6 uppercase tracking-widest">Натисніть на категорію, щоб додати або видалити її з сайту. Активні категорії світяться білим.</p>
+
+                        {/* Верхній одяг */}
+                        <div className="mb-6">
+                          <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Верхній одяг</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка'].map(cat => {
+                              const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                    if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                    else current.push(cat);
+                                    setSettingsCategories(current.join(', '));
+                                  }}
+                                  className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                >
+                                  {cat}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Низ */}
+                        <div className="mb-6">
+                          <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Одяг для ніг (Низ)</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {['Брюки', 'Джинсы', 'Штаны', 'Шорты'].map(cat => {
+                              const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                    if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                    else current.push(cat);
+                                    setSettingsCategories(current.join(', '));
+                                  }}
+                                  className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                >
+                                  {cat}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Головні убори та аксесуари */}
+                        <div className="mb-6">
+                          <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Головні убори та аксесуари</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'].map(cat => {
+                              const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                    if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                    else current.push(cat);
+                                    setSettingsCategories(current.join(', '));
+                                  }}
+                                  className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                >
+                                  {cat}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Custom / Ручне введення */}
+                        <div>
+                           <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії (ручне введення через кому)</h4>
+                           <textarea
+                            value={settingsCategories}
+                            onChange={e => setSettingsCategories(e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors h-16"
+                            placeholder="Інші категорії..."
+                          />
+                        </div>
                       </div>
 
-                      <button type="button" onClick={handleSaveSettings} disabled={isUploadingFile} className="w-full sm:w-auto self-start px-8 py-4 md:py-5 mt-4 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50">ЗБЕРЕГТИ НАЛАШТУВАННЯ</button>
+                      <button type="button" onClick={handleSaveSettings} disabled={isUploadingFile} className="w-full sm:w-auto self-start px-8 py-4 md:py-5 mt-6 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50">ЗБЕРЕГТИ НАЛАШТУВАННЯ</button>
                     </div>
                   </div>
                 </section>
@@ -2038,7 +2049,7 @@ export default function App() {
               <div className="mt-2 md:mt-8 flex flex-col gap-4">
                 <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-white">Соцмережі</h4>
                 <div className="flex gap-6">
-                  <a href="https://t.me/+dHv88j1GakxjZDZi" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors"><TelegramIcon size={20} /></a>
+                  <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors"><TelegramIcon size={20} /></a>
                   <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors"><Instagram size={20} /></a>
                   <a href="https://www.youtube.com/@sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors"><Youtube size={20} /></a>
                   <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors"><TikTokIcon size={20} /></a>
@@ -2065,27 +2076,36 @@ export default function App() {
               <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-6 md:mb-8 text-white">Підтримка</h4>
               <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest break-all hover:text-white cursor-pointer transition-colors text-left mb-6">sliniavskiy.support@gmail.com</p>
               
-              {/* Іконки платіжних систем */}
-              <div className="flex items-center gap-4 md:gap-6 mt-auto mb-2 text-zinc-600">
-                 <svg viewBox="0 0 32 10" className="h-4 w-auto fill-current hover:text-white transition-colors">
-                   <path d="M12.6,0 L9.3,9.8 L6.2,9.8 L4.0,2.1 C3.9,1.7 3.8,1.4 3.4,1.2 C2.6,0.9 1.3,0.5 0,0.3 L0.1,0 L4.6,0 C5.2,0 5.8,0.4 6.0,1.1 L7.1,7.0 L10.0,0 L12.6,0 Z M24.3,6.7 C24.3,4.2 20.8,4.1 20.8,2.9 C20.8,2.5 21.2,2.0 22.0,1.9 C22.4,1.8 23.3,1.8 24.3,2.2 L24.8,0.4 C24.2,0.2 23.0,0 21.8,0 C19.2,0 17.5,1.4 17.5,3.3 C17.5,4.7 18.8,5.5 19.8,6.0 C20.8,6.5 21.1,6.8 21.1,7.3 C21.1,8.0 20.3,8.3 19.5,8.3 C18.0,8.3 17.1,7.9 16.5,7.6 L16.0,9.5 C16.6,9.8 17.8,10.0 19.2,10.0 C22.0,10.0 24.3,8.6 24.3,6.7 Z M30.8,10.0 L32.6,0 L30.1,0 C29.6,0 29.1,0.3 28.9,0.8 L24.8,10.0 L28.1,10.0 L28.7,8.2 L32.2,8.2 L32.5,10.0 L30.8,10.0 Z M29.6,5.8 L31.1,1.5 L31.9,5.8 L29.6,5.8 Z M16.7,0 L14.4,10.0 L11.4,10.0 L13.7,0 L16.7,0 Z"/>
+              {/* Іконки платіжних систем (MonoPay: Visa, MC, Apple, Google) */}
+              <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-auto mb-2 text-zinc-500">
+                 <svg viewBox="0 0 38 12" className="h-4 md:h-5 w-auto fill-current hover:text-white transition-colors" title="Visa">
+                   <path d="M14.88 0l-2.4 11.53H9.15L11.55 0h3.33zm16.48 11.23c-.55.26-1.74.55-3.33.55-3.66 0-6.24-1.93-6.27-4.69-.03-2.03 1.76-3.15 3.12-3.83 1.4-.7 1.87-1.15 1.87-1.78 0-.96-1.14-1.4-2.2-1.4-1.46 0-2.32.42-3.26.87l-.46.22-.46-2.92c.81-.38 2.3-.72 3.88-.74 3.87 0 6.4 1.9 6.44 4.8.03 1.62-.97 2.65-2.73 3.52-1.25.61-2.02 1.02-2.02 1.65 0 .61.69 1.25 2.27 1.25 1.15 0 1.98-.24 2.82-.62l.33-.16.53 2.68zm-19.33-8.8v-.03c.53-1.47 2.55-6.9 2.55-6.9h3.58l-4 11.53h-3.37l-2.05-5.83-1.43-4.75h-.03L3.18 11.53H0L3.83 0h3.46l2.02 5.96z" />
                  </svg>
-                 <svg viewBox="0 0 24 24" className="h-6 md:h-7 w-auto fill-current hover:text-white transition-colors">
-                   <circle cx="9" cy="12" r="6"/>
-                   <circle cx="15" cy="12" r="6" fillOpacity="0.6"/>
+                 <svg viewBox="0 0 24 15" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors" title="Mastercard">
+                   <path d="M15.48 7.5c0-2.2-1-4.14-2.58-5.46a8.23 8.23 0 0 1 0 10.92 8.24 8.24 0 0 0 2.58-5.46z"/>
+                   <path d="M8.53 7.5a8.24 8.24 0 0 0 2.57 5.46 8.24 8.24 0 0 0 0-10.92 8.24 8.24 0 0 0-2.57 5.46z"/>
+                   <path d="M9 1.66A8.25 8.25 0 1 0 10.05 15 8.24 8.24 0 0 1 5.38 7.5c0-2.6 1.22-4.93 3.15-6.42A8.25 8.25 0 0 0 9 1.66z"/>
+                   <path d="M22.5 7.5A8.25 8.25 0 0 1 14 15.75a8.25 8.25 0 0 1-5.05-13.34A8.25 8.25 0 0 1 22.5 7.5z"/>
+                 </svg>
+                 <svg viewBox="0 0 41 17" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors ml-1" title="Apple Pay">
+                   <path d="M19.08 16.51V4.28h3.33c1.7 0 2.92.36 3.65 1.07.72.7 1.08 1.67 1.08 2.89 0 1.25-.36 2.22-1.08 2.9-.73.69-1.96 1.03-3.69 1.03h-1.63v4.34h-1.66zm1.66-5.74h1.74c1.17 0 1.99-.21 2.45-.63.46-.42.69-1.03.69-1.83 0-.81-.23-1.42-.68-1.84-.45-.41-1.27-.62-2.46-.62h-1.74v4.92zm10.7 5.74V9.89c0-.98-.21-1.69-.64-2.12-.42-.43-1.05-.65-1.88-.65-.8 0-1.46.22-1.97.66-.5.44-.8 1.06-.91 1.86h-1.57c.13-1.26.6-2.23 1.4-2.93.81-.69 1.83-1.04 3.08-1.04 1.3 0 2.3.36 3.02 1.07.72.71 1.08 1.74 1.08 3.1v6.67h-1.61zm-4.32-2.15c.67.41 1.46.62 2.38.62.9 0 1.62-.23 2.16-.68.54-.45.81-1.04.81-1.75 0-.64-.23-1.15-.7-1.55-.46-.4-1.27-.66-2.42-.79-1.51-.17-2.55-.5-3.13-1.01-.58-.51-.87-1.19-.87-2.05 0-.91.36-1.66 1.07-2.24.71-.58 1.67-.87 2.86-.87 1.02 0 1.9.22 2.65.65v1.45c-.83-.49-1.7-.73-2.61-.73-.78 0-1.39.18-1.83.54-.44.36-.66.82-.66 1.38 0 .54.21.96.63 1.28.42.31 1.15.54 2.18.67 1.49.2 2.53.53 3.12 1.01.59.48.88 1.17.88 2.08 0 .96-.36 1.73-1.09 2.33-.73.6-1.74.9-3.03.9-1.12 0-2.11-.27-2.98-.82v-1.47zm13.13-7.5l-3.32 9.65h-1.72l1.24-3.51-3.41-6.14h1.8l2.36 4.6 2.21-4.6h1.84zM7.06 6.55C7.29 4.3 9.17 2.8 11.36 2.76c2.02-.03 3.52 1.21 4.54 1.21 1.03 0 2.18-1.22 4.41-1.22 1.57 0 3.32.74 4.35 2.15-3.35 1.93-2.8 6.58.55 7.91-1.08 2.7-3.03 5.43-5.59 5.45-1.55.01-2.2-.95-4.1-.95-1.89 0-2.48.97-4.1.95-1.73-.01-3.11-2.03-4.59-4.32-2.18-3.4-3.18-7.73-1.75-10.43.5-.94 1.34-1.72 2.37-2.13.06 1.67.75 3.33 1.83 4.46.86.89 2.1 1.5 3.32 1.51-.06-1.51-.74-3.01-1.8-4.04-.84-.82-2.04-1.42-3.23-1.48-.38 1.38-.28 2.82.5 4.1.75 1.24 1.94 2.17 3.33 2.6z"/>
+                 </svg>
+                 <svg viewBox="0 0 54 22" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors" title="Google Pay">
+                   <path d="M20.25 10.97v4.18H22v-11.2h3.9c1.07 0 1.96.36 2.68 1.07.74.7 1.11 1.57 1.11 2.6 0 1.04-.37 1.9-1.11 2.61-.72.71-1.61 1.07-2.68 1.07h-3.9v-4.33h-1.65zm1.65-5.54h3.9c.6 0 1.12-.2 1.56-.61.44-.41.66-.92.66-1.53 0-.6-.22-1.11-.66-1.52-.44-.41-.96-.62-1.56-.62h-3.9v4.28zm8.9 9.72c-.89 0-1.61-.25-2.17-.74-.56-.5-.84-1.16-.84-1.99 0-.88.31-1.56.93-2.05.62-.49 1.45-.73 2.49-.73.88 0 1.62.16 2.22.48v-.31c0-.62-.22-1.15-.65-1.58-.43-.43-1.01-.64-1.74-.64-.6 0-1.13.14-1.59.43-.46.29-.8.71-1.02 1.26l-1.49-.62c.32-.78.82-1.42 1.5-1.93.68-.51 1.54-.76 2.58-.76 1.17 0 2.1.33 2.78.99.68.66 1.02 1.56 1.02 2.7v5.37h-1.55v-1.18c-.54.89-1.37 1.33-2.49 1.33zm-.26-1.37c.56 0 1.07-.2 1.53-.59.46-.39.69-.88.69-1.47-.49-.35-1.12-.53-1.9-.53-.66 0-1.19.14-1.58.42-.39.28-.58.65-.58 1.1 0 .37.13.68.39.93.26.25.68.37 1.26.37zm7.42 5.56l-5.32-15.35h1.72l4.31 12.87 4.38-12.87h1.69l-7.05 19.3h-1.66v-3.95zM6.91 4.54c1.86 0 3.42.66 4.7 1.99l-1.74 1.7c-.8-.77-1.79-1.16-2.96-1.16-2.28 0-4.13 1.61-4.13 3.93 0 2.32 1.85 3.93 4.13 3.93 1.31 0 2.34-.48 3.01-1.19.82-.84 1.08-1.99 1.18-3.08H6.91V8.2h7.67c.08.38.12.79.12 1.25 0 2.31-.83 4.41-2.26 5.86-1.43 1.45-3.26 2.21-5.53 2.21-4.22 0-7.64-3.35-7.64-7.5S2.69 2.5 6.91 2.5c1.93 0 3.51.68 4.72 1.86l-1.8 1.83c-.88-.85-1.98-1.35-3.13-1.35v-.3z"/>
                  </svg>
               </div>
-              <p className="text-[7px] md:text-[8px] text-zinc-600 font-bold uppercase tracking-widest mt-2">Безпечна оплата онлайн</p>
+              <p className="text-[7px] md:text-[8px] text-zinc-600 font-bold uppercase tracking-widest mt-2">Офіційний мерчант MonoPay</p>
             </div>
           </div>
           
-          {/* Фізичні реквізити */}
-          <div className="pt-8 md:pt-10 border-t border-white/5 flex flex-col lg:flex-row justify-between items-center gap-6">
-            <div className="text-zinc-800 text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-center lg:text-left leading-relaxed">
-              ФОП Слінявський Іван Леонідович | ІПН: 3955107331<br/>
-              Україна, м. Кропивницький, вул. Михайла Грушевського, 57
+          {/* Очищений підвал згідно закону */}
+          <div className="pt-8 md:pt-10 border-t border-white/5 flex flex-col justify-center items-center">
+            <p className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-center mb-2">© {new Date().getFullYear()} SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.</p>
+            <div className="flex gap-4 text-zinc-800 text-[8px] uppercase font-bold tracking-widest">
+               <button onClick={() => navigate('legal', {type: 'terms'})} className="hover:text-zinc-500 transition-colors">Публічна оферта</button>
+               <span>|</span>
+               <button onClick={() => navigate('legal', {type: 'privacy'})} className="hover:text-zinc-500 transition-colors">Політика конфіденційності</button>
             </div>
-            <p className="text-zinc-800 text-[7px] md:text-[8px] font-black uppercase tracking-[0.4em] text-center">© {new Date().getFullYear()} SLINIAVSKIY BRAND. UKRAINE.</p>
           </div>
         </div>
       </footer>
@@ -2222,16 +2242,11 @@ export default function App() {
                     <input required type="tel" placeholder="Номер телефону" value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     <input required type="text" placeholder="Місто" value={deliveryForm.city} onChange={e => setDeliveryForm({...deliveryForm, city: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     <input required type="text" placeholder="Відділення Нової Пошти" value={deliveryForm.branch} onChange={e => setDeliveryForm({...deliveryForm, branch: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
-                    
-                    <div className="pt-4 border-t border-white/10 flex items-center gap-2">
-                      <input type="text" value={checkoutPromo} onChange={e => setCheckoutPromo(e.target.value)} placeholder="Промокод" className="flex-1 bg-black p-3 text-xs border border-white/10 uppercase outline-none focus:border-white transition-colors" />
-                      <button type="button" onClick={handleApplyPromo} className="px-4 py-3 bg-white text-black font-black text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-colors">Застосувати</button>
-                    </div>
 
                     <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-4">
                       <label className="flex items-start gap-3 cursor-pointer group">
-                        <input required type="checkbox" className="mt-1 accent-white w-4 h-4 cursor-pointer shrink-0" />
-                        <span className="text-[9px] md:text-[10px] text-zinc-400 font-medium leading-relaxed group-hover:text-white transition-colors">
+                        <input required type="checkbox" className="mt-1 w-5 h-5 cursor-pointer shrink-0 appearance-none border-2 border-white/20 rounded-sm checked:bg-white checked:border-white relative flex items-center justify-center after:content-['✓'] after:text-black after:text-[14px] after:font-black after:hidden checked:after:block transition-colors" />
+                        <span className="text-[9px] md:text-[10px] text-zinc-400 font-medium leading-relaxed group-hover:text-white transition-colors pt-0.5">
                           Я погоджуюсь з <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'terms'}); }} className="underline">Умовами надання послуг</button> та <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'privacy'}); }} className="underline">Політикою конфіденційності</button> (обов'язково)
                         </span>
                       </label>
@@ -2254,7 +2269,7 @@ export default function App() {
                     <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Оплата онлайн</h3>
                     <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 leading-relaxed mb-8 md:mb-12">
                       Безпечний платіжний шлюз.<br/>
-                      <span className="text-[#d4af37] mt-2 block">Тут буде інтеграція ключів еквайрингу<br/>(наприклад, LiqPay або WayForPay)</span>
+                      <span className="text-[#d4af37] mt-2 block">Інтеграція WayForPay</span>
                     </p>
                     
                     <div className="w-full space-y-3 md:space-y-4 mt-auto">
@@ -2262,8 +2277,8 @@ export default function App() {
                         <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400">До сплати</span>
                         <span className="text-base md:text-lg font-black text-white">{cartTotal} ₴</span>
                       </div>
-                      <button onClick={handleFinalizePayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
-                        Симулювати успішну оплату
+                      <button onClick={handleWayForPayPayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
+                        Оплатити замовлення
                       </button>
                       <button onClick={() => setCheckoutStep(1)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">
                         Назад до деталей доставки
