@@ -448,12 +448,12 @@ export default function App() {
     return () => { unsubProducts(); unsubSettings(); unsubOrders(); unsubReferrals(); };
   }, [user]);
 
+  // ЗМІНА ТУТ: Пошук тепер шукає виключно за назвою товару (name)
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     return storefrontProducts.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      p.category.toLowerCase().includes(q)
+      p.name.toLowerCase().includes(q)
     );
   }, [searchQuery, storefrontProducts]);
 
