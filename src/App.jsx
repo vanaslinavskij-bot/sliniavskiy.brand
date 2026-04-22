@@ -19,7 +19,6 @@ import {
   signInWithCustomToken,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword
@@ -119,7 +118,7 @@ const TelegramIcon = ({ size = 24, className = "" }) => (
 );
 
 // --- HEADER ---
-function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, setIsMobileMenuOpen, user, groupedCategories }) {
+function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, user, groupedCategories }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 30);
@@ -142,13 +141,14 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
             </button>
           )}
           
-          <button 
-            className="md:hidden p-2 -ml-2 text-white cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center" 
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <Menu size={28} />
-          </button>
+          {/* Mobile direct catalog link since menu is removed */}
+          {route !== 'catalog' && (
+            <button onClick={() => navigate('catalog')} className="md:hidden text-[10px] xs:text-xs font-black uppercase tracking-widest text-white hover:opacity-70 transition-opacity">
+              Каталог
+            </button>
+          )}
 
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex gap-8 items-center text-[11px] font-black uppercase tracking-[0.2em]">
             <div className="relative group" onMouseEnter={() => setIsCatalogOpen(true)} onMouseLeave={() => setIsCatalogOpen(false)}>
               <button onClick={() => navigate('catalog')} className="flex items-center gap-2 hover:opacity-50 transition-opacity py-2 text-white font-black">
@@ -192,30 +192,33 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
           </nav>
         </div>
 
-        {/* CENTER SECTION: Logo (Adapted to fit on mobile perfectly) */}
+        {/* CENTER SECTION: Logo */}
         <div className="flex-none flex justify-center cursor-pointer group relative z-50 px-2" onClick={() => navigate('home')}>
           <h1 className="text-[14px] xs:text-[16px] sm:text-xl md:text-3xl font-black tracking-normal md:tracking-tighter uppercase md:group-hover:tracking-widest transition-all duration-700 text-white whitespace-nowrap">SLINIAVSKIY</h1>
         </div>
 
-        {/* RIGHT SECTION: Icons */}
-        <div className="flex-1 flex items-center justify-end gap-3 md:gap-6 text-white relative z-50">
-          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1 md:p-0">
-            <Heart size={20} className="md:w-5 md:h-5" />
+        {/* RIGHT SECTION: Icons (Now fully visible on mobile) */}
+        <div className="flex-1 flex items-center justify-end gap-3 xs:gap-4 md:gap-6 text-white relative z-50">
+          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
+            <Heart size={20} className="w-5 h-5 md:w-5 md:h-5" />
             {wishlist.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
           </button>
 
-          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity p-1 md:p-0"><Search size={20} className="md:w-5 md:h-5" /></button>
+          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity p-1">
+            <Search size={20} className="w-5 h-5 md:w-5 md:h-5" />
+          </button>
           
-          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity p-1 md:p-0">
+          {/* USER / CABINET BUTTON - ALWAYS VISIBLE */}
+          <button onClick={() => navigate('account')} className="hover:opacity-50 transition-opacity p-1">
             {user && !user.isAnonymous && user.photoURL ? (
               <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
             ) : (
-              <User size={20} className="md:w-5 md:h-5" />
+              <User size={20} className="w-5 h-5 md:w-5 md:h-5" />
             )}
           </button>
 
-          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1 md:p-0">
-            <ShoppingBag size={20} className="md:w-5 md:h-5" />
+          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
+            <ShoppingBag size={20} className="w-5 h-5 md:w-5 md:h-5" />
             {totalItems > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
           </button>
         </div>
@@ -266,7 +269,6 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
@@ -470,7 +472,7 @@ export default function App() {
     sessionStorage.setItem('sliniavskiy_route', r);
     sessionStorage.setItem('sliniavskiy_routeParams', JSON.stringify(p));
     
-    setIsCartOpen(false); setIsSearchOpen(false); setIsWishlistOpen(false); setIsMobileMenuOpen(false); setIsCatalogOpen(false);
+    setIsCartOpen(false); setIsSearchOpen(false); setIsWishlistOpen(false); setIsCatalogOpen(false);
     setSearchQuery('');
     setAuthError(''); 
     setActiveImageIndex(0);
@@ -524,14 +526,11 @@ export default function App() {
     setAuthError('');
     const provider = new GoogleAuthProvider();
     try {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-        showToast('Успішний вхід');
-      }
+      // Используем signInWithPopup вместо redirect для корректной работы на всех устройствах и в iframe
+      await signInWithPopup(auth, provider);
+      showToast('Успішний вхід через Google');
     } catch (err) {
+      console.error("Google Auth Error:", err);
       setAuthError(`Помилка авторизації Google: ${err.message}`);
     }
   };
@@ -1013,7 +1012,6 @@ export default function App() {
         isCatalogOpen={isCatalogOpen} 
         setIsCatalogOpen={setIsCatalogOpen} 
         setIsCartOpen={setIsCartOpen} 
-        setIsMobileMenuOpen={setIsMobileMenuOpen} 
         user={user} 
         groupedCategories={groupedCategories}
       />
@@ -1224,6 +1222,25 @@ export default function App() {
                    Увійдіть, щоб відстежувати замовлення та мати доступ до персональних налаштувань.
                  </p>
                  
+                 {/* Google Login Button - Made Prominent */}
+                 <button 
+                   onClick={handleGoogleLogin}
+                   className="w-full py-4 mb-8 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
+                 >
+                   <svg className="w-5 h-5" viewBox="0 0 24 24">
+                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                   </svg>
+                   Увійти через Google
+                 </button>
+
+                 <div className="relative flex items-center justify-center mb-8">
+                    <div className="absolute border-t border-white/10 w-full"></div>
+                    <span className="relative bg-[#0a0a0a] px-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500">Або за допомогою Email</span>
+                 </div>
+
                  {/* Email & Password Form */}
                  <form onSubmit={handleEmailAuth} className="space-y-4 mb-8 text-left">
                     {authError && (
@@ -1252,12 +1269,12 @@ export default function App() {
                         minLength={6}
                       />
                     </div>
-                    <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-xl mt-2">
-                      {isRegistering ? 'Зареєструватися' : 'Увійти'}
+                    <button type="submit" className="w-full py-4 border border-white/20 bg-transparent text-white font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all active:scale-95 shadow-xl mt-2">
+                      {isRegistering ? 'Зареєструватися через Email' : 'Увійти через Email'}
                     </button>
                  </form>
 
-                 <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-6 mb-8 gap-4">
+                 <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-6 gap-4">
                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                       {isRegistering ? 'Вже є акаунт?' : 'Немає акаунта?'}
                     </span>
@@ -1269,26 +1286,6 @@ export default function App() {
                       {isRegistering ? 'Увійти' : 'Створити акаунт'}
                     </button>
                  </div>
-
-                 {/* Google Login Divider */}
-                 <div className="relative flex items-center justify-center mb-8">
-                    <div className="absolute border-t border-white/10 w-full"></div>
-                    <span className="relative bg-[#0a0a0a] px-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500">Або</span>
-                 </div>
-
-                 {/* Google Login Button */}
-                 <button 
-                   onClick={handleGoogleLogin}
-                   className="w-full py-4 border border-white/20 bg-transparent text-white font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-4 active:scale-95"
-                 >
-                   <svg className="w-4 h-4" viewBox="0 0 24 24">
-                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                   </svg>
-                   через Google
-                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-20">
@@ -1491,11 +1488,11 @@ export default function App() {
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">2. Передача третім особам</h3>
-                    <p>Ми не передаємо ваші дані третім особам, за винятком логістичних партнерів (ТОВ «Нова Пошта») для доставки та фінансових установ/платіжних систем (для обробки транзакцій Visa/Mastercard).</p>
+                    <p>Ми не передаємо ваші данные третім особам, за винятком логістичних партнерів (ТОВ «Нова Пошта») для доставки та фінансових установ/платіжних систем (для обробки транзакцій Visa/Mastercard).</p>
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Захист даних</h3>
-                    <p>Всі транзакції та особисті дані захищені протоколами шифрування (SSL). Фінансові дані карт не зберігаються на нашому сервері, а обробляються виключно на боці сертифікованого платіжного шлюзу (PCI DSS).</p>
+                    <p>Всі транзакції та особисті данные захищені протоколами шифрування (SSL). Фінансові данные карт не зберігаються на нашому сервері, а обробляються виключно на боці сертифікованого платіжного шлюзу (PCI DSS).</p>
                   </section>
                 </div>
               )}
@@ -1509,11 +1506,11 @@ export default function App() {
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">2. Оформлення замовлення</h3>
-                    <p>Замовлення вважається прийнятим після підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
+                    <p>Замовлення вважається прийнятим после підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Права та обов'язки сторін</h3>
-                    <p>Продавець зобов'язується передати товар відповідно до замовлення. Покупець зобов'язується надати достовірні дані для доставки (ПІБ, телефон, відділення) та своєчасно отримати товар.</p>
+                    <p>Продавець зобов'язується передати товар відповідно до замовлення. Покупець зобов'язується надати достовірні данные для доставки (ПІБ, телефон, відділення) та своєчасно отримати товар.</p>
                   </section>
                 </div>
               )}
@@ -1533,9 +1530,9 @@ export default function App() {
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Доставка</h3>
                     <p>Всі замовлення відправляються логістичною компанією <strong>«Нова Пошта»</strong>.</p>
                     <ul className="list-disc pl-5 mt-4 space-y-2">
-                      <li>Термін відправки: 1-3 робочих дні після підтвердження оплати.</li>
+                      <li>Термін відправки: 1-3 робочих дні после підтвердження оплати.</li>
                       <li>Вартість доставки розраховується за тарифами перевізника та оплачується Покупцем при отриманні.</li>
-                      <li>Після відправки ви отримаєте SMS/Viber повідомлення з номером ТТН для відстеження посилки.</li>
+                      <li>После відправки ви отримаєте SMS/Viber повідомлення з номером ТТН для відстеження посилки.</li>
                     </ul>
                   </section>
                 </div>
@@ -1557,7 +1554,7 @@ export default function App() {
                     <ol className="list-decimal pl-5 mt-4 space-y-2">
                       <li>Зв'яжіться з нашою підтримкою через Telegram або Email, вказавши номер замовлення та причину повернення.</li>
                       <li>Наш менеджер надасть вам реквізити для відправки товару «Новою Поштою» (доставку оплачує покупець).</li>
-                      <li>Після отримання та перевірки товару на складі, кошти будуть повернуті на вашу банківську карту (з якої була здійснена оплата) протягом 3-7 робочих днів.</li>
+                      <li>После отримання та перевірки товару на складі, кошти будуть повернуті на вашу банківську карту (з якої була здійснена оплата) протягом 3-7 робочих днів.</li>
                     </ol>
                   </section>
                 </div>
@@ -2562,99 +2559,6 @@ export default function App() {
             )}
           </div>
         </div>
-      )}
-
-      {/* MOBILE MENU */}
-      {isMobileMenuOpen && (
-         <div className="fixed inset-0 z-[1000] animate-in fade-in duration-300">
-           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-           <div className="absolute top-0 left-0 w-[85%] max-w-sm h-full bg-[#0a0a0a] border-r border-white/10 flex flex-col p-6 animate-in slide-in-from-left duration-500 shadow-2xl overflow-y-auto pb-20">
-              <div className="flex justify-between items-center mb-10">
-                 <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
-                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={24}/></button>
-              </div>
-              
-              <nav className="flex flex-col gap-6">
-                 
-                 {/* КАТАЛОГ (ГОЛОВНА КНОПКА) */}
-                 <button 
-                   onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} 
-                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors mt-2"
-                 >
-                   Каталог
-                   <ArrowRight size={20} className="text-zinc-500" />
-                 </button>
-
-                 {/* КАТЕГОРІЇ ДЛЯ ШВИДКОГО ПЕРЕХОДУ */}
-                 <div className="flex flex-col gap-5 border-b border-white/10 pb-8 pl-2">
-                   {groupedCategories.top.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.top.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
-                        </div>
-                      </div>
-                   )}
-                   {groupedCategories.bottom.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.bottom.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
-                        </div>
-                      </div>
-                   )}
-                   {groupedCategories.acc.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.acc.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
-                        </div>
-                      </div>
-                   )}
-                   {groupedCategories.other.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.other.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
-                        </div>
-                      </div>
-                   )}
-                 </div>
-
-                 <button 
-                   onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} 
-                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors"
-                 >
-                   Бренд
-                   <ArrowRight size={20} className="text-zinc-500" />
-                 </button>
-                 
-                 <button 
-                   onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} 
-                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors"
-                 >
-                    {user ? 'Мій Кабінет' : 'Увійти'}
-                    <ArrowRight size={20} className="text-zinc-500" />
-                 </button>
-
-                 {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-sm text-[#d4af37] font-black uppercase tracking-widest text-left mt-2 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
-              </nav>
-              
-              <div className="mt-auto pt-12 flex gap-8 justify-center">
-                 <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={28} /></a>
-                 <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={28} /></a>
-                 <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={28} /></a>
-              </div>
-           </div>
-         </div>
       )}
 
       {/* TOAST */}
