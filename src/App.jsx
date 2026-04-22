@@ -2310,7 +2310,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 md:gap-8">
             <div className="text-left max-w-2xl">
               <h4 className="text-white font-black uppercase tracking-widest text-sm md:text-lg mb-2">Ми використовуємо Cookies</h4>
-              <p className="text-zinc-500 text-[10px] md:text-xs font-medium leading-relaxed uppercase tracking-wider">Ми використовуємо файли cookie для покращення роботи сайту. Ви можете прийняти всі файли, відхилити необов'язкові або змінити налаштування.</p>
+              <p className="text-zinc-500 text-[10px] md:text-xs font-medium leading-relaxed uppercase tracking-wider">Ми використовуємо файли cookie для покращення роботи сайту. Ви ক্ষমতায় прийняти всі файли, відхилити необов'язкові або змінити налаштування.</p>
             </div>
             <div className="flex flex-wrap lg:flex-nowrap gap-3 md:gap-4 shrink-0 w-full lg:w-auto">
               <button onClick={() => handleCookieAction('declined')} className="flex-1 lg:flex-none px-4 py-3 border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:border-white transition-all text-center">Відхилити</button>
@@ -2574,62 +2574,75 @@ export default function App() {
                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={24}/></button>
               </div>
               
-              <nav className="flex flex-col gap-8">
+              <nav className="flex flex-col gap-6">
                  
-                 {/* КАТАЛОГ (ВСЕ КАТЕГОРИИ СРАЗУ ОТКРЫТЫ И СИНХРОНИЗИРОВАНЫ) */}
-                 <div className="flex flex-col gap-6 border-b border-white/10 pb-8">
-                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="w-full py-4 bg-white text-black text-[12px] font-black uppercase tracking-widest mb-2 shadow-xl active:scale-95 transition-transform text-center">
-                     Всі товари
-                   </button>
-                   
-                   <div className="flex flex-col gap-6">
-                     {groupedCategories.top.length > 0 && (
-                        <div className="flex flex-col gap-3">
-                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
-                          <div className="flex flex-wrap gap-2">
-                            {groupedCategories.top.map(c => (
-                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                            ))}
-                          </div>
+                 {/* КАТАЛОГ (ГОЛОВНА КНОПКА) */}
+                 <button 
+                   onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} 
+                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors mt-2"
+                 >
+                   Каталог
+                   <ArrowRight size={20} className="text-zinc-500" />
+                 </button>
+
+                 {/* КАТЕГОРІЇ ДЛЯ ШВИДКОГО ПЕРЕХОДУ */}
+                 <div className="flex flex-col gap-5 border-b border-white/10 pb-8 pl-2">
+                   {groupedCategories.top.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.top.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
                         </div>
-                     )}
-                     {groupedCategories.bottom.length > 0 && (
-                        <div className="flex flex-col gap-3">
-                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
-                          <div className="flex flex-wrap gap-2">
-                            {groupedCategories.bottom.map(c => (
-                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                            ))}
-                          </div>
+                      </div>
+                   )}
+                   {groupedCategories.bottom.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.bottom.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
                         </div>
-                     )}
-                     {groupedCategories.acc.length > 0 && (
-                        <div className="flex flex-col gap-3">
-                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
-                          <div className="flex flex-wrap gap-2">
-                            {groupedCategories.acc.map(c => (
-                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                            ))}
-                          </div>
+                      </div>
+                   )}
+                   {groupedCategories.acc.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.acc.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
                         </div>
-                     )}
-                     {groupedCategories.other.length > 0 && (
-                        <div className="flex flex-col gap-3">
-                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
-                          <div className="flex flex-wrap gap-2">
-                            {groupedCategories.other.map(c => (
-                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                            ))}
-                          </div>
+                      </div>
+                   )}
+                   {groupedCategories.other.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.other.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
                         </div>
-                     )}
-                   </div>
+                      </div>
+                   )}
                  </div>
 
-                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">Бренд</button>
+                 <button 
+                   onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} 
+                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors"
+                 >
+                   Бренд
+                   <ArrowRight size={20} className="text-zinc-500" />
+                 </button>
                  
-                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">
+                 <button 
+                   onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} 
+                   className="flex justify-between items-center w-full pb-6 text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 hover:text-zinc-300 transition-colors"
+                 >
                     {user ? 'Мій Кабінет' : 'Увійти'}
+                    <ArrowRight size={20} className="text-zinc-500" />
                  </button>
 
                  {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-sm text-[#d4af37] font-black uppercase tracking-widest text-left mt-2 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
