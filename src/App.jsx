@@ -134,17 +134,16 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
     <header className={`fixed top-0 w-full z-[500] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-4 md:py-8'}`}>
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
         
-        {/* LEFT SECTION: Back / Mobile Menu / Desktop Nav */}
-        <div className="flex items-center justify-start w-1/3 relative z-50">
+        {/* LEFT SECTION */}
+        <div className="flex-1 flex items-center justify-start relative z-50">
           {route !== 'home' && (
-            <button onClick={goBack} className="mr-4 hover:opacity-50 transition-opacity text-white flex items-center justify-center">
-              <ArrowLeft size={24} className="md:w-6 md:h-6" />
+            <button onClick={goBack} className="mr-3 md:mr-4 hover:opacity-50 transition-opacity text-white flex items-center justify-center">
+              <ArrowLeft size={22} className="md:w-6 md:h-6" />
             </button>
           )}
           
-          {/* Увеличенная зона клика для телефона */}
           <button 
-            className="md:hidden p-3 -ml-3 text-white cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center" 
+            className="md:hidden p-2 -ml-2 text-white cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center" 
             onClick={() => setIsMobileMenuOpen(true)}
           >
             <Menu size={28} />
@@ -193,30 +192,30 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
           </nav>
         </div>
 
-        {/* CENTER SECTION: Logo */}
-        <div className="w-1/3 flex justify-center cursor-pointer group relative z-50" onClick={() => navigate('home')}>
-          <h1 className="text-lg sm:text-xl md:text-3xl font-black tracking-tighter uppercase group-hover:tracking-widest transition-all duration-700 text-white truncate">SLINIAVSKIY</h1>
+        {/* CENTER SECTION: Logo (Adapted to fit on mobile perfectly) */}
+        <div className="flex-none flex justify-center cursor-pointer group relative z-50 px-2" onClick={() => navigate('home')}>
+          <h1 className="text-[14px] xs:text-[16px] sm:text-xl md:text-3xl font-black tracking-normal md:tracking-tighter uppercase md:group-hover:tracking-widest transition-all duration-700 text-white whitespace-nowrap">SLINIAVSKIY</h1>
         </div>
 
         {/* RIGHT SECTION: Icons */}
-        <div className="flex items-center justify-end gap-4 md:gap-6 w-1/3 text-white relative z-50">
-          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
-            <Heart size={22} className="md:w-5 md:h-5" />
+        <div className="flex-1 flex items-center justify-end gap-3 md:gap-6 text-white relative z-50">
+          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1 md:p-0">
+            <Heart size={20} className="md:w-5 md:h-5" />
             {wishlist.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
           </button>
 
-          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity p-1"><Search size={22} className="md:w-5 md:h-5" /></button>
+          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity p-1 md:p-0"><Search size={20} className="md:w-5 md:h-5" /></button>
           
-          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity p-1">
+          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity p-1 md:p-0">
             {user && !user.isAnonymous && user.photoURL ? (
               <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
             ) : (
-              <User size={22} className="md:w-5 md:h-5" />
+              <User size={20} className="md:w-5 md:h-5" />
             )}
           </button>
 
-          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
-            <ShoppingBag size={22} className="md:w-5 md:h-5" />
+          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1 md:p-0">
+            <ShoppingBag size={20} className="md:w-5 md:h-5" />
             {totalItems > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
           </button>
         </div>
@@ -451,7 +450,6 @@ export default function App() {
     return () => { unsubProducts(); unsubSettings(); unsubOrders(); unsubReferrals(); };
   }, [user]);
 
-  // Пошук виключно за назвою товару
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
@@ -1029,7 +1027,7 @@ export default function App() {
               <img src={siteSettings.heroImageMobile || siteSettings.heroImage} className="md:hidden absolute inset-0 w-full h-full object-cover opacity-50" alt="Hero Mobile" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/40" />
               <div className="relative z-10 text-center px-4 w-full overflow-hidden">
-                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[7rem] xl:text-[9rem] font-black tracking-tighter uppercase leading-none mb-8 md:mb-12 text-white whitespace-nowrap">SLINIAVSKIY</h1>
+                <h1 className="text-[11vw] sm:text-6xl md:text-7xl lg:text-[7rem] xl:text-[9rem] font-black tracking-tighter uppercase leading-none mb-8 md:mb-12 text-white whitespace-nowrap">SLINIAVSKIY</h1>
                 <button onClick={() => navigate('catalog')} className="px-8 py-4 md:px-12 md:py-5 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors text-[10px] md:text-xs active:scale-95">До Колекції</button>
               </div>
             </section>
@@ -1786,7 +1784,7 @@ export default function App() {
                                <input type="text" placeholder="Лейбл (Укр)" value={c.label} onChange={e => { const nc=[...editForm.colors]; nc[idx].label=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
                                <input type="color" value={c.hex} onChange={e => { const nc=[...editForm.colors]; nc[idx].hex=e.target.value; setEditForm({...editForm, colors:nc}) }} className="h-10 w-full sm:w-16 bg-black border border-white/10 cursor-pointer" />
                                <input type="number" min="0" placeholder="№ Фото" title="Індекс фото (0 = перше)" value={c.imageIndex} onChange={e => { const nc=[...editForm.colors]; nc[idx].imageIndex=Number(e.target.value); setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:w-24 outline-none focus:border-white" />
-                               <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-500 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
+                               <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-50 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
                              </div>
                            ))}
                            <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-3 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
@@ -2331,7 +2329,7 @@ export default function App() {
         const body = rows.slice(1);
 
         return (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300">
+          <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300">
              <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsSizeGuideOpen(null)} />
              <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-6 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300">
                 <button onClick={() => setIsSizeGuideOpen(null)} className="absolute top-4 right-4 md:top-6 md:right-6 text-zinc-500 hover:text-white p-2"><X size={20} className="md:w-6 md:h-6"/></button>
@@ -2388,12 +2386,12 @@ export default function App() {
 
       {/* WISHLIST OVERLAY */}
       {isWishlistOpen && (
-        <div className="fixed inset-0 z-[300] animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1000] animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsWishlistOpen(false)} />
           <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
             <div className="flex justify-between items-center mb-8 md:mb-12">
                <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">Список бажань</h2>
-               <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2"><X size={20} className="md:w-6 md:h-6"/></button>
+               <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
                {wishlist.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">Список порожній</div> :
@@ -2407,7 +2405,7 @@ export default function App() {
                          <p className="text-[8px] md:text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-2 md:mb-3">{item.category}</p>
                          <div className="flex items-center justify-between mt-auto">
                             <p className="text-xs md:text-sm font-black">{item.price} ₴</p>
-                            <button onClick={(e) => toggleWishlist(item, e)} className="text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={14}/></button>
+                            <button onClick={(e) => toggleWishlist(item, e)} className="text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
                          </div>
                       </div>
                    </div>
@@ -2420,14 +2418,14 @@ export default function App() {
 
       {/* CART OVERLAY */}
       {isCartOpen && (
-        <div className="fixed inset-0 z-[300] animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1000] animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} />
           <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
             <div className="flex justify-between items-center mb-8 md:mb-12">
                <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">
                  {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : 'Оплата') : 'Кошик'}
                </h2>
-               <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={20} className="md:w-6 md:h-6"/></button>
+               <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
             </div>
 
             {isCheckoutForm ? (
@@ -2546,7 +2544,7 @@ export default function App() {
                                     <button onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-zinc-500 hover:text-white transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
                                     <span className="text-[9px] md:text-[10px] font-black">{item.quantity}</span>
                                     <button onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-zinc-500 hover:text-white transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
-                                    <button onClick={() => removeItem(item.cartId)} className="ml-auto text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={14}/></button>
+                                    <button onClick={() => removeItem(item.cartId)} className="ml-auto text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
                                  </div>
                               </div>
                            </div>
@@ -2568,78 +2566,81 @@ export default function App() {
 
       {/* MOBILE MENU */}
       {isMobileMenuOpen && (
-         <div className="fixed inset-0 z-[1000] bg-[#0a0a0a] p-6 flex flex-col animate-in slide-in-from-left duration-300 overflow-y-auto pb-20">
-            <div className="flex justify-between items-center mb-10">
-               <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
-               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={32}/></button>
-            </div>
-            
-            <nav className="flex flex-col gap-8">
-               
-               {/* КАТАЛОГ (ВСЕ КАТЕГОРИИ СРАЗУ ОТКРЫТЫ И СИНХРОНИЗИРОВАНЫ) */}
-               <div className="flex flex-col gap-6 border-b border-white/10 pb-8">
-                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="w-full py-4 bg-white text-black text-[12px] font-black uppercase tracking-widest mb-2 shadow-xl active:scale-95 transition-transform text-center">
-                   Всі товари
-                 </button>
+         <div className="fixed inset-0 z-[1000] animate-in fade-in duration-300">
+           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+           <div className="absolute top-0 left-0 w-[85%] max-w-sm h-full bg-[#0a0a0a] border-r border-white/10 flex flex-col p-6 animate-in slide-in-from-left duration-500 shadow-2xl overflow-y-auto pb-20">
+              <div className="flex justify-between items-center mb-10">
+                 <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
+                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={24}/></button>
+              </div>
+              
+              <nav className="flex flex-col gap-8">
                  
-                 <div className="flex flex-col gap-6">
-                   {groupedCategories.top.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.top.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
+                 {/* КАТАЛОГ (ВСЕ КАТЕГОРИИ СРАЗУ ОТКРЫТЫ И СИНХРОНИЗИРОВАНЫ) */}
+                 <div className="flex flex-col gap-6 border-b border-white/10 pb-8">
+                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="w-full py-4 bg-white text-black text-[12px] font-black uppercase tracking-widest mb-2 shadow-xl active:scale-95 transition-transform text-center">
+                     Всі товари
+                   </button>
+                   
+                   <div className="flex flex-col gap-6">
+                     {groupedCategories.top.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                          <div className="flex flex-wrap gap-2">
+                            {groupedCategories.top.map(c => (
+                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                   )}
-                   {groupedCategories.bottom.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.bottom.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
+                     )}
+                     {groupedCategories.bottom.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                          <div className="flex flex-wrap gap-2">
+                            {groupedCategories.bottom.map(c => (
+                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                   )}
-                   {groupedCategories.acc.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.acc.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
+                     )}
+                     {groupedCategories.acc.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                          <div className="flex flex-wrap gap-2">
+                            {groupedCategories.acc.map(c => (
+                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                   )}
-                   {groupedCategories.other.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
-                        <div className="flex flex-wrap gap-2">
-                          {groupedCategories.other.map(c => (
-                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
-                          ))}
+                     )}
+                     {groupedCategories.other.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                          <div className="flex flex-wrap gap-2">
+                            {groupedCategories.other.map(c => (
+                               <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                   )}
+                     )}
+                   </div>
                  </div>
-               </div>
 
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">Бренд</button>
-               
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">
-                  {user ? 'Мій Кабінет' : 'Увійти'}
-               </button>
+                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">Бренд</button>
+                 
+                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">
+                    {user ? 'Мій Кабінет' : 'Увійти'}
+                 </button>
 
-               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-sm text-[#d4af37] font-black uppercase tracking-widest text-left mt-2 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
-            </nav>
-            
-            <div className="mt-auto pt-12 flex gap-8 justify-center">
-               <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={32} /></a>
-               <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={32} /></a>
-               <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={32} /></a>
-            </div>
+                 {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-sm text-[#d4af37] font-black uppercase tracking-widest text-left mt-2 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
+              </nav>
+              
+              <div className="mt-auto pt-12 flex gap-8 justify-center">
+                 <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={28} /></a>
+                 <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={28} /></a>
+                 <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={28} /></a>
+              </div>
+           </div>
          </div>
       )}
 
