@@ -131,19 +131,23 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
-    <header className={`fixed top-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-4 md:py-8'}`}>
+    <header className={`fixed top-0 w-full z-[500] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-4 md:py-8'}`}>
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
         
         {/* LEFT SECTION: Back / Mobile Menu / Desktop Nav */}
-        <div className="flex items-center justify-start w-1/3">
+        <div className="flex items-center justify-start w-1/3 relative z-50">
           {route !== 'home' && (
-            <button onClick={goBack} className="mr-4 hover:opacity-50 transition-opacity text-white flex items-center justify-center relative z-10">
-              <ArrowLeft size={22} className="md:w-6 md:h-6" />
+            <button onClick={goBack} className="mr-4 hover:opacity-50 transition-opacity text-white flex items-center justify-center">
+              <ArrowLeft size={24} className="md:w-6 md:h-6" />
             </button>
           )}
           
-          <button className="md:hidden p-2 text-white relative z-10 hover:opacity-70 transition-opacity" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu size={24} />
+          {/* Увеличенная зона клика для телефона */}
+          <button 
+            className="md:hidden p-3 -ml-3 text-white cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center" 
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <Menu size={28} />
           </button>
 
           <nav className="hidden md:flex gap-8 items-center text-[11px] font-black uppercase tracking-[0.2em]">
@@ -190,30 +194,30 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
         </div>
 
         {/* CENTER SECTION: Logo */}
-        <div className="w-1/3 flex justify-center cursor-pointer group relative z-10" onClick={() => navigate('home')}>
+        <div className="w-1/3 flex justify-center cursor-pointer group relative z-50" onClick={() => navigate('home')}>
           <h1 className="text-lg sm:text-xl md:text-3xl font-black tracking-tighter uppercase group-hover:tracking-widest transition-all duration-700 text-white truncate">SLINIAVSKIY</h1>
         </div>
 
         {/* RIGHT SECTION: Icons */}
-        <div className="flex items-center justify-end gap-4 md:gap-6 w-1/3 text-white relative z-10">
-          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity">
-            <Heart size={20} className="md:w-5 md:h-5" />
-            {wishlist.length > 0 && <span className="absolute -top-2 -right-2 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
+        <div className="flex items-center justify-end gap-4 md:gap-6 w-1/3 text-white relative z-50">
+          <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
+            <Heart size={22} className="md:w-5 md:h-5" />
+            {wishlist.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
           </button>
 
-          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity"><Search size={20} className="md:w-5 md:h-5" /></button>
+          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity p-1"><Search size={22} className="md:w-5 md:h-5" /></button>
           
-          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity">
+          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity p-1">
             {user && !user.isAnonymous && user.photoURL ? (
               <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
             ) : (
-              <User size={20} className="md:w-5 md:h-5" />
+              <User size={22} className="md:w-5 md:h-5" />
             )}
           </button>
 
-          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity">
-            <ShoppingBag size={20} className="md:w-5 md:h-5" />
-            {totalItems > 0 && <span className="absolute -top-2 -right-2 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
+          <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
+            <ShoppingBag size={22} className="md:w-5 md:h-5" />
+            {totalItems > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
           </button>
         </div>
       </div>
@@ -264,7 +268,6 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileCatalogExpanded, setIsMobileCatalogExpanded] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
@@ -448,7 +451,7 @@ export default function App() {
     return () => { unsubProducts(); unsubSettings(); unsubOrders(); unsubReferrals(); };
   }, [user]);
 
-  // ЗМІНА ТУТ: Пошук тепер шукає виключно за назвою товару (name)
+  // Пошук виключно за назвою товару
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
@@ -2565,82 +2568,84 @@ export default function App() {
 
       {/* MOBILE MENU */}
       {isMobileMenuOpen && (
-         <div className="fixed inset-0 z-[1000] bg-black p-6 flex flex-col animate-in fade-in duration-300 overflow-y-auto pb-20">
+         <div className="fixed inset-0 z-[1000] bg-[#0a0a0a] p-6 flex flex-col animate-in slide-in-from-left duration-300 overflow-y-auto pb-20">
             <div className="flex justify-between items-center mb-10">
                <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
-               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={28}/></button>
+               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={32}/></button>
             </div>
             
-            <nav className="flex flex-col gap-6">
+            <nav className="flex flex-col gap-8">
                
-               {/* CATALOG ACCORDION */}
-               <div className="flex flex-col gap-4 border-b border-white/10 pb-6">
-                 <div 
-                   className="flex justify-between items-center cursor-pointer group" 
-                   onClick={() => setIsMobileCatalogExpanded(!isMobileCatalogExpanded)}
-                 >
-                   <span className="text-2xl font-black uppercase tracking-widest text-left text-white group-hover:text-zinc-300 transition-colors">Каталог</span>
-                   <ChevronDown size={24} className={`text-white transition-transform duration-300 ${isMobileCatalogExpanded ? 'rotate-180' : ''}`} />
-                 </div>
+               {/* КАТАЛОГ (ВСЕ КАТЕГОРИИ СРАЗУ ОТКРЫТЫ И СИНХРОНИЗИРОВАНЫ) */}
+               <div className="flex flex-col gap-6 border-b border-white/10 pb-8">
+                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="w-full py-4 bg-white text-black text-[12px] font-black uppercase tracking-widest mb-2 shadow-xl active:scale-95 transition-transform text-center">
+                   Всі товари
+                 </button>
                  
-                 <div className={`flex flex-col gap-6 overflow-hidden transition-all duration-500 ${isMobileCatalogExpanded ? 'max-h-[1000px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-[12px] font-black uppercase tracking-widest text-left text-white bg-white/10 py-3 px-4 w-full">Усі товари</button>
-                   
+                 <div className="flex flex-col gap-6">
                    {groupedCategories.top.length > 0 && (
-                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
-                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Верхній одяг</span>
-                        {groupedCategories.top.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
-                        ))}
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.top.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
+                        </div>
                       </div>
                    )}
                    {groupedCategories.bottom.length > 0 && (
-                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
-                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Низ</span>
-                        {groupedCategories.bottom.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
-                        ))}
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.bottom.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
+                        </div>
                       </div>
                    )}
                    {groupedCategories.acc.length > 0 && (
-                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
-                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Аксесуари</span>
-                        {groupedCategories.acc.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
-                        ))}
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.acc.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
+                        </div>
                       </div>
                    )}
                    {groupedCategories.other.length > 0 && (
-                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
-                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Інше</span>
-                        {groupedCategories.other.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
-                        ))}
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                        <div className="flex flex-wrap gap-2">
+                          {groupedCategories.other.map(c => (
+                             <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-300 border border-white/10 hover:text-white hover:border-white transition-colors rounded-sm">{c}</button>
+                          ))}
+                        </div>
                       </div>
                    )}
                  </div>
                </div>
 
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-6 hover:text-zinc-300 transition-colors">Бренд</button>
+               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">Бренд</button>
                
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-6 hover:text-zinc-300 transition-colors">
+               <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-8 hover:text-zinc-300 transition-colors">
                   {user ? 'Мій Кабінет' : 'Увійти'}
                </button>
 
-               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-lg text-[#d4af37] font-black uppercase tracking-widest text-left mt-4 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
+               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-sm text-[#d4af37] font-black uppercase tracking-widest text-left mt-2 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
             </nav>
             
-            <div className="mt-auto pt-10 flex gap-6 justify-center">
-               <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={28} /></a>
-               <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={28} /></a>
-               <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={28} /></a>
+            <div className="mt-auto pt-12 flex gap-8 justify-center">
+               <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={32} /></a>
+               <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={32} /></a>
+               <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={32} /></a>
             </div>
          </div>
       )}
 
       {/* TOAST */}
       {toast && (
-        <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-white text-black px-6 md:px-8 py-3 md:py-4 font-black uppercase text-[8px] md:text-[10px] tracking-[0.3em] shadow-2xl animate-in slide-in-from-bottom-5 duration-300 text-center w-[90%] md:w-auto rounded-sm">
+        <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[2000] bg-white text-black px-6 md:px-8 py-3 md:py-4 font-black uppercase text-[8px] md:text-[10px] tracking-[0.3em] shadow-2xl animate-in slide-in-from-bottom-5 duration-300 text-center w-[90%] md:w-auto rounded-sm">
           {toast}
         </div>
       )}
