@@ -61,6 +61,12 @@ const getReferralsRef = () => collection(db, 'artifacts', appId, 'public', 'data
 
 const ADMIN_EMAIL = 'sliniavskiy.brand@gmail.com';
 const DEFAULT_CATEGORIES = ['Футболки', 'Штани', 'Джинси', 'Брюки', 'Шорти'];
+
+// Групи для розумного сортування
+const GROUP_TOP = ['Футболка', 'Футболки', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка'];
+const GROUP_BOTTOM = ['Брюки', 'Джинсы', 'Джинси', 'Штаны', 'Штани', 'Шорты', 'Шорти'];
+const GROUP_ACC = ['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень', 'Аксесуари'];
+
 const SIZES = ['S', 'M', 'L', 'XL'];
 const DEFAULT_COLORS = [
   { name: 'Black', hex: '#000000', label: 'Чорний', imageIndex: 0 },
@@ -80,14 +86,12 @@ const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
 
 // --- ПЛАТІЖНІ СИСТЕМИ (ЗАГЛУШКИ) ---
-// 1. MONOBANK (MonoPay)
 const MONOBANK_API_TOKEN = 'ВАШ_MONOBANK_X_TOKEN_ТУТ';
 const MONOBANK_WEBHOOK_URL = 'https://ваш-домен.com/api/monobank-webhook'; 
 
-// 2. WAYFORPAY
-const WAYFORPAY_MERCHANT_ACCOUNT = 'test_merch_n1'; // Ваш логін в WayForPay
-const WAYFORPAY_MERCHANT_SECRET_KEY = 'flk3409refn54t54t*FNJRET'; // Секретний ключ WayForPay
-const WAYFORPAY_DOMAIN = 'https://ваш-домен.com'; // Ваш майбутній домен
+const WAYFORPAY_MERCHANT_ACCOUNT = 'test_merch_n1'; 
+const WAYFORPAY_MERCHANT_SECRET_KEY = 'flk3409refn54t54t*FNJRET'; 
+const WAYFORPAY_DOMAIN = 'https://ваш-домен.com'; 
 
 const DEFAULT_SIZE_GUIDE = "Розмір,Груди (см),Довжина (см),Плечі (см)\nS,52,70,48\nM,54,72,50\nL,56,74,52\nXL,58,76,54";
 
@@ -118,7 +122,7 @@ const TelegramIcon = ({ size = 24, className = "" }) => (
 );
 
 // --- HEADER ---
-function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, setIsMobileMenuOpen, user, categories }) {
+function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, setIsMobileMenuOpen, user, groupedCategories }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 30);
@@ -144,12 +148,36 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
                 Колекція <ChevronDown size={12} className={`transition-transform duration-300 ${isCatalogOpen ? 'rotate-180' : ''}`} />
               </button>
               <div className="absolute top-full left-0 w-full h-4 bg-transparent"></div>
-              <div className={`absolute top-[calc(100%+4px)] left-0 w-56 bg-[#0a0a0a] border border-white/10 shadow-2xl transition-all duration-300 origin-top overflow-hidden ${isCatalogOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'}`}>
-                <div className="flex flex-col py-2 max-h-[60vh] overflow-y-auto no-scrollbar">
+              
+              {/* Розумне випадаюче меню категорій */}
+              <div className={`absolute top-[calc(100%+4px)] left-0 w-64 bg-[#0a0a0a] border border-white/10 shadow-2xl transition-all duration-300 origin-top overflow-hidden ${isCatalogOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'}`}>
+                <div className="flex flex-col py-2 max-h-[70vh] overflow-y-auto no-scrollbar">
                   <button onClick={() => navigate('catalog', { category: null })} className="text-left px-6 py-4 hover:bg-white hover:text-black transition-colors text-white font-black uppercase text-[10px] tracking-widest border-b border-white/5">Усі товари</button>
-                  {categories.map(c => (
-                    <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-4 hover:bg-white hover:text-black transition-colors text-white font-black uppercase text-[10px] tracking-widest">{c}</button>
-                  ))}
+                  
+                  {groupedCategories.top.length > 0 && (
+                     <div className="flex flex-col mt-3">
+                       <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                       {groupedCategories.top.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                     </div>
+                  )}
+                  {groupedCategories.bottom.length > 0 && (
+                     <div className="flex flex-col mt-3">
+                       <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                       {groupedCategories.bottom.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                     </div>
+                  )}
+                  {groupedCategories.acc.length > 0 && (
+                     <div className="flex flex-col mt-3">
+                       <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                       {groupedCategories.acc.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                     </div>
+                  )}
+                  {groupedCategories.other.length > 0 && (
+                     <div className="flex flex-col mt-3 mb-3">
+                       <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                       {groupedCategories.other.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                     </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -245,23 +273,37 @@ export default function App() {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // Оновлений стан для форми доставки (додано cityRef для Нової Пошти)
   const [deliveryForm, setDeliveryForm] = useState({ name: '', phone: '', city: '', cityRef: '', branch: '' });
-  
-  // Стан для роботи бази Нової Пошти
   const [npCities, setNpCities] = useState([]);
   const [npWarehouses, setNpWarehouses] = useState([]);
   const [showCities, setShowCities] = useState(false);
   const [showWarehouses, setShowWarehouses] = useState(false);
   const [isNpLoading, setIsNpLoading] = useState(false);
 
-  // Офіційний ключ доступу Нової Пошти
   const NP_API_KEY = '8208cf2c74ddc570769381a82649fb8c'; 
 
   const [adminTab, setAdminTab] = useState('orders');
   const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
   
+  // Розумне сортування категорій по групам
+  const groupedCategories = useMemo(() => {
+    const top = [];
+    const bottom = [];
+    const acc = [];
+    const other = [];
+
+    activeCategories.forEach(c => {
+       const catName = c.trim();
+       if (GROUP_TOP.includes(catName)) top.push(catName);
+       else if (GROUP_BOTTOM.includes(catName)) bottom.push(catName);
+       else if (GROUP_ACC.includes(catName)) acc.push(catName);
+       else other.push(catName);
+    });
+
+    return { top, bottom, acc, other };
+  }, [activeCategories]);
+
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: [], sizes: DEFAULT_SIZES_AVAILABILITY });
   const [settingsFormUrl, setSettingsFormUrl] = useState('');
@@ -269,7 +311,6 @@ export default function App() {
   const [settingsCategories, setSettingsCategories] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
 
   const [newReferralName, setNewReferralName] = useState('');
@@ -278,8 +319,6 @@ export default function App() {
   const [refFilterDateTo, setRefFilterDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [refFilterStatus, setRefFilterStatus] = useState('all');
   const [refSortConfig, setRefSortConfig] = useState({ key: 'date', direction: 'desc' });
-  
-  // Нові стани для калькулятора прибутку
   const [refPercent, setRefPercent] = useState(10);
   const [refCalcResult, setRefCalcResult] = useState(null);
 
@@ -304,10 +343,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sliniavskiy_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('sliniavskiy_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
 
-  // Скидання результатів калькулятора при зміні дат або відсотка
-  useEffect(() => {
-    setRefCalcResult(null);
-  }, [refFilterPartner, refFilterDateFrom, refFilterDateTo, refPercent]);
+  useEffect(() => { setRefCalcResult(null); }, [refFilterPartner, refFilterDateFrom, refFilterDateTo, refPercent]);
 
   useEffect(() => {
     if (!isUserDataLoaded || !user) return;
@@ -315,15 +351,12 @@ export default function App() {
     setDoc(userStoreRef, { cart, wishlist }, { merge: true }).catch(console.error);
   }, [cart, wishlist, user, isUserDataLoaded]);
 
-  // ВИПРАВЛЕНО ВИЛІТ АКАУНТА (Логіка Авторизації)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // Якщо користувач вже є в пам'яті (увійшов раніше), зберігаємо його
         setUser(currentUser);
         setAuthLoading(false);
       } else {
-        // Якщо користувача немає, створюємо анонімного або заходимо по токену
         try {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             await signInWithCustomToken(auth, __initial_auth_token);
@@ -492,14 +525,7 @@ export default function App() {
         showToast('Успішний вхід');
       }
     } catch (err) {
-      if (err.code === 'auth/unauthorized-domain') {
-         setAuthError('Помилка: Цей домен не додано до списку авторизованих у Firebase Console (Authentication -> Settings -> Authorized domains).');
-      } else if (err.code === 'auth/operation-not-allowed') {
-         setAuthError('ПОМИЛКА FIREBASE: Увімкніть спосіб входу "Google" у налаштуваннях Firebase Console (Authentication -> Sign-in method).');
-      } else {
-         setAuthError(`Помилка авторизації Google: ${err.message}`);
-      }
-      console.error(err);
+      setAuthError(`Помилка авторизації Google: ${err.message}`);
     }
   };
 
@@ -521,20 +547,7 @@ export default function App() {
       setAuthEmail('');
       setAuthPassword('');
     } catch (err) {
-      console.error("Помилка авторизації:", err);
-      if (err.code === 'auth/operation-not-allowed') {
-         setAuthError('ПОМИЛКА FIREBASE: Увімкніть спосіб входу "Email/Password" у налаштуваннях Firebase Console (Authentication -> Sign-in method).');
-      } else if (err.code === 'auth/email-already-in-use') {
-         setAuthError('Помилка: Цей Email вже зареєстровано. Спробуйте увійти.');
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-         setAuthError('Помилка: Невірний пароль або email.');
-      } else if (err.code === 'auth/user-not-found') {
-         setAuthError('Помилка: Користувача не знайдено.');
-      } else if (err.code === 'auth/weak-password') {
-         setAuthError('Помилка: Пароль має бути мінімум 6 символів.');
-      } else {
-         setAuthError(`Помилка: ${err.message}`);
-      }
+      setAuthError(`Помилка: ${err.message}`);
     }
   };
 
@@ -599,7 +612,6 @@ export default function App() {
     setCart(prev => prev.filter(item => item.cartId !== cartId));
   };
 
-  // --- ФУНКЦІЇ ДЛЯ НОВОЇ ПОШТИ ---
   const fetchNpCities = async (query) => {
     setDeliveryForm(prev => ({...prev, city: query, branch: '', cityRef: ''}));
     if (query.length < 2) { setNpCities([]); setShowCities(false); return; }
@@ -627,7 +639,7 @@ export default function App() {
   const selectNpCity = (city) => {
     setDeliveryForm(prev => ({...prev, city: city.Description, cityRef: city.Ref, branch: ''}));
     setShowCities(false);
-    fetchNpWarehouses('', city.Ref); // Одразу вантажимо відділення для цього міста
+    fetchNpWarehouses('', city.Ref); 
   };
 
   const fetchNpWarehouses = async (query, cityRef = deliveryForm.cityRef) => {
@@ -658,7 +670,6 @@ export default function App() {
     setDeliveryForm(prev => ({...prev, branch: wh.Description}));
     setShowWarehouses(false);
   };
-  // ---------------------------------
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
@@ -681,7 +692,6 @@ export default function App() {
     };
 
     try {
-      // Строга санітизація
       const safeData = JSON.parse(JSON.stringify(orderData));
       const docRef = await addDoc(getOrdersRef(), safeData);
       setCurrentPendingOrderId(docRef.id);
@@ -734,13 +744,10 @@ export default function App() {
     }
   };
 
-  // --- ЛОГІКА ОПЛАТИ (WAYFORPAY АБО MONOPAY) ---
   const handleOnlinePayment = async () => {
-    // ЯКЩО ВИКОРИСТОВУЄТЬСЯ WAYFORPAY:
     if (WAYFORPAY_MERCHANT_ACCOUNT !== 'test_merch_n1') {
       showToast("Запуск віджета WayForPay...");
       
-      // Динамічне завантаження віджета WayForPay
       const loadWayForPayWidget = () => {
         return new Promise((resolve) => {
           if (window.Wayforpay) return resolve(window.Wayforpay);
@@ -759,7 +766,7 @@ export default function App() {
             merchantAccount: WAYFORPAY_MERCHANT_ACCOUNT,
             merchantDomainName: WAYFORPAY_DOMAIN,
             authorizationType: "SimpleSignature",
-            merchantSignature: "АВТОМАТИЧНИЙ_ПІДПИС_МАЄ_ГЕНЕРУВАТИСЯ_ТУТ", // Важливо: для WayForPay підпис зазвичай генерується на сервері
+            merchantSignature: "АВТОМАТИЧНИЙ_ПІДПИС_МАЄ_ГЕНЕРУВАТИСЯ_ТУТ",
             orderReference: currentPendingOrderId,
             orderDate: Date.now().toString(),
             amount: cartTotal.toString(),
@@ -772,15 +779,12 @@ export default function App() {
             clientPhone: deliveryForm.phone
         }, 
         function (response) {
-            // Успішна оплата
             handleFinalizePayment();
         },
         function (response) {
-            // Відхилено
             showToast("Оплату відхилено або скасовано");
         },
         function (response) {
-            // В процесі
         });
       } catch (err) {
         showToast("Помилка завантаження каси WayForPay");
@@ -788,7 +792,6 @@ export default function App() {
       return;
     }
 
-    // ЯКЩО ВИКОРИСТОВУЄТЬСЯ MONOPAY:
     if (MONOBANK_API_TOKEN === 'ВАШ_MONOBANK_X_TOKEN_ТУТ') {
       showToast("З'єднання з Платіжною системою (Режим Симуляції)...");
       setTimeout(() => {
@@ -799,35 +802,6 @@ export default function App() {
 
     try {
       showToast("Ініціалізація платежу MonoPay...");
-      
-      /* // БОЙОВИЙ КОД MONOBANK (Розкоментуйте при підключенні бекенду)
-      const response = await fetch('https://api.monobank.ua/api/merchant/invoice/create', {
-        method: 'POST',
-        headers: {
-          'X-Token': MONOBANK_API_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: cartTotal * 100, // Монобанк приймає суму в копійках
-          ccy: 980, 
-          merchantPaymInfo: {
-            reference: currentPendingOrderId,
-            destination: "Оплата замовлення №" + currentPendingOrderId.slice(0, 8),
-          },
-          redirectUrl: window.location.origin + "/account", 
-          webHookUrl: MONOBANK_WEBHOOK_URL
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.pageUrl) {
-         window.location.href = data.pageUrl;
-      } else {
-         showToast("Помилка створення інвойсу: " + (data.errText || "Невідома помилка"));
-      }
-      */
-
       setTimeout(() => {
          handleFinalizePayment();
       }, 2000);
@@ -838,7 +812,6 @@ export default function App() {
     }
   };
 
-  // 100% НАДЕЖНОЕ СОХРАНЕНИЕ ТОВАРОВ
   const handleSaveProduct = async (e) => {
     if (e) e.preventDefault();
     try {
@@ -868,7 +841,6 @@ export default function App() {
         }
       };
 
-      // ЖЕСТКАЯ ОЧИСТКА ДАННЫХ: Удаляет любые undefined/null, из-за которых база выдает ошибки
       const safeData = JSON.parse(JSON.stringify(productData));
 
       if (editingProduct?.id) {
@@ -936,7 +908,6 @@ export default function App() {
     } catch(err) { console.error(err); showToast('❌ Помилка видалення'); }
   };
 
-  // 100% НАДЕЖНОЕ СОХРАНЕНИЕ НАСТРОЕК (Категории + Картинки)
   const handleSaveSettings = async (e) => {
     if (e) e.preventDefault();
     try {
@@ -948,7 +919,6 @@ export default function App() {
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
-      // ЖЕСТКАЯ ОЧИСТКА ОТ ПУСТОТ
       const safeData = JSON.parse(JSON.stringify(dataToSave));
       
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), safeData, { merge: true });
@@ -1038,7 +1008,7 @@ export default function App() {
         setIsCartOpen={setIsCartOpen} 
         setIsMobileMenuOpen={setIsMobileMenuOpen} 
         user={user} 
-        categories={activeCategories}
+        groupedCategories={groupedCategories}
       />
 
       <main>
@@ -1090,20 +1060,54 @@ export default function App() {
                   {routeParams.category || 'Уся Колекція'}
                 </h2>
                 
-                <div className="flex flex-wrap gap-3 md:gap-4 pb-2">
-                  <button onClick={() => navigate('catalog', { category: null })} className={`shrink-0 px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${!routeParams.category ? 'bg-white text-black border-white' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>Усі</button>
-                  {activeCategories.slice(0, showAllCategories ? activeCategories.length : 7).map(c => (
-                    <button key={c} onClick={() => navigate('catalog', { category: c })} className={`shrink-0 px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${routeParams.category === c ? 'bg-white text-black border-white' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>{c}</button>
-                  ))}
-                  {activeCategories.length > 7 && !showAllCategories && (
-                    <button onClick={() => setShowAllCategories(true)} className="shrink-0 px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-dashed border-white/30 text-zinc-400 hover:border-white hover:text-white transition-all whitespace-nowrap">
-                      Переглянути всі ({activeCategories.length - 7})
-                    </button>
+                {/* Розумний фільтр з розподілом по групах (рядкам) */}
+                <div className="flex flex-col gap-6 md:gap-8">
+                  <div className="flex">
+                     <button onClick={() => navigate('catalog', { category: null })} className={`px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${!routeParams.category ? 'bg-white text-black border-white' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>Усі товари</button>
+                  </div>
+
+                  {groupedCategories.top.length > 0 && (
+                     <div className="flex flex-col gap-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37]">Верхній одяг</h3>
+                       <div className="flex flex-wrap gap-3 md:gap-4">
+                          {groupedCategories.top.map(c => (
+                             <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>{c}</button>
+                          ))}
+                       </div>
+                     </div>
                   )}
-                  {activeCategories.length > 7 && showAllCategories && (
-                     <button onClick={() => setShowAllCategories(false)} className="shrink-0 px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-dashed border-white/30 text-zinc-400 hover:border-white hover:text-white transition-all whitespace-nowrap">
-                      Згорнути
-                    </button>
+
+                  {groupedCategories.bottom.length > 0 && (
+                     <div className="flex flex-col gap-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37]">Низ</h3>
+                       <div className="flex flex-wrap gap-3 md:gap-4">
+                          {groupedCategories.bottom.map(c => (
+                             <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>{c}</button>
+                          ))}
+                       </div>
+                     </div>
+                  )}
+
+                  {groupedCategories.acc.length > 0 && (
+                     <div className="flex flex-col gap-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37]">Аксесуари</h3>
+                       <div className="flex flex-wrap gap-3 md:gap-4">
+                          {groupedCategories.acc.map(c => (
+                             <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>{c}</button>
+                          ))}
+                       </div>
+                     </div>
+                  )}
+
+                  {groupedCategories.other.length > 0 && (
+                     <div className="flex flex-col gap-3">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37]">Інше</h3>
+                       <div className="flex flex-wrap gap-3 md:gap-4">
+                          {groupedCategories.other.map(c => (
+                             <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-6 py-3 md:px-8 md:py-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>{c}</button>
+                          ))}
+                       </div>
+                     </div>
                   )}
                 </div>
 
@@ -1792,7 +1796,6 @@ export default function App() {
                         </div>
                       </div>
                       
-                      {/* КНОПКА СОХРАНЕНИЯ */}
                       <button type="button" onClick={handleSaveProduct} className="w-full py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center">
                         Крок 2. ЗБЕРЕГТИ ТОВАР
                       </button>
@@ -1945,7 +1948,6 @@ export default function App() {
                               </select>
                             </div>
                             
-                            {/* Оновлене зручне меню вибору дат */}
                             <div className="w-full sm:col-span-2">
                               <div className="flex justify-between items-end mb-2">
                                 <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500">Період (Від - До)</label>
@@ -1977,7 +1979,6 @@ export default function App() {
                             const selectedRef = referrals.find(r => r.code === refFilterPartner);
                             const refLink = selectedRef ? `${window.location.origin}?ref=${selectedRef.code}` : '';
                             
-                            // Filter orders
                             let filteredOrders = orders.filter(o => {
                               if (o.status === 'pending_payment') return false; 
                               if (o.referralCode !== refFilterPartner) return false;
@@ -2107,7 +2108,6 @@ export default function App() {
                         <label className="block text-[10px] font-black uppercase mb-4 text-[#d4af37]">Керування категоріями товарів</label>
                         <p className="text-[8px] text-zinc-500 mb-6 uppercase tracking-widest">Натисніть на категорію, щоб додати або видалити її з сайту. Активні категорії світяться білим.</p>
 
-                        {/* Верхній одяг */}
                         <div className="mb-6">
                           <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Верхній одяг</h4>
                           <div className="flex flex-wrap gap-2">
@@ -2132,7 +2132,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Низ */}
                         <div className="mb-6">
                           <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Одяг для ніг (Низ)</h4>
                           <div className="flex flex-wrap gap-2">
@@ -2157,7 +2156,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Головні убори та аксесуари */}
                         <div className="mb-6">
                           <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Головні убори та аксесуари</h4>
                           <div className="flex flex-wrap gap-2">
@@ -2182,7 +2180,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Custom / Ручне введення */}
                         <div>
                            <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії (ручне введення через кому)</h4>
                            <textarea
@@ -2242,7 +2239,6 @@ export default function App() {
               <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-6 md:mb-8 text-white">Підтримка</h4>
               <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest break-all hover:text-white cursor-pointer transition-colors text-left mb-6">sliniavskiy.support@gmail.com</p>
               
-              {/* Іконки платіжних систем (Красивий шрифт) */}
               <div className="flex flex-wrap items-center gap-3 mt-auto mb-3 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]">
                  <span className="hover:text-white transition-colors cursor-default">VISA</span>
                  <span className="text-zinc-800">|</span>
@@ -2258,7 +2254,6 @@ export default function App() {
             </div>
           </div>
           
-          {/* Очищений підвал згідно закону */}
           <div className="pt-8 md:pt-10 border-t border-white/5 flex flex-col justify-center items-center">
             <p className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-center mb-2">© {new Date().getFullYear()} SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.</p>
             <div className="flex gap-4 text-zinc-800 text-[8px] uppercase font-bold tracking-widest">
@@ -2401,7 +2396,6 @@ export default function App() {
                     <input required type="text" placeholder="ПІБ" value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     <input required type="tel" placeholder="Номер телефону" value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     
-                    {/* РОЗУМНИЙ ПОШУК МІСТА */}
                     <div className="relative">
                       <input 
                         required 
@@ -2425,7 +2419,6 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* РОЗУМНИЙ ПОШУК ВІДДІЛЕННЯ */}
                     <div className="relative">
                       <input 
                         required 
@@ -2541,13 +2534,41 @@ export default function App() {
             </div>
             <nav className="flex flex-col gap-6">
                <div className="flex flex-col gap-4">
-                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-2xl font-black uppercase tracking-widest text-left text-white">Каталог (Усі товари)</button>
-                 <div className="flex flex-col gap-5 pl-4 border-l border-white/10 mt-2 py-2">
-                   {activeCategories.map(c => (
-                      <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">
-                        {c}
-                      </button>
-                   ))}
+                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-2xl font-black uppercase tracking-widest text-left text-white">Каталог (Усі)</button>
+                 
+                 <div className="flex flex-col gap-6 pl-4 border-l border-white/10 mt-2 py-2">
+                   {groupedCategories.top.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                        {groupedCategories.top.map(c => (
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                        ))}
+                      </div>
+                   )}
+                   {groupedCategories.bottom.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                        {groupedCategories.bottom.map(c => (
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                        ))}
+                      </div>
+                   )}
+                   {groupedCategories.acc.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                        {groupedCategories.acc.map(c => (
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                        ))}
+                      </div>
+                   )}
+                   {groupedCategories.other.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                        {groupedCategories.other.map(c => (
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                        ))}
+                      </div>
+                   )}
                  </div>
                </div>
 
@@ -2564,19 +2585,6 @@ export default function App() {
           {toast}
         </div>
       )}
-
-      {/* FLOATING SUPPORT BUTTON */}
-      <a 
-        href="https://t.me/ТУТ_ІМЯ_ВАШОГО_БОТА" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[400] bg-[#2AABEE] text-white p-3 md:p-4 rounded-full shadow-[0_10px_20px_rgba(42,171,238,0.3)] hover:scale-110 hover:shadow-[0_10px_30px_rgba(42,171,238,0.5)] transition-all duration-300 group"
-      >
-        <MessageCircle size={24} className="group-hover:animate-pulse md:w-7 md:h-7" />
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-sm opacity-0 md:group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-white/10 hidden md:block">
-          Підтримка онлайн
-        </span>
-      </a>
     </div>
   );
 }
