@@ -37,7 +37,6 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// Your web app's Firebase configuration
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyBBN9EEE34s83C8gFyBYbiLnmlMPJUrKIw",
   authDomain: "sliniavskiybrand-690c4.firebaseapp.com",
@@ -62,7 +61,6 @@ const getReferralsRef = () => collection(db, 'artifacts', appId, 'public', 'data
 const ADMIN_EMAIL = 'sliniavskiy.brand@gmail.com';
 const DEFAULT_CATEGORIES = ['Футболки', 'Штани', 'Джинси', 'Брюки', 'Шорти'];
 
-// Групи для розумного сортування
 const GROUP_TOP = ['Футболка', 'Футболки', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка'];
 const GROUP_BOTTOM = ['Брюки', 'Джинсы', 'Джинси', 'Штаны', 'Штани', 'Шорты', 'Шорти'];
 const GROUP_ACC = ['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень', 'Аксесуари'];
@@ -85,7 +83,6 @@ const STATUS_MAP = {
 const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
 
-// --- ПЛАТІЖНІ СИСТЕМИ (ЗАГЛУШКИ) ---
 const MONOBANK_API_TOKEN = 'ВАШ_MONOBANK_X_TOKEN_ТУТ';
 const MONOBANK_WEBHOOK_URL = 'https://ваш-домен.com/api/monobank-webhook'; 
 
@@ -134,14 +131,21 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
-    <header className={`fixed top-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-5 md:py-8'}`}>
+    <header className={`fixed top-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-4 md:py-8'}`}>
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
-        <div className="flex items-center w-1/4">
+        
+        {/* LEFT SECTION: Back / Mobile Menu / Desktop Nav */}
+        <div className="flex items-center justify-start w-1/3">
           {route !== 'home' && (
-            <button onClick={goBack} className="mr-3 md:mr-6 hover:opacity-50 transition-opacity text-white flex items-center justify-center">
+            <button onClick={goBack} className="mr-4 hover:opacity-50 transition-opacity text-white flex items-center justify-center relative z-10">
               <ArrowLeft size={22} className="md:w-6 md:h-6" />
             </button>
           )}
+          
+          <button className="md:hidden p-2 text-white relative z-10 hover:opacity-70 transition-opacity" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu size={24} />
+          </button>
+
           <nav className="hidden md:flex gap-8 items-center text-[11px] font-black uppercase tracking-[0.2em]">
             <div className="relative group" onMouseEnter={() => setIsCatalogOpen(true)} onMouseLeave={() => setIsCatalogOpen(false)}>
               <button onClick={() => navigate('catalog')} className="flex items-center gap-2 hover:opacity-50 transition-opacity py-2 text-white font-black">
@@ -149,7 +153,6 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
               </button>
               <div className="absolute top-full left-0 w-full h-4 bg-transparent"></div>
               
-              {/* Розумне випадаюче меню категорій */}
               <div className={`absolute top-[calc(100%+4px)] left-0 w-64 bg-[#0a0a0a] border border-white/10 shadow-2xl transition-all duration-300 origin-top overflow-hidden ${isCatalogOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'}`}>
                 <div className="flex flex-col py-2 max-h-[70vh] overflow-y-auto no-scrollbar">
                   <button onClick={() => navigate('catalog', { category: null })} className="text-left px-6 py-4 hover:bg-white hover:text-black transition-colors text-white font-black uppercase text-[10px] tracking-widest border-b border-white/5">Усі товари</button>
@@ -184,29 +187,32 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
             <button onClick={() => navigate('brand')} className="hover:opacity-50 transition-opacity text-white font-black">Бренд</button>
             {isAdmin && <button onClick={() => navigate('admin')} className="text-[#d4af37] font-black uppercase tracking-widest text-[10px] hover:opacity-70 transition-opacity">Admin</button>}
           </nav>
-          <button className="md:hidden p-2 -ml-2 text-white" onClick={() => setIsMobileMenuOpen(true)}><Menu size={22} /></button>
         </div>
-        <div className="w-2/4 flex justify-center cursor-pointer group" onClick={() => navigate('home')}>
-          <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase group-hover:tracking-widest transition-all duration-700 text-white truncate px-2">SLINIAVSKIY</h1>
+
+        {/* CENTER SECTION: Logo */}
+        <div className="w-1/3 flex justify-center cursor-pointer group relative z-10" onClick={() => navigate('home')}>
+          <h1 className="text-lg sm:text-xl md:text-3xl font-black tracking-tighter uppercase group-hover:tracking-widest transition-all duration-700 text-white truncate">SLINIAVSKIY</h1>
         </div>
-        <div className="flex items-center justify-end gap-4 md:gap-6 w-1/4 text-white">
+
+        {/* RIGHT SECTION: Icons */}
+        <div className="flex items-center justify-end gap-4 md:gap-6 w-1/3 text-white relative z-10">
           <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity">
-            <Heart size={18} className="md:w-5 md:h-5" />
+            <Heart size={20} className="md:w-5 md:h-5" />
             {wishlist.length > 0 && <span className="absolute -top-2 -right-2 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
           </button>
 
-          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity"><Search size={18} className="md:w-5 md:h-5" /></button>
+          <button onClick={() => setIsSearchOpen(true)} className="hover:opacity-50 transition-opacity"><Search size={20} className="md:w-5 md:h-5" /></button>
           
-          <button onClick={() => navigate('account')} className="hover:opacity-50 transition-opacity">
+          <button onClick={() => navigate('account')} className="hidden sm:block hover:opacity-50 transition-opacity">
             {user && !user.isAnonymous && user.photoURL ? (
               <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
             ) : (
-              <User size={18} className="md:w-5 md:h-5" />
+              <User size={20} className="md:w-5 md:h-5" />
             )}
           </button>
 
           <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity">
-            <ShoppingBag size={18} className="md:w-5 md:h-5" />
+            <ShoppingBag size={20} className="md:w-5 md:h-5" />
             {totalItems > 0 && <span className="absolute -top-2 -right-2 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
           </button>
         </div>
@@ -258,6 +264,7 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileCatalogExpanded, setIsMobileCatalogExpanded] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
@@ -286,7 +293,6 @@ export default function App() {
   const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
   
-  // Розумне сортування категорій по групам
   const groupedCategories = useMemo(() => {
     const top = [];
     const bottom = [];
@@ -1153,23 +1159,55 @@ export default function App() {
 
         {/* BRAND ROUTE */}
         {route === 'brand' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 animate-in fade-in duration-700 text-center">
-            <div className="mb-20 md:mb-32">
-               <h2 className="text-xl sm:text-2xl md:text-4xl font-black uppercase tracking-[0.2em] leading-relaxed mb-6 md:mb-8">
+          <div className="pt-28 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 animate-in fade-in duration-700 text-center">
+            
+            <div className="mb-12 md:mb-24 px-2">
+               <h2 className="text-xl sm:text-3xl md:text-5xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] leading-snug md:leading-relaxed mb-6 md:mb-8">
                  "Ми створюємо не просто одяг. Ми створюємо форму для ваших амбіцій, де кожна деталь має значення."
                </h2>
-               <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-[9px] md:text-[10px]">— Засновник SLINIAVSKIY</p>
+               <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-[9px] md:text-[11px]">— Засновник SLINIAVSKIY</p>
             </div>
 
-            <div className="border-t border-white/10 pt-20 md:pt-32">
-               <h3 className="text-lg md:text-2xl font-black uppercase tracking-[0.3em] mb-8 md:mb-10">Ціль бренду</h3>
-               <div className="space-y-6 md:space-y-8 text-zinc-400 text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-medium text-left md:text-center px-2 md:px-0">
+            <div className="w-full aspect-[4/3] md:aspect-video bg-zinc-900 mb-16 md:mb-32 overflow-hidden border border-white/10 shadow-2xl relative">
+               <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80" alt="Brand Vision" className="w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-1000" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-center pb-8 md:pb-12">
+                 <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase text-white drop-shadow-2xl">V I S I O N</h1>
+               </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-16 md:pt-32 px-2">
+               <h3 className="text-lg md:text-3xl font-black uppercase tracking-[0.3em] mb-8 md:mb-12 text-[#d4af37]">Ціль бренду</h3>
+               <div className="space-y-6 md:space-y-10 text-zinc-300 text-sm md:text-lg leading-relaxed md:leading-loose max-w-3xl mx-auto font-medium text-left md:text-center">
                  <p>
                    Наша головна ціль — забезпечити вас преміальним базовим гардеробом, який не підвладний швидкоплинним трендам. Ми віримо, що справжній стиль починається з бездоганного крою та виняткового комфорту.
                  </p>
                  <p>
-                   Кожна річ SLINIAVSKIY створена для того, щоб підкреслити вашу індивідуальність. Використовуючи кращі матеріали за європейськими стандартами, ми гарантуємо довговічність та естетичне задоволення від кожного дотику до тканини.
+                   Кожна річ <span className="font-black text-white">SLINIAVSKIY</span> створена для того, щоб підкреслити вашу індивідуальність. Використовуючи кращі матеріали за європейськими стандартами, ми гарантуємо довговічність та естетичне задоволення від кожного дотику до тканини.
                  </p>
+               </div>
+               
+               <div className="mt-16 md:mt-24 pt-8 md:pt-16 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+                 <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
+                    <Shield size={32} className="mb-4 text-[#d4af37]" />
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Якість</h4>
+                    <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Використання виключно преміальних тканин та фурнітури.</p>
+                 </div>
+                 <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
+                    <Feather size={32} className="mb-4 text-[#d4af37]" />
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Комфорт</h4>
+                    <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Ергономічний крій, який не сковує рухів і дарує свободу.</p>
+                 </div>
+                 <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
+                    <Infinity size={32} className="mb-4 text-[#d4af37]" />
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Довговічність</h4>
+                    <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Речі, які зберігають свій вигляд навіть після сотень циклів прання.</p>
+                 </div>
+               </div>
+               
+               <div className="mt-16 md:mt-24">
+                 <button onClick={() => navigate('catalog')} className="w-full sm:w-auto px-12 py-5 bg-white text-black text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95 shadow-2xl">
+                   Перейти до колекції
+                 </button>
                </div>
             </div>
           </div>
@@ -2530,52 +2568,73 @@ export default function App() {
          <div className="fixed inset-0 z-[1000] bg-black p-6 flex flex-col animate-in fade-in duration-300 overflow-y-auto pb-20">
             <div className="flex justify-between items-center mb-10">
                <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
-               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white"><X size={28}/></button>
+               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white hover:text-zinc-400 transition-colors"><X size={28}/></button>
             </div>
+            
             <nav className="flex flex-col gap-6">
-               <div className="flex flex-col gap-4">
-                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-2xl font-black uppercase tracking-widest text-left text-white">Каталог (Усі)</button>
+               
+               {/* CATALOG ACCORDION */}
+               <div className="flex flex-col gap-4 border-b border-white/10 pb-6">
+                 <div 
+                   className="flex justify-between items-center cursor-pointer group" 
+                   onClick={() => setIsMobileCatalogExpanded(!isMobileCatalogExpanded)}
+                 >
+                   <span className="text-2xl font-black uppercase tracking-widest text-left text-white group-hover:text-zinc-300 transition-colors">Каталог</span>
+                   <ChevronDown size={24} className={`text-white transition-transform duration-300 ${isMobileCatalogExpanded ? 'rotate-180' : ''}`} />
+                 </div>
                  
-                 <div className="flex flex-col gap-6 pl-4 border-l border-white/10 mt-2 py-2">
+                 <div className={`flex flex-col gap-6 overflow-hidden transition-all duration-500 ${isMobileCatalogExpanded ? 'max-h-[1000px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-[12px] font-black uppercase tracking-widest text-left text-white bg-white/10 py-3 px-4 w-full">Усі товари</button>
+                   
                    {groupedCategories.top.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Верхній одяг</span>
+                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
+                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Верхній одяг</span>
                         {groupedCategories.top.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
                         ))}
                       </div>
                    )}
                    {groupedCategories.bottom.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Низ</span>
+                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
+                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Низ</span>
                         {groupedCategories.bottom.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
                         ))}
                       </div>
                    )}
                    {groupedCategories.acc.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Аксесуари</span>
+                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
+                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Аксесуари</span>
                         {groupedCategories.acc.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
                         ))}
                       </div>
                    )}
                    {groupedCategories.other.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-widest">Інше</span>
+                      <div className="flex flex-col gap-3 pl-2 border-l border-[#d4af37]/30">
+                        <span className="text-[9px] text-[#d4af37] font-black uppercase tracking-widest ml-2">Інше</span>
                         {groupedCategories.other.map(c => (
-                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">{c}</button>
+                           <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors ml-2">{c}</button>
                         ))}
                       </div>
                    )}
                  </div>
                </div>
 
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white mt-4">Бренд</button>
+               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-6 hover:text-zinc-300 transition-colors">Бренд</button>
                
-               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-lg text-[#d4af37] font-black uppercase tracking-widest text-left mt-8 border-t border-white/10 pt-8">Панель Адміністратора</button>}
+               <button onClick={() => { setIsMobileMenuOpen(false); navigate('account'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white border-b border-white/10 pb-6 hover:text-zinc-300 transition-colors">
+                  {user ? 'Мій Кабінет' : 'Увійти'}
+               </button>
+
+               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-lg text-[#d4af37] font-black uppercase tracking-widest text-left mt-4 hover:text-[#f3cd4f] transition-colors">Панель Адміністратора</button>}
             </nav>
+            
+            <div className="mt-auto pt-10 flex gap-6 justify-center">
+               <a href="https://www.instagram.com/sliniavskiy.brand?igsh=MWM4eWFxMmN3d2s1aA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><Instagram size={28} /></a>
+               <a href="https://t.me/sliniavskiybrand" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TelegramIcon size={28} /></a>
+               <a href="https://www.tiktok.com/@sliniavskiy.brand?_r=1&_t=ZN-94f8xxnwgv0" target="_blank" rel="noopener noreferrer" className="text-white hover:text-zinc-400 transition-colors"><TikTokIcon size={28} /></a>
+            </div>
          </div>
       )}
 
