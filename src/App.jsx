@@ -271,7 +271,7 @@ export default function App() {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(null);
   
   const [isCheckoutForm, setIsCheckoutForm] = useState(false);
-  // checkoutStep: 1 = Form, 2 = Proceed to Pay Info, 3 = Payment Gateway Stub
+  // checkoutStep: 1 = Delivery Form, 2 = Payment Stub
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [currentPendingOrderId, setCurrentPendingOrderId] = useState(null);
 
@@ -453,6 +453,7 @@ export default function App() {
     );
   }, [searchQuery, storefrontProducts]);
 
+  // Оновлена функція навігації з ГАРАНТОВАНИМ скролом нагору
   const navigate = (r, p = {}, isBack = false) => {
     if (!isBack) {
       const stack = JSON.parse(sessionStorage.getItem('sliniavskiy_history') || '[]');
@@ -465,12 +466,19 @@ export default function App() {
     sessionStorage.setItem('sliniavskiy_route', r);
     sessionStorage.setItem('sliniavskiy_routeParams', JSON.stringify(p));
     
-    setIsCartOpen(false); setIsSearchOpen(false); setIsWishlistOpen(false); setIsCatalogOpen(false);
+    setIsCartOpen(false); 
+    setIsSearchOpen(false); 
+    setIsWishlistOpen(false); 
+    setIsCatalogOpen(false);
     setSearchQuery('');
     setAuthError(''); 
     setActiveImageIndex(0);
     setSelectedColor(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Гарантуємо прокручування сторінки до самого верху після зміни роута
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   };
 
   const goBack = () => {
@@ -524,26 +532,11 @@ export default function App() {
       showToast('Успішний вхід через Google');
     } catch (err) {
       console.error("Google Auth Error:", err);
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-        setAuthError('Спливаюче вікно входу заблоковано вашим браузером. Використайте "Тестовий вхід" або Email.');
+      // Якщо це телефон і вікно заблокував внутрішній браузер (наприклад Instagram/Telegram)
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        setAuthError('Ваш браузер заблокував вікно входу. Якщо ви відкрили сайт з Instagram/Telegram, будь ласка, відкрийте його у звичайному браузері Safari або Chrome.');
       } else {
         setAuthError(`Помилка Google: ${err.message}`);
-      }
-    }
-  };
-
-  // Кнопка для гарантованого входу без Google (для тестування)
-  const handleDemoLogin = async () => {
-    setAuthError('');
-    try {
-      await signInWithEmailAndPassword(auth, 'demo@sliniavskiy.com', 'demo123456');
-      showToast('Тестовий вхід успішний');
-    } catch (err) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        await createUserWithEmailAndPassword(auth, 'demo@sliniavskiy.com', 'demo123456');
-        showToast('Тестовий акаунт створено');
-      } else {
-        setAuthError(`Помилка тестового входу: ${err.message}`);
       }
     }
   };
@@ -715,8 +708,15 @@ export default function App() {
       const docRef = await addDoc(getOrdersRef(), safeData);
       setCurrentPendingOrderId(docRef.id);
       
-      // Переходимо на крок "Інформація про онлайн оплату"
+      // Переходимо безпосередньо до Заглушки Оплати (Крок 2)
       setCheckoutStep(2); 
+      
+      // Гарантовано прокручуємо контейнер кошика вгору, щоб користувач побачив оплату
+      setTimeout(() => {
+        const cartContainer = document.getElementById('cart-scroll-container');
+        if (cartContainer) cartContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+
     } catch (err) {
       console.error("Помилка збереження попереднього замовлення", err);
       showToast('Помилка обробки замовлення.');
@@ -763,11 +763,6 @@ export default function App() {
       console.error("Помилка підтвердження оплати", err);
       showToast('Помилка підтвердження оплати.');
     }
-  };
-
-  const handleOnlinePayment = () => {
-    // Надійний перехід до заглушки без setTimeout
-    setCheckoutStep(3);
   };
 
   const handleSaveProduct = async (e) => {
@@ -1177,7 +1172,7 @@ export default function App() {
                  {/* Google Login Button - With Error Handling for Mobile */}
                  <button 
                    onClick={handleGoogleLogin}
-                   className="w-full py-4 mb-4 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
+                   className="w-full py-4 mb-8 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
                  >
                    <svg className="w-5 h-5" viewBox="0 0 24 24">
                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -1186,14 +1181,6 @@ export default function App() {
                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                    </svg>
                    Увійти через Google
-                 </button>
-
-                 {/* Гарантований тестовий вхід (Заглушка для мобільних) */}
-                 <button 
-                   onClick={handleDemoLogin}
-                   className="w-full py-3 mb-8 border border-[#d4af37]/50 text-[#d4af37] font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-[#d4af37] hover:text-black transition-all flex items-center justify-center gap-2 active:scale-95"
-                 >
-                   <UserCircle size={14} /> Тестовий вхід (Для перевірки)
                  </button>
 
                  <div className="relative flex items-center justify-center mb-8">
@@ -2380,14 +2367,14 @@ export default function App() {
           <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
             <div className="flex justify-between items-center mb-8 md:mb-12">
                <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">
-                 {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : checkoutStep === 2 ? 'Деталі оплати' : 'Оплата (Тест)') : 'Кошик'}
+                 {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : 'Оплата (Тест)') : 'Кошик'}
                </h2>
                <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
             </div>
 
             {isCheckoutForm ? (
                checkoutStep === 1 ? (
-                 <form onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col pb-32">
+                 <form id="cart-scroll-container" onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col pb-32">
                     <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Дані доставки (Нова Пошта)</h3>
                     <input required type="text" placeholder="ПІБ" value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     <input required type="tel" placeholder="Номер телефону" value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
@@ -2458,38 +2445,14 @@ export default function App() {
                       <button type="button" onClick={() => setIsCheckoutForm(false)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">Назад до кошика</button>
                     </div>
                  </form>
-               ) : checkoutStep === 2 ? (
-                 <div className="flex-1 flex flex-col animate-in fade-in zoom-in-95 duration-500 w-full h-full pb-10">
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
-                       <ShieldCheck size={48} className="text-zinc-500 mb-6 md:mb-8 md:w-16 md:h-16" />
-                       <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Оплата онлайн</h3>
-                       <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 leading-relaxed mb-8 md:mb-12">
-                         Безпечний платіжний шлюз.<br/>
-                         <span className="text-[#d4af37] mt-2 block">Інтеграція MonoPay</span>
-                       </p>
-                    </div>
-                    
-                    <div className="w-full space-y-3 md:space-y-4 mt-auto">
-                      <div className="p-4 border border-white/10 bg-white/5 flex justify-between items-center mb-6 md:mb-8">
-                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400">До сплати</span>
-                        <span className="text-base md:text-lg font-black text-white">{cartTotal} ₴</span>
-                      </div>
-                      <button onClick={handleOnlinePayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
-                        Оплатити замовлення
-                      </button>
-                      <button onClick={() => setCheckoutStep(1)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">
-                        Назад до деталей доставки
-                      </button>
-                    </div>
-                 </div>
                ) : (
-                 <div className="flex-1 flex flex-col animate-in slide-in-from-bottom duration-300 w-full h-full items-center justify-center">
-                    <div className="w-full bg-[#111] p-6 md:p-8 rounded-sm border border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.05)] text-center relative">
+                 <div id="cart-scroll-container" className="flex-1 flex flex-col animate-in slide-in-from-bottom duration-300 w-full h-full items-center justify-center overflow-y-auto pb-10">
+                    <div className="w-full bg-[#111] p-6 md:p-8 rounded-sm border border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.05)] text-center relative mt-4">
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0a0a0a] px-4">
-                         <CreditCard size={24} className="text-white" />
+                         <CreditCard size={24} className="text-[#d4af37]" />
                       </div>
-                      <h3 className="font-black text-lg md:text-xl uppercase tracking-widest mb-2 mt-4 text-[#d4af37]">MonoPay (Тест)</h3>
-                      <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Це тестова заглушка оплати.</p>
+                      <h3 className="font-black text-lg md:text-xl uppercase tracking-widest mb-2 mt-4 text-white">MonoPay</h3>
+                      <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Система безпечних платежів.<br/>Очікується підключення бойового ключа.</p>
                       
                       <div className="bg-black border border-white/10 p-6 mb-8 text-center">
                         <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">Сума до оплати</p>
@@ -2500,8 +2463,8 @@ export default function App() {
                         <button onClick={handleFinalizePayment} className="w-full py-4 bg-white text-black font-black uppercase text-[11px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
                           Оплатити (Симуляція)
                         </button>
-                        <button onClick={() => { showToast('Оплату скасовано'); setCheckoutStep(2); }} className="w-full py-3 text-red-500 font-black uppercase text-[9px] tracking-widest hover:opacity-70 transition-opacity">
-                          Скасувати платіж
+                        <button onClick={() => { setCheckoutStep(1); }} className="w-full py-3 text-zinc-500 font-black uppercase text-[9px] tracking-widest hover:text-white transition-opacity">
+                          Назад до даних
                         </button>
                       </div>
                     </div>
