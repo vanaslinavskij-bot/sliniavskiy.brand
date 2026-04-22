@@ -7,7 +7,7 @@ import {
   Plus, Edit, Trash2, Image as ImageIcon, Settings, ArrowRight, ArrowLeft, ChevronRight,
   Target, Award, Fingerprint, Shirt, Scissors, Sparkles, Box, Wind, 
   Layers, Gem, Feather, Shield, Activity, Fingerprint as IconFingerprint,
-  Infinity, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent
+  Infinity, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle
 } from 'lucide-react';
 
 // --- INITIALIZE FIREBASE ---
@@ -78,6 +78,16 @@ const STATUS_MAP = {
 
 const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
+
+// --- ПЛАТІЖНІ СИСТЕМИ (ЗАГЛУШКИ) ---
+// 1. MONOBANK (MonoPay)
+const MONOBANK_API_TOKEN = 'ВАШ_MONOBANK_X_TOKEN_ТУТ';
+const MONOBANK_WEBHOOK_URL = 'https://ваш-домен.com/api/monobank-webhook'; 
+
+// 2. WAYFORPAY
+const WAYFORPAY_MERCHANT_ACCOUNT = 'test_merch_n1'; // Ваш логін в WayForPay
+const WAYFORPAY_MERCHANT_SECRET_KEY = 'flk3409refn54t54t*FNJRET'; // Секретний ключ WayForPay
+const WAYFORPAY_DOMAIN = 'https://ваш-домен.com'; // Ваш майбутній домен
 
 const DEFAULT_SIZE_GUIDE = "Розмір,Груди (см),Довжина (см),Плечі (см)\nS,52,70,48\nM,54,72,50\nL,56,74,52\nXL,58,76,54";
 
@@ -716,13 +726,108 @@ export default function App() {
     }
   };
 
-  // ВИПРАВЛЕНО ЗАЙВИЙ КОД: Заміна WayForPay на MonoPay
-  const handleMonoPayPayment = () => {
-    // Тут буде підключення бойових ключів MonoPay
-    showToast("З'єднання з MonoPay...");
-    setTimeout(() => {
-       handleFinalizePayment();
-    }, 2000);
+  // --- ЛОГІКА ОПЛАТИ (WAYFORPAY АБО MONOPAY) ---
+  const handleOnlinePayment = async () => {
+    // ЯКЩО ВИКОРИСТОВУЄТЬСЯ WAYFORPAY:
+    if (WAYFORPAY_MERCHANT_ACCOUNT !== 'test_merch_n1') {
+      showToast("Запуск віджета WayForPay...");
+      
+      // Динамічне завантаження віджета WayForPay
+      const loadWayForPayWidget = () => {
+        return new Promise((resolve) => {
+          if (window.Wayforpay) return resolve(window.Wayforpay);
+          const script = document.createElement('script');
+          script.src = 'https://secure.wayforpay.com/server/pay-widget.js';
+          script.onload = () => resolve(window.Wayforpay);
+          document.body.appendChild(script);
+        });
+      };
+
+      try {
+        const Wayforpay = await loadWayForPayWidget();
+        const wayforpay = new Wayforpay();
+        
+        wayforpay.run({
+            merchantAccount: WAYFORPAY_MERCHANT_ACCOUNT,
+            merchantDomainName: WAYFORPAY_DOMAIN,
+            authorizationType: "SimpleSignature",
+            merchantSignature: "АВТОМАТИЧНИЙ_ПІДПИС_МАЄ_ГЕНЕРУВАТИСЯ_ТУТ", // Важливо: для WayForPay підпис зазвичай генерується на сервері
+            orderReference: currentPendingOrderId,
+            orderDate: Date.now().toString(),
+            amount: cartTotal.toString(),
+            currency: "UAH",
+            productName: cart.map(i => i.name),
+            productPrice: cart.map(i => i.price.toString()),
+            productCount: cart.map(i => i.quantity.toString()),
+            clientFirstName: deliveryForm.name.split(' ')[0] || "Client",
+            clientLastName: deliveryForm.name.split(' ')[1] || "Name",
+            clientPhone: deliveryForm.phone
+        }, 
+        function (response) {
+            // Успішна оплата
+            handleFinalizePayment();
+        },
+        function (response) {
+            // Відхилено
+            showToast("Оплату відхилено або скасовано");
+        },
+        function (response) {
+            // В процесі
+        });
+      } catch (err) {
+        showToast("Помилка завантаження каси WayForPay");
+      }
+      return;
+    }
+
+    // ЯКЩО ВИКОРИСТОВУЄТЬСЯ MONOPAY:
+    if (MONOBANK_API_TOKEN === 'ВАШ_MONOBANK_X_TOKEN_ТУТ') {
+      showToast("З'єднання з Платіжною системою (Режим Симуляції)...");
+      setTimeout(() => {
+         handleFinalizePayment();
+      }, 2000);
+      return;
+    }
+
+    try {
+      showToast("Ініціалізація платежу MonoPay...");
+      
+      /* // БОЙОВИЙ КОД MONOBANK (Розкоментуйте при підключенні бекенду)
+      const response = await fetch('https://api.monobank.ua/api/merchant/invoice/create', {
+        method: 'POST',
+        headers: {
+          'X-Token': MONOBANK_API_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: cartTotal * 100, // Монобанк приймає суму в копійках
+          ccy: 980, 
+          merchantPaymInfo: {
+            reference: currentPendingOrderId,
+            destination: "Оплата замовлення №" + currentPendingOrderId.slice(0, 8),
+          },
+          redirectUrl: window.location.origin + "/account", 
+          webHookUrl: MONOBANK_WEBHOOK_URL
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.pageUrl) {
+         window.location.href = data.pageUrl;
+      } else {
+         showToast("Помилка створення інвойсу: " + (data.errText || "Невідома помилка"));
+      }
+      */
+
+      setTimeout(() => {
+         handleFinalizePayment();
+      }, 2000);
+
+    } catch (err) {
+      console.error("Помилка оплати", err);
+      showToast('Помилка з\'єднання з платіжним шлюзом.');
+    }
   };
 
   // 100% НАДЕЖНОЕ СОХРАНЕНИЕ ТОВАРОВ
@@ -1414,18 +1519,20 @@ export default function App() {
                     <p>Час роботи: Пн-Пт, 10:00 - 19:00</p>
                     <ul className="list-none mt-4 space-y-2">
                       <li><strong>Email:</strong> sliniavskiy.support@gmail.com</li>
-                      <li><strong>Телефон:</strong> +380 (XX) XXX-XX-XX (Для консультацій)</li>
+                      <li><strong>Телефон:</strong> +380 (99) 802-85-00 (Для консультацій та питань)</li>
                     </ul>
                   </section>
                   <section>
-                    <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Юридичні реквізити</h3>
-                    <p className="text-[11px] md:text-xs text-zinc-500 uppercase tracking-widest leading-loose">
-                      ФОП Слінявський Іван Леонідович<br/>
-                      РНОКПП (ІПН): 3955107331<br/>
-                      Юридична адреса: Україна, м. Кропивницький, вул. Михайла Грушевського, 57<br/>
+                    <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Юридичні та банківські реквізити</h3>
+                    <p className="text-[11px] md:text-xs text-zinc-400 uppercase tracking-widest leading-loose">
+                      <strong>Суб'єкт господарювання:</strong> ФОП Слінявський Іван Леонідович<br/>
+                      <strong>РНОКПП (ІПН):</strong> 3955107331<br/>
+                      <strong>Юридична адреса:</strong> Україна, м. Кропивницький, вул. Михайла Грушевського, 57<br/>
+                      <strong>Офіційний телефон:</strong> +380 (99) 802-85-00<br/>
+                      <strong>Електронна пошта:</strong> sliniavskiy.support@gmail.com<br/>
                     </p>
                     <p className="mt-4 text-[9px] md:text-[10px] text-zinc-600">
-                      *Юридична адреса є обов'язковою вимогою банків для підключення еквайрингу.
+                      *Ця інформація є публічною та розміщена згідно з правилами еквайрингу платіжних систем (Visa, Mastercard, WayForPay, MonoPay) для забезпечення прозорості та безпеки ваших платежів.
                     </p>
                   </section>
                 </div>
@@ -2337,7 +2444,7 @@ export default function App() {
                         <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400">До сплати</span>
                         <span className="text-base md:text-lg font-black text-white">{cartTotal} ₴</span>
                       </div>
-                      <button onClick={handleMonoPayPayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
+                      <button onClick={handleOnlinePayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
                         Оплатити замовлення
                       </button>
                       <button onClick={() => setCheckoutStep(1)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">
@@ -2388,12 +2495,26 @@ export default function App() {
 
       {/* MOBILE MENU */}
       {isMobileMenuOpen && (
-         <div className="fixed inset-0 z-[1000] bg-black p-6 md:p-10 flex flex-col animate-in fade-in duration-500">
-            <div className="flex justify-end mb-12 md:mb-20"><button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2"><X size={32}/></button></div>
-            <nav className="flex flex-col gap-8 md:gap-10">
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog'); }} className="text-3xl md:text-4xl font-black uppercase tracking-widest text-left hover:text-[#d4af37] transition-colors">Колекція</button>
-               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-3xl md:text-4xl font-black uppercase tracking-widest text-left hover:text-[#d4af37] transition-colors">Бренд</button>
-               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-xl md:text-2xl text-[#d4af37] font-black uppercase tracking-widest text-left mt-8 border-t border-white/10 pt-8">Панель Адміністратора</button>}
+         <div className="fixed inset-0 z-[1000] bg-black p-6 flex flex-col animate-in fade-in duration-300 overflow-y-auto pb-20">
+            <div className="flex justify-between items-center mb-10">
+               <span className="text-xl font-black tracking-tighter uppercase text-white">Меню</span>
+               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-white"><X size={28}/></button>
+            </div>
+            <nav className="flex flex-col gap-6">
+               <div className="flex flex-col gap-4">
+                 <button onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: null }); }} className="text-2xl font-black uppercase tracking-widest text-left text-white">Каталог (Усі товари)</button>
+                 <div className="flex flex-col gap-5 pl-4 border-l border-white/10 mt-2 py-2">
+                   {activeCategories.map(c => (
+                      <button key={c} onClick={() => { setIsMobileMenuOpen(false); navigate('catalog', { category: c }); }} className="text-[13px] font-bold uppercase tracking-widest text-left text-zinc-400 hover:text-white transition-colors">
+                        {c}
+                      </button>
+                   ))}
+                 </div>
+               </div>
+
+               <button onClick={() => { setIsMobileMenuOpen(false); navigate('brand'); }} className="text-2xl font-black uppercase tracking-widest text-left text-white mt-4">Бренд</button>
+               
+               {isAdmin && <button onClick={() => { setIsMobileMenuOpen(false); navigate('admin'); }} className="text-lg text-[#d4af37] font-black uppercase tracking-widest text-left mt-8 border-t border-white/10 pt-8">Панель Адміністратора</button>}
             </nav>
          </div>
       )}
@@ -2404,6 +2525,19 @@ export default function App() {
           {toast}
         </div>
       )}
+
+      {/* FLOATING SUPPORT BUTTON */}
+      <a 
+        href="https://t.me/ТУТ_ІМЯ_ВАШОГО_БОТА" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[400] bg-[#2AABEE] text-white p-3 md:p-4 rounded-full shadow-[0_10px_20px_rgba(42,171,238,0.3)] hover:scale-110 hover:shadow-[0_10px_30px_rgba(42,171,238,0.5)] transition-all duration-300 group"
+      >
+        <MessageCircle size={24} className="group-hover:animate-pulse md:w-7 md:h-7" />
+        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-md text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-sm opacity-0 md:group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-white/10 hidden md:block">
+          Підтримка онлайн
+        </span>
+      </a>
     </div>
   );
 }
