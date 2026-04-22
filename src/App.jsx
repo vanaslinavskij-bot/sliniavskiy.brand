@@ -278,7 +278,10 @@ export default function App() {
   const [refFilterDateTo, setRefFilterDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [refFilterStatus, setRefFilterStatus] = useState('all');
   const [refSortConfig, setRefSortConfig] = useState({ key: 'date', direction: 'desc' });
-  const [refCalcDate, setRefCalcDate] = useState(() => new Date().toISOString().slice(0, 10));
+  
+  // Нові стани для калькулятора прибутку
+  const [refPercent, setRefPercent] = useState(10);
+  const [refCalcResult, setRefCalcResult] = useState(null);
 
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -300,6 +303,11 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem('sliniavskiy_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('sliniavskiy_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
+
+  // Скидання результатів калькулятора при зміні дат або відсотка
+  useEffect(() => {
+    setRefCalcResult(null);
+  }, [refFilterPartner, refFilterDateFrom, refFilterDateTo, refPercent]);
 
   useEffect(() => {
     if (!isUserDataLoaded || !user) return;
@@ -1837,37 +1845,68 @@ export default function App() {
                         </button>
                       </form>
 
-                      {/* CALCULATE SUM BY MONTH (USING FULL DATE PICKER) */}
+                      {/* CALCULATE SUM BY PERIOD */}
                       <div className="mt-8 pt-8 border-t border-white/10">
-                         <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Підрахунок суми за місяць</h4>
-                         <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Оберіть будь-яку дату (порахує за весь її місяць)</label>
-                         <input 
-                            type="date" 
-                            value={refCalcDate}
-                            onChange={e => setRefCalcDate(e.target.value)}
-                            className="w-full bg-black border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-4 text-white [color-scheme:dark] cursor-pointer"
-                         />
-                         {(() => {
-                           if (!refFilterPartner || !refCalcDate) return null;
-                           
-                           // Отримуємо "YYYY-MM" з обраної дати
-                           const targetMonth = refCalcDate.slice(0, 7);
-                           
-                           const calcOrders = orders.filter(o => 
-                             o.referralCode === refFilterPartner && 
-                             o.createdAt.startsWith(targetMonth) && 
-                             o.status !== 'cancelled' && 
-                             o.status !== 'pending_payment'
-                           );
-                           const calcSum = calcOrders.reduce((sum, o) => sum + o.total, 0);
-                           return (
-                             <div className="bg-black/50 border border-white/10 p-4 text-center">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Загальний дохід за {targetMonth}</p>
-                                <p className="text-2xl font-black text-green-400">{calcSum} ₴</p>
-                                <p className="text-[8px] text-zinc-600 mt-2 uppercase tracking-widest">({calcOrders.length} успішних замовлень)</p>
-                             </div>
-                           )
-                         })()}
+                         <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Розрахунок прибутку та виплат</h4>
+                         <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 mb-4 leading-relaxed">
+                           Враховуються успішні замовлення для обраного партнера за обраний період у фільтрах праворуч.
+                         </p>
+
+                         <div className="mb-4">
+                            <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Відсоток партнера (%)</label>
+                            <input 
+                               type="number" 
+                               min="0"
+                               max="100"
+                               value={refPercent}
+                               onChange={e => setRefPercent(e.target.value)}
+                               className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none transition-colors"
+                            />
+                         </div>
+
+                         <button 
+                           onClick={() => {
+                              if (!refFilterPartner) return showToast('Оберіть партнера у фільтрі праворуч');
+                              const targetOrders = orders.filter(o => {
+                                 if (o.status === 'pending_payment' || o.status === 'cancelled') return false;
+                                 if (o.referralCode !== refFilterPartner) return false;
+                                 const oDate = o.createdAt.slice(0, 10);
+                                 if (refFilterDateFrom && oDate < refFilterDateFrom) return false;
+                                 if (refFilterDateTo && oDate > refFilterDateTo) return false;
+                                 return true;
+                              });
+                              const total = targetOrders.reduce((sum, o) => sum + o.total, 0);
+                              const percentValue = parseFloat(refPercent) || 0;
+                              const share = total * (percentValue / 100);
+                              const net = total - share;
+                              setRefCalcResult({
+                                 total: Math.round(total),
+                                 share: Math.round(share),
+                                 net: Math.round(net),
+                                 count: targetOrders.length
+                              });
+                           }}
+                           className="w-full py-4 bg-white/10 text-white font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all mb-4"
+                         >
+                           Порахувати прибуток
+                         </button>
+
+                         {refCalcResult && (
+                           <div className="bg-black/50 border border-[#d4af37]/30 p-4 space-y-3">
+                              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Загальна каса ({refCalcResult.count} зам.)</span>
+                                 <span className="text-sm font-black text-white">{refCalcResult.total} ₴</span>
+                              </div>
+                              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Виплата партнеру ({refPercent}%)</span>
+                                 <span className="text-sm font-black text-red-400">-{refCalcResult.share} ₴</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-1">
+                                 <span className="text-[9px] font-black uppercase tracking-widest text-[#d4af37]">Ваш чистий прибуток</span>
+                                 <span className="text-base font-black text-green-400">{refCalcResult.net} ₴</span>
+                              </div>
+                           </div>
+                         )}
                       </div>
                     </div>
 
