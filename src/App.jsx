@@ -82,13 +82,6 @@ const STATUS_MAP = {
 const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
 
-const MONOBANK_API_TOKEN = 'ВАШ_MONOBANK_X_TOKEN_ТУТ';
-const MONOBANK_WEBHOOK_URL = 'https://ваш-домен.com/api/monobank-webhook'; 
-
-const WAYFORPAY_MERCHANT_ACCOUNT = 'test_merch_n1'; 
-const WAYFORPAY_MERCHANT_SECRET_KEY = 'flk3409refn54t54t*FNJRET'; 
-const WAYFORPAY_DOMAIN = 'https://ваш-домен.com'; 
-
 const DEFAULT_SIZE_GUIDE = "Розмір,Груди (см),Довжина (см),Плечі (см)\nS,52,70,48\nM,54,72,50\nL,56,74,52\nXL,58,76,54";
 
 const sendTelegramMessage = async (text) => {
@@ -141,9 +134,9 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
             </button>
           )}
           
-          {/* Mobile direct catalog link since menu is removed */}
+          {/* Mobile direct catalog link */}
           {route !== 'catalog' && (
-            <button onClick={() => navigate('catalog')} className="md:hidden text-[10px] xs:text-xs font-black uppercase tracking-widest text-white hover:opacity-70 transition-opacity">
+            <button onClick={() => navigate('catalog')} className="md:hidden text-[10px] xs:text-xs font-black uppercase tracking-widest text-white hover:opacity-70 transition-opacity border-b border-white/30 pb-1">
               Каталог
             </button>
           )}
@@ -197,7 +190,7 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
           <h1 className="text-[14px] xs:text-[16px] sm:text-xl md:text-3xl font-black tracking-normal md:tracking-tighter uppercase md:group-hover:tracking-widest transition-all duration-700 text-white whitespace-nowrap">SLINIAVSKIY</h1>
         </div>
 
-        {/* RIGHT SECTION: Icons (Now fully visible on mobile) */}
+        {/* RIGHT SECTION: Icons */}
         <div className="flex-1 flex items-center justify-end gap-3 xs:gap-4 md:gap-6 text-white relative z-50">
           <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
             <Heart size={20} className="w-5 h-5 md:w-5 md:h-5" />
@@ -208,7 +201,6 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
             <Search size={20} className="w-5 h-5 md:w-5 md:h-5" />
           </button>
           
-          {/* USER / CABINET BUTTON - ALWAYS VISIBLE */}
           <button onClick={() => navigate('account')} className="hover:opacity-50 transition-opacity p-1">
             {user && !user.isAnonymous && user.photoURL ? (
               <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
@@ -279,6 +271,7 @@ export default function App() {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(null);
   
   const [isCheckoutForm, setIsCheckoutForm] = useState(false);
+  // checkoutStep: 1 = Form, 2 = Proceed to Pay Info, 3 = Payment Gateway Stub
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [currentPendingOrderId, setCurrentPendingOrderId] = useState(null);
 
@@ -525,13 +518,33 @@ export default function App() {
   const handleGoogleLogin = async () => {
     setAuthError('');
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
-      // Используем signInWithPopup вместо redirect для корректной работы на всех устройствах и в iframe
       await signInWithPopup(auth, provider);
       showToast('Успішний вхід через Google');
     } catch (err) {
       console.error("Google Auth Error:", err);
-      setAuthError(`Помилка авторизації Google: ${err.message}`);
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        setAuthError('Спливаюче вікно входу заблоковано вашим браузером. Використайте "Тестовий вхід" або Email.');
+      } else {
+        setAuthError(`Помилка Google: ${err.message}`);
+      }
+    }
+  };
+
+  // Кнопка для гарантованого входу без Google (для тестування)
+  const handleDemoLogin = async () => {
+    setAuthError('');
+    try {
+      await signInWithEmailAndPassword(auth, 'demo@sliniavskiy.com', 'demo123456');
+      showToast('Тестовий вхід успішний');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        await createUserWithEmailAndPassword(auth, 'demo@sliniavskiy.com', 'demo123456');
+        showToast('Тестовий акаунт створено');
+      } else {
+        setAuthError(`Помилка тестового входу: ${err.message}`);
+      }
     }
   };
 
@@ -702,6 +715,7 @@ export default function App() {
       const docRef = await addDoc(getOrdersRef(), safeData);
       setCurrentPendingOrderId(docRef.id);
       
+      // Переходимо на крок "Інформація про онлайн оплату"
       setCheckoutStep(2); 
     } catch (err) {
       console.error("Помилка збереження попереднього замовлення", err);
@@ -709,6 +723,7 @@ export default function App() {
     }
   };
 
+  // Викликається після успішної заглушки
   const handleFinalizePayment = async () => {
     if (!currentPendingOrderId) return showToast('Помилка: Замовлення не знайдено');
 
@@ -750,72 +765,9 @@ export default function App() {
     }
   };
 
-  const handleOnlinePayment = async () => {
-    if (WAYFORPAY_MERCHANT_ACCOUNT !== 'test_merch_n1') {
-      showToast("Запуск віджета WayForPay...");
-      
-      const loadWayForPayWidget = () => {
-        return new Promise((resolve) => {
-          if (window.Wayforpay) return resolve(window.Wayforpay);
-          const script = document.createElement('script');
-          script.src = 'https://secure.wayforpay.com/server/pay-widget.js';
-          script.onload = () => resolve(window.Wayforpay);
-          document.body.appendChild(script);
-        });
-      };
-
-      try {
-        const Wayforpay = await loadWayForPayWidget();
-        const wayforpay = new Wayforpay();
-        
-        wayforpay.run({
-            merchantAccount: WAYFORPAY_MERCHANT_ACCOUNT,
-            merchantDomainName: WAYFORPAY_DOMAIN,
-            authorizationType: "SimpleSignature",
-            merchantSignature: "АВТОМАТИЧНИЙ_ПІДПИС_МАЄ_ГЕНЕРУВАТИСЯ_ТУТ",
-            orderReference: currentPendingOrderId,
-            orderDate: Date.now().toString(),
-            amount: cartTotal.toString(),
-            currency: "UAH",
-            productName: cart.map(i => i.name),
-            productPrice: cart.map(i => i.price.toString()),
-            productCount: cart.map(i => i.quantity.toString()),
-            clientFirstName: deliveryForm.name.split(' ')[0] || "Client",
-            clientLastName: deliveryForm.name.split(' ')[1] || "Name",
-            clientPhone: deliveryForm.phone
-        }, 
-        function (response) {
-            handleFinalizePayment();
-        },
-        function (response) {
-            showToast("Оплату відхилено або скасовано");
-        },
-        function (response) {
-        });
-      } catch (err) {
-        showToast("Помилка завантаження каси WayForPay");
-      }
-      return;
-    }
-
-    if (MONOBANK_API_TOKEN === 'ВАШ_MONOBANK_X_TOKEN_ТУТ') {
-      showToast("З'єднання з Платіжною системою (Режим Симуляції)...");
-      setTimeout(() => {
-         handleFinalizePayment();
-      }, 2000);
-      return;
-    }
-
-    try {
-      showToast("Ініціалізація платежу MonoPay...");
-      setTimeout(() => {
-         handleFinalizePayment();
-      }, 2000);
-
-    } catch (err) {
-      console.error("Помилка оплати", err);
-      showToast('Помилка з\'єднання з платіжним шлюзом.');
-    }
+  const handleOnlinePayment = () => {
+    // Надійний перехід до заглушки без setTimeout
+    setCheckoutStep(3);
   };
 
   const handleSaveProduct = async (e) => {
@@ -1222,10 +1174,10 @@ export default function App() {
                    Увійдіть, щоб відстежувати замовлення та мати доступ до персональних налаштувань.
                  </p>
                  
-                 {/* Google Login Button - Made Prominent */}
+                 {/* Google Login Button - With Error Handling for Mobile */}
                  <button 
                    onClick={handleGoogleLogin}
-                   className="w-full py-4 mb-8 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
+                   className="w-full py-4 mb-4 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
                  >
                    <svg className="w-5 h-5" viewBox="0 0 24 24">
                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -1234,6 +1186,14 @@ export default function App() {
                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                    </svg>
                    Увійти через Google
+                 </button>
+
+                 {/* Гарантований тестовий вхід (Заглушка для мобільних) */}
+                 <button 
+                   onClick={handleDemoLogin}
+                   className="w-full py-3 mb-8 border border-[#d4af37]/50 text-[#d4af37] font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-[#d4af37] hover:text-black transition-all flex items-center justify-center gap-2 active:scale-95"
+                 >
+                   <UserCircle size={14} /> Тестовий вхід (Для перевірки)
                  </button>
 
                  <div className="relative flex items-center justify-center mb-8">
@@ -2420,7 +2380,7 @@ export default function App() {
           <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
             <div className="flex justify-between items-center mb-8 md:mb-12">
                <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">
-                 {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : 'Оплата') : 'Кошик'}
+                 {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : checkoutStep === 2 ? 'Деталі оплати' : 'Оплата (Тест)') : 'Кошик'}
                </h2>
                <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
             </div>
@@ -2493,19 +2453,21 @@ export default function App() {
                         <span className="text-lg md:text-xl font-black">{cartTotal} ₴</span>
                       </div>
                       <button type="submit" className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 active:scale-95">
-                        <CreditCard size={16} /> Перейти до оплати
+                        <CreditCard size={16} /> Далі до оплати
                       </button>
                       <button type="button" onClick={() => setIsCheckoutForm(false)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">Назад до кошика</button>
                     </div>
                  </form>
-               ) : (
-                 <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
-                    <ShieldCheck size={48} className="text-zinc-500 mb-6 md:mb-8 md:w-16 md:h-16" />
-                    <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Оплата онлайн</h3>
-                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 leading-relaxed mb-8 md:mb-12">
-                      Безпечний платіжний шлюз.<br/>
-                      <span className="text-[#d4af37] mt-2 block">Інтеграція MonoPay</span>
-                    </p>
+               ) : checkoutStep === 2 ? (
+                 <div className="flex-1 flex flex-col animate-in fade-in zoom-in-95 duration-500 w-full h-full pb-10">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                       <ShieldCheck size={48} className="text-zinc-500 mb-6 md:mb-8 md:w-16 md:h-16" />
+                       <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Оплата онлайн</h3>
+                       <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 leading-relaxed mb-8 md:mb-12">
+                         Безпечний платіжний шлюз.<br/>
+                         <span className="text-[#d4af37] mt-2 block">Інтеграція MonoPay</span>
+                       </p>
+                    </div>
                     
                     <div className="w-full space-y-3 md:space-y-4 mt-auto">
                       <div className="p-4 border border-white/10 bg-white/5 flex justify-between items-center mb-6 md:mb-8">
@@ -2518,6 +2480,30 @@ export default function App() {
                       <button onClick={() => setCheckoutStep(1)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">
                         Назад до деталей доставки
                       </button>
+                    </div>
+                 </div>
+               ) : (
+                 <div className="flex-1 flex flex-col animate-in slide-in-from-bottom duration-300 w-full h-full items-center justify-center">
+                    <div className="w-full bg-[#111] p-6 md:p-8 rounded-sm border border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.05)] text-center relative">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0a0a0a] px-4">
+                         <CreditCard size={24} className="text-white" />
+                      </div>
+                      <h3 className="font-black text-lg md:text-xl uppercase tracking-widest mb-2 mt-4 text-[#d4af37]">MonoPay (Тест)</h3>
+                      <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Це тестова заглушка оплати.</p>
+                      
+                      <div className="bg-black border border-white/10 p-6 mb-8 text-center">
+                        <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">Сума до оплати</p>
+                        <p className="text-3xl md:text-4xl font-black">{cartTotal} ₴</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <button onClick={handleFinalizePayment} className="w-full py-4 bg-white text-black font-black uppercase text-[11px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
+                          Оплатити (Симуляція)
+                        </button>
+                        <button onClick={() => { showToast('Оплату скасовано'); setCheckoutStep(2); }} className="w-full py-3 text-red-500 font-black uppercase text-[9px] tracking-widest hover:opacity-70 transition-opacity">
+                          Скасувати платіж
+                        </button>
+                      </div>
                     </div>
                  </div>
                )
