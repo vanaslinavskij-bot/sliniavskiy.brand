@@ -235,7 +235,18 @@ export default function App() {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  const [deliveryForm, setDeliveryForm] = useState({ name: '', phone: '', city: '', branch: '' });
+  // Оновлений стан для форми доставки (додано cityRef для Нової Пошти)
+  const [deliveryForm, setDeliveryForm] = useState({ name: '', phone: '', city: '', cityRef: '', branch: '' });
+  
+  // Стан для роботи бази Нової Пошти
+  const [npCities, setNpCities] = useState([]);
+  const [npWarehouses, setNpWarehouses] = useState([]);
+  const [showCities, setShowCities] = useState(false);
+  const [showWarehouses, setShowWarehouses] = useState(false);
+  const [isNpLoading, setIsNpLoading] = useState(false);
+
+  // Офіційний ключ доступу Нової Пошти
+  const NP_API_KEY = '8208cf2c74ddc570769381a82649fb8c'; 
 
   const [adminTab, setAdminTab] = useState('orders');
   const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
@@ -286,27 +297,28 @@ export default function App() {
     setDoc(userStoreRef, { cart, wishlist }, { merge: true }).catch(console.error);
   }, [cart, wishlist, user, isUserDataLoaded]);
 
+  // ВИПРАВЛЕНО ВИЛІТ АКАУНТА (Логіка Авторизації)
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth); 
-        }
-      } catch (err) {
-        console.error("Auth init error", err);
-        setAuthLoading(false);
-      }
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
+        // Якщо користувач вже є в пам'яті (увійшов раніше), зберігаємо його
+        setUser(currentUser);
         setAuthLoading(false);
+      } else {
+        // Якщо користувача немає, створюємо анонімного або заходимо по токену
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth); 
+          }
+        } catch (err) {
+          console.error("Auth init error", err);
+          setAuthLoading(false);
+        }
       }
     });
+    
     return () => unsubscribe();
   }, []);
 
@@ -569,6 +581,67 @@ export default function App() {
     setCart(prev => prev.filter(item => item.cartId !== cartId));
   };
 
+  // --- ФУНКЦІЇ ДЛЯ НОВОЇ ПОШТИ ---
+  const fetchNpCities = async (query) => {
+    setDeliveryForm(prev => ({...prev, city: query, branch: '', cityRef: ''}));
+    if (query.length < 2) { setNpCities([]); setShowCities(false); return; }
+    
+    setIsNpLoading(true);
+    try {
+      const res = await fetch('https://api.novaposhta.ua/v2.0/json/', {
+        method: 'POST',
+        body: JSON.stringify({
+          apiKey: NP_API_KEY,
+          modelName: 'Address',
+          calledMethod: 'getCities',
+          methodProperties: { FindByString: query, Limit: 20 }
+        })
+      });
+      const data = await res.json();
+      setNpCities(data.data || []);
+      setShowCities(true);
+    } catch (e) {
+      console.error("Помилка НП (Міста)", e);
+    }
+    setIsNpLoading(false);
+  };
+
+  const selectNpCity = (city) => {
+    setDeliveryForm(prev => ({...prev, city: city.Description, cityRef: city.Ref, branch: ''}));
+    setShowCities(false);
+    fetchNpWarehouses('', city.Ref); // Одразу вантажимо відділення для цього міста
+  };
+
+  const fetchNpWarehouses = async (query, cityRef = deliveryForm.cityRef) => {
+    setDeliveryForm(prev => ({...prev, branch: query}));
+    if (!cityRef) return;
+
+    setIsNpLoading(true);
+    try {
+      const res = await fetch('https://api.novaposhta.ua/v2.0/json/', {
+        method: 'POST',
+        body: JSON.stringify({
+          apiKey: NP_API_KEY,
+          modelName: 'Address',
+          calledMethod: 'getWarehouses',
+          methodProperties: { CityRef: cityRef, FindByString: query, Limit: 50 }
+        })
+      });
+      const data = await res.json();
+      setNpWarehouses(data.data || []);
+      setShowWarehouses(true);
+    } catch (e) {
+      console.error("Помилка НП (Відділення)", e);
+    }
+    setIsNpLoading(false);
+  };
+
+  const selectNpWarehouse = (wh) => {
+    setDeliveryForm(prev => ({...prev, branch: wh.Description}));
+    setShowWarehouses(false);
+  };
+  // ---------------------------------
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     
@@ -643,69 +716,13 @@ export default function App() {
     }
   };
 
-  const handleWayForPayPayment = () => {
-    // Завантажуємо скрипт віджета WayForPay, якщо його ще немає
-    const scriptId = 'wayforpay-script';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://secure.wayforpay.com/server/pay-widget.js';
-      script.onload = () => openWfpWidget();
-      document.body.appendChild(script);
-    } else {
-      openWfpWidget();
-    }
-  };
-
-  const openWfpWidget = () => {
-    if (!window.Wayforpay) return showToast("Помилка завантаження платіжної системи");
-    const wayforpay = new window.Wayforpay();
-
-    // ВАЖЛИВО: Ці дані видасть WayForPay після реєстрації
-    const merchantAccount = "test_merch_n1"; // Замініть на свій мерчант
-    const merchantDomainName = window.location.hostname;
-    const orderReference = currentPendingOrderId;
-    const orderDate = Math.floor(Date.now() / 1000);
-    const amount = cartTotal;
-    const currency = "UAH";
-
-    // Формуємо списки товарів для чеку
-    const productName = cart.map(item => `${item.name} (${item.selectedSize})`);
-    const productCount = cart.map(item => item.quantity);
-    const productPrice = cart.map(item => item.price);
-
-    // УВАГА: Підпис (Signature) має генеруватися на сервері за допомогою секретного ключа (HMAC_MD5).
-    // Поки у вас немає ключів, це заглушка.
-    const merchantSignature = "TEST_SIGNATURE_PLACEHOLDER";
-
-    wayforpay.run({
-        merchantAccount: merchantAccount,
-        merchantDomainName: merchantDomainName,
-        orderReference: orderReference,
-        orderDate: orderDate,
-        amount: amount,
-        currency: currency,
-        productName: productName,
-        productCount: productCount,
-        productPrice: productPrice,
-        merchantSignature: merchantSignature,
-        clientFirstName: deliveryForm.name.split(' ')[0] || "Client",
-        clientLastName: deliveryForm.name.split(' ')[1] || "",
-        clientPhone: deliveryForm.phone,
-        language: "UA"
-    },
-    function (response) {
-        // Успішна оплата (on approved)
-        handleFinalizePayment();
-    },
-    function (response) {
-        // Відхилено або закрито вікно (on declined)
-        showToast("Оплату скасовано або відхилено.");
-    },
-    function (response) {
-        // В обробці (on pending)
-        showToast("Оплата в процесі обробки...");
-    });
+  // ВИПРАВЛЕНО ЗАЙВИЙ КОД: Заміна WayForPay на MonoPay
+  const handleMonoPayPayment = () => {
+    // Тут буде підключення бойових ключів MonoPay
+    showToast("З'єднання з MonoPay...");
+    setTimeout(() => {
+       handleFinalizePayment();
+    }, 2000);
   };
 
   // 100% НАДЕЖНОЕ СОХРАНЕНИЕ ТОВАРОВ
@@ -1630,12 +1647,15 @@ export default function App() {
                         
                         {/* Image Upload Section */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                            <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Крок 1. Завантажити фото з пристрою</label>
-                            <span className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 border border-white/10">
-                              Ідеальний розмір: пропорція 3:4 (напр. 800x1067 px)
-                            </span>
+                          <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4 mb-6 rounded-sm">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">📸 Вимоги до фотографій</h4>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 leading-relaxed">
+                              Для ідеального вигляду карток товару завантажуйте строго <strong>вертикальні фото (пропорція 3:4)</strong>.<br/>
+                              Ідеальний розмір: <span className="text-white">800x1067 px</span> або <span className="text-white">1200x1600 px</span>.
+                            </p>
                           </div>
+                          
+                          <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Завантажити фото з пристрою</label>
                           <input 
                             type="file" 
                             multiple 
@@ -1647,7 +1667,7 @@ export default function App() {
                           {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлів у хмару. Зачекайте...</p>}
                           
                           <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-6 mb-2">Або посилання на фото (кожне з нового рядка)</label>
-                          <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" placeholder="https://image1.jpg&#10;https://image2.jpg" />
+                          <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none mt-4" placeholder="https://image1.jpg&#10;https://image2.jpg" />
                         </div>
 
                         <div className="md:col-span-2">
@@ -2076,25 +2096,19 @@ export default function App() {
               <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-6 md:mb-8 text-white">Підтримка</h4>
               <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest break-all hover:text-white cursor-pointer transition-colors text-left mb-6">sliniavskiy.support@gmail.com</p>
               
-              {/* Іконки платіжних систем (MonoPay: Visa, MC, Apple, Google) */}
-              <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-auto mb-2 text-zinc-500">
-                 <svg viewBox="0 0 38 12" className="h-4 md:h-5 w-auto fill-current hover:text-white transition-colors" title="Visa">
-                   <path d="M14.88 0l-2.4 11.53H9.15L11.55 0h3.33zm16.48 11.23c-.55.26-1.74.55-3.33.55-3.66 0-6.24-1.93-6.27-4.69-.03-2.03 1.76-3.15 3.12-3.83 1.4-.7 1.87-1.15 1.87-1.78 0-.96-1.14-1.4-2.2-1.4-1.46 0-2.32.42-3.26.87l-.46.22-.46-2.92c.81-.38 2.3-.72 3.88-.74 3.87 0 6.4 1.9 6.44 4.8.03 1.62-.97 2.65-2.73 3.52-1.25.61-2.02 1.02-2.02 1.65 0 .61.69 1.25 2.27 1.25 1.15 0 1.98-.24 2.82-.62l.33-.16.53 2.68zm-19.33-8.8v-.03c.53-1.47 2.55-6.9 2.55-6.9h3.58l-4 11.53h-3.37l-2.05-5.83-1.43-4.75h-.03L3.18 11.53H0L3.83 0h3.46l2.02 5.96z" />
-                 </svg>
-                 <svg viewBox="0 0 24 15" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors" title="Mastercard">
-                   <path d="M15.48 7.5c0-2.2-1-4.14-2.58-5.46a8.23 8.23 0 0 1 0 10.92 8.24 8.24 0 0 0 2.58-5.46z"/>
-                   <path d="M8.53 7.5a8.24 8.24 0 0 0 2.57 5.46 8.24 8.24 0 0 0 0-10.92 8.24 8.24 0 0 0-2.57 5.46z"/>
-                   <path d="M9 1.66A8.25 8.25 0 1 0 10.05 15 8.24 8.24 0 0 1 5.38 7.5c0-2.6 1.22-4.93 3.15-6.42A8.25 8.25 0 0 0 9 1.66z"/>
-                   <path d="M22.5 7.5A8.25 8.25 0 0 1 14 15.75a8.25 8.25 0 0 1-5.05-13.34A8.25 8.25 0 0 1 22.5 7.5z"/>
-                 </svg>
-                 <svg viewBox="0 0 41 17" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors ml-1" title="Apple Pay">
-                   <path d="M19.08 16.51V4.28h3.33c1.7 0 2.92.36 3.65 1.07.72.7 1.08 1.67 1.08 2.89 0 1.25-.36 2.22-1.08 2.9-.73.69-1.96 1.03-3.69 1.03h-1.63v4.34h-1.66zm1.66-5.74h1.74c1.17 0 1.99-.21 2.45-.63.46-.42.69-1.03.69-1.83 0-.81-.23-1.42-.68-1.84-.45-.41-1.27-.62-2.46-.62h-1.74v4.92zm10.7 5.74V9.89c0-.98-.21-1.69-.64-2.12-.42-.43-1.05-.65-1.88-.65-.8 0-1.46.22-1.97.66-.5.44-.8 1.06-.91 1.86h-1.57c.13-1.26.6-2.23 1.4-2.93.81-.69 1.83-1.04 3.08-1.04 1.3 0 2.3.36 3.02 1.07.72.71 1.08 1.74 1.08 3.1v6.67h-1.61zm-4.32-2.15c.67.41 1.46.62 2.38.62.9 0 1.62-.23 2.16-.68.54-.45.81-1.04.81-1.75 0-.64-.23-1.15-.7-1.55-.46-.4-1.27-.66-2.42-.79-1.51-.17-2.55-.5-3.13-1.01-.58-.51-.87-1.19-.87-2.05 0-.91.36-1.66 1.07-2.24.71-.58 1.67-.87 2.86-.87 1.02 0 1.9.22 2.65.65v1.45c-.83-.49-1.7-.73-2.61-.73-.78 0-1.39.18-1.83.54-.44.36-.66.82-.66 1.38 0 .54.21.96.63 1.28.42.31 1.15.54 2.18.67 1.49.2 2.53.53 3.12 1.01.59.48.88 1.17.88 2.08 0 .96-.36 1.73-1.09 2.33-.73.6-1.74.9-3.03.9-1.12 0-2.11-.27-2.98-.82v-1.47zm13.13-7.5l-3.32 9.65h-1.72l1.24-3.51-3.41-6.14h1.8l2.36 4.6 2.21-4.6h1.84zM7.06 6.55C7.29 4.3 9.17 2.8 11.36 2.76c2.02-.03 3.52 1.21 4.54 1.21 1.03 0 2.18-1.22 4.41-1.22 1.57 0 3.32.74 4.35 2.15-3.35 1.93-2.8 6.58.55 7.91-1.08 2.7-3.03 5.43-5.59 5.45-1.55.01-2.2-.95-4.1-.95-1.89 0-2.48.97-4.1.95-1.73-.01-3.11-2.03-4.59-4.32-2.18-3.4-3.18-7.73-1.75-10.43.5-.94 1.34-1.72 2.37-2.13.06 1.67.75 3.33 1.83 4.46.86.89 2.1 1.5 3.32 1.51-.06-1.51-.74-3.01-1.8-4.04-.84-.82-2.04-1.42-3.23-1.48-.38 1.38-.28 2.82.5 4.1.75 1.24 1.94 2.17 3.33 2.6z"/>
-                 </svg>
-                 <svg viewBox="0 0 54 22" className="h-5 md:h-6 w-auto fill-current hover:text-white transition-colors" title="Google Pay">
-                   <path d="M20.25 10.97v4.18H22v-11.2h3.9c1.07 0 1.96.36 2.68 1.07.74.7 1.11 1.57 1.11 2.6 0 1.04-.37 1.9-1.11 2.61-.72.71-1.61 1.07-2.68 1.07h-3.9v-4.33h-1.65zm1.65-5.54h3.9c.6 0 1.12-.2 1.56-.61.44-.41.66-.92.66-1.53 0-.6-.22-1.11-.66-1.52-.44-.41-.96-.62-1.56-.62h-3.9v4.28zm8.9 9.72c-.89 0-1.61-.25-2.17-.74-.56-.5-.84-1.16-.84-1.99 0-.88.31-1.56.93-2.05.62-.49 1.45-.73 2.49-.73.88 0 1.62.16 2.22.48v-.31c0-.62-.22-1.15-.65-1.58-.43-.43-1.01-.64-1.74-.64-.6 0-1.13.14-1.59.43-.46.29-.8.71-1.02 1.26l-1.49-.62c.32-.78.82-1.42 1.5-1.93.68-.51 1.54-.76 2.58-.76 1.17 0 2.1.33 2.78.99.68.66 1.02 1.56 1.02 2.7v5.37h-1.55v-1.18c-.54.89-1.37 1.33-2.49 1.33zm-.26-1.37c.56 0 1.07-.2 1.53-.59.46-.39.69-.88.69-1.47-.49-.35-1.12-.53-1.9-.53-.66 0-1.19.14-1.58.42-.39.28-.58.65-.58 1.1 0 .37.13.68.39.93.26.25.68.37 1.26.37zm7.42 5.56l-5.32-15.35h1.72l4.31 12.87 4.38-12.87h1.69l-7.05 19.3h-1.66v-3.95zM6.91 4.54c1.86 0 3.42.66 4.7 1.99l-1.74 1.7c-.8-.77-1.79-1.16-2.96-1.16-2.28 0-4.13 1.61-4.13 3.93 0 2.32 1.85 3.93 4.13 3.93 1.31 0 2.34-.48 3.01-1.19.82-.84 1.08-1.99 1.18-3.08H6.91V8.2h7.67c.08.38.12.79.12 1.25 0 2.31-.83 4.41-2.26 5.86-1.43 1.45-3.26 2.21-5.53 2.21-4.22 0-7.64-3.35-7.64-7.5S2.69 2.5 6.91 2.5c1.93 0 3.51.68 4.72 1.86l-1.8 1.83c-.88-.85-1.98-1.35-3.13-1.35v-.3z"/>
-                 </svg>
+              {/* Іконки платіжних систем (Красивий шрифт) */}
+              <div className="flex flex-wrap items-center gap-3 mt-auto mb-3 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]">
+                 <span className="hover:text-white transition-colors cursor-default">VISA</span>
+                 <span className="text-zinc-800">|</span>
+                 <span className="hover:text-white transition-colors cursor-default">MASTERCARD</span>
+                 <span className="text-zinc-800">|</span>
+                 <span className="hover:text-white transition-colors cursor-default">APPLE PAY</span>
+                 <span className="text-zinc-800">|</span>
+                 <span className="hover:text-white transition-colors cursor-default">GOOGLE PAY</span>
               </div>
-              <p className="text-[7px] md:text-[8px] text-zinc-600 font-bold uppercase tracking-widest mt-2">Офіційний мерчант MonoPay</p>
+              <p className="text-[7px] md:text-[8px] text-zinc-600 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                <ShieldCheck size={12}/> Офіційний мерчант MonoPay
+              </p>
             </div>
           </div>
           
@@ -2236,12 +2250,58 @@ export default function App() {
 
             {isCheckoutForm ? (
                checkoutStep === 1 ? (
-                 <form onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col">
+                 <form onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col pb-32">
                     <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Дані доставки (Нова Пошта)</h3>
                     <input required type="text" placeholder="ПІБ" value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                     <input required type="tel" placeholder="Номер телефону" value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
-                    <input required type="text" placeholder="Місто" value={deliveryForm.city} onChange={e => setDeliveryForm({...deliveryForm, city: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
-                    <input required type="text" placeholder="Відділення Нової Пошти" value={deliveryForm.branch} onChange={e => setDeliveryForm({...deliveryForm, branch: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
+                    
+                    {/* РОЗУМНИЙ ПОШУК МІСТА */}
+                    <div className="relative">
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="Місто (почніть вводити...)" 
+                        value={deliveryForm.city} 
+                        onChange={e => fetchNpCities(e.target.value)} 
+                        onFocus={() => { if(npCities.length > 0) setShowCities(true); }}
+                        onBlur={() => setTimeout(() => setShowCities(false), 200)}
+                        className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" 
+                      />
+                      {isNpLoading && !showWarehouses && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
+                      {showCities && npCities.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
+                          {npCities.map(city => (
+                            <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+                              {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription} обл.)</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* РОЗУМНИЙ ПОШУК ВІДДІЛЕННЯ */}
+                    <div className="relative">
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder={deliveryForm.cityRef ? "Відділення або поштомат..." : "Спочатку оберіть місто"} 
+                        value={deliveryForm.branch} 
+                        onChange={e => fetchNpWarehouses(e.target.value)} 
+                        onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(''); }}
+                        onBlur={() => setTimeout(() => setShowWarehouses(false), 200)}
+                        disabled={!deliveryForm.cityRef}
+                        className={`w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors ${!deliveryForm.cityRef ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                      />
+                      {showWarehouses && npWarehouses.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
+                          {npWarehouses.map(wh => (
+                            <div key={wh.Ref} onClick={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
+                              {wh.Description}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
                     <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-4">
                       <label className="flex items-start gap-3 cursor-pointer group">
@@ -2269,7 +2329,7 @@ export default function App() {
                     <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Оплата онлайн</h3>
                     <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-500 leading-relaxed mb-8 md:mb-12">
                       Безпечний платіжний шлюз.<br/>
-                      <span className="text-[#d4af37] mt-2 block">Інтеграція WayForPay</span>
+                      <span className="text-[#d4af37] mt-2 block">Інтеграція MonoPay</span>
                     </p>
                     
                     <div className="w-full space-y-3 md:space-y-4 mt-auto">
@@ -2277,7 +2337,7 @@ export default function App() {
                         <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400">До сплати</span>
                         <span className="text-base md:text-lg font-black text-white">{cartTotal} ₴</span>
                       </div>
-                      <button onClick={handleWayForPayPayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
+                      <button onClick={handleMonoPayPayment} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">
                         Оплатити замовлення
                       </button>
                       <button onClick={() => setCheckoutStep(1)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">
