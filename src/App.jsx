@@ -268,7 +268,7 @@ export default function App() {
   const activeProducts = dbProducts;
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
   
-  const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('sliniavskiy_cookie_consent'));
+  const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('sliniavskiy_cookie_consent_v2'));
   const [cookiePrefs, setCookiePrefs] = useState(() => {
     try { return JSON.parse(localStorage.getItem('sliniavskiy_cookie_prefs') || '{"analytics":true,"marketing":false}'); }
     catch { return {analytics:true,marketing:false}; }
@@ -457,7 +457,6 @@ export default function App() {
         const snap = await getDoc(userStoreRef);
         if (snap.exists()) {
           const data = snap.data();
-          // Санитизация данных из базы
           if (data.cart && Array.isArray(data.cart)) setCart(data.cart.filter(i=>i&&i.id));
           if (data.wishlist && Array.isArray(data.wishlist)) setWishlist(data.wishlist.filter(i=>i&&i.id));
         } else {
@@ -534,7 +533,7 @@ export default function App() {
   const isInWishlist = (id) => wishlist.some(item => item.id === id);
 
   const handleCookieAction = (action) => {
-    localStorage.setItem('sliniavskiy_cookie_consent', action);
+    localStorage.setItem('sliniavskiy_cookie_consent_v2', action);
     setCookieConsent(action);
     if (action === 'settings') {
       navigate('legal', {type: 'cookies'});
@@ -598,7 +597,6 @@ export default function App() {
     }
   };
 
-  // ЗАЩИТА: Строгий подсчет суммы с защитой от NaN
   const cartSubtotal = useMemo(() => cart.reduce((total, item) => {
     const realProduct = activeProducts.find(p => p.id === item.id);
     const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
@@ -615,7 +613,6 @@ export default function App() {
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
     
-    // Защита данных перед добавлением
     const productToAdd = {
       id: String(p.id),
       name: String(p.name),
@@ -657,6 +654,8 @@ export default function App() {
 
   const fetchNpCities = async (query) => {
     setDeliveryForm(prev => ({...prev, city: query, branch: '', cityRef: ''}));
+    setNpWarehouses([]); // Очищаем старые отделения при вводе нового города
+    
     if (query.length < 2) { setNpCities([]); setShowCities(false); return; }
     
     setIsNpLoading(true);
@@ -709,7 +708,12 @@ export default function App() {
     setIsNpLoading(false);
   };
 
-  // ЗАЩИТА: Полная санитизация данных перед отправкой в базу
+  // ИСПРАВЛЕНО: Добавлена отсутствующая функция выбора отделения
+  const selectNpWarehouse = (wh) => {
+    setDeliveryForm(prev => ({...prev, branch: wh.Description}));
+    setShowWarehouses(false);
+  };
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     
@@ -718,7 +722,6 @@ export default function App() {
       return;
     }
     
-    // Броня: Очистка каждого товара от мусора F12
     const itemsToSave = cart.map(item => {
       const realProduct = activeProducts.find(p => p.id === item.id);
       const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
@@ -731,7 +734,7 @@ export default function App() {
         price: realPrice,
         image: String(item.image || 'https://via.placeholder.com/100')
       };
-    }).filter(item => item.id && item.price >= 0); // Отсекаем полностью поломанные товары
+    }).filter(item => item.id && item.price >= 0); 
 
     const safeTotal = itemsToSave.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -758,7 +761,6 @@ export default function App() {
     };
 
     try {
-      // Двойная страховка JSON парсером
       const safeData = JSON.parse(JSON.stringify(orderData));
       const docRef = await addDoc(getOrdersRef(), safeData);
       
@@ -1107,7 +1109,6 @@ export default function App() {
                   {routeParams.category || 'Уся Колекція'}
                 </h2>
                 
-                {/* Розумний фільтр з розподілом по групах (рядкам) */}
                 <div className="flex flex-col gap-6 md:gap-8">
                   <div className="flex">
                      <button onClick={() => navigate('catalog', { category: null })} className={`px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] border transition-all whitespace-nowrap ${!routeParams.category ? 'bg-white text-black border-white' : 'border-white/10 text-zinc-500 hover:border-white hover:text-white'}`}>Усі товари</button>
@@ -1261,7 +1262,6 @@ export default function App() {
                    Увійдіть, щоб відстежувати замовлення та мати доступ до персональних налаштувань.
                  </p>
                  
-                 {/* Google Login Button - With Error Handling for Mobile */}
                  <button 
                    onClick={handleGoogleLogin}
                    className="w-full py-4 mb-8 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
@@ -1280,7 +1280,6 @@ export default function App() {
                     <span className="relative bg-[#0a0a0a] px-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500">Або за допомогою Email</span>
                  </div>
 
-                 {/* Email & Password Form */}
                  <form onSubmit={handleEmailAuth} className="space-y-4 mb-8 text-left">
                     {authError && (
                       <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 mb-4 text-[9px] md:text-[10px] font-bold uppercase tracking-widest leading-relaxed">
@@ -1424,13 +1423,10 @@ export default function App() {
               const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
               const inStockGlobal = p.inStock !== false;
 
-              // Фільтруємо галерею, щоб показувати тільки фото, прив'язані до обраного кольору
-              // Якщо для кольору не обрано жодного фото, показуємо всі фото товару
               const galleryImages = (activeColor.imageIndexes && activeColor.imageIndexes.length > 0 && p.images) 
                 ? activeColor.imageIndexes.filter(i => i < p.images.length).map(i => p.images[i]) 
                 : (p.images || []);
 
-              // Переконуємось, що activeImageIndex не виходить за межі відфільтрованої галереї
               const safeImageIndex = activeImageIndex < galleryImages.length ? activeImageIndex : 0;
               const currentMainImage = galleryImages[safeImageIndex] || 'https://via.placeholder.com/800';
 
@@ -1466,7 +1462,6 @@ export default function App() {
                       </button>
                     </div>
                     
-                    {/* Color Selection */}
                     <div className="mb-8 md:mb-10">
                       <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 md:mb-6">Колір: {activeColor.label}</h4>
                       <div className="flex gap-4">
@@ -1475,7 +1470,7 @@ export default function App() {
                           return (
                           <button
                             key={i}
-                            onClick={() => { setSelectedColor(color); setActiveImageIndex(0); }} // Скидаємо індекс при зміні кольору
+                            onClick={() => { setSelectedColor(color); setActiveImageIndex(0); }} 
                             className={`w-10 h-10 rounded-full border-2 transition-all p-0.5 ${isSelected ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/50'}`}
                           >
                             <div className="w-full h-full rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
@@ -1484,7 +1479,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Size Selection */}
                     <div className="mb-10 md:mb-12">
                       <div className="flex justify-between items-center mb-4 md:mb-6">
                         <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Розмір</h4>
@@ -1688,7 +1682,6 @@ export default function App() {
           <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-7xl mx-auto px-4 md:px-6 animate-in fade-in duration-700">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 text-[#d4af37]">Панель Адміністратора</h1>
             
-            {/* Admin Tabs Navigation */}
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 mb-8 md:mb-12 border-b border-white/10 snap-x">
               {[
                 { id: 'orders', label: 'Замовлення', icon: <Package size={16} /> },
@@ -1711,8 +1704,6 @@ export default function App() {
               {/* --- ORDERS TAB --- */}
               {adminTab === 'orders' && (
                 <section className="animate-in fade-in duration-500">
-                  
-                  {/* ORDERS FILTER */}
                   <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl">
                     <div className="flex-1 w-full">
                        <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Фільтр за статусом</label>
@@ -2594,14 +2585,14 @@ export default function App() {
                         value={deliveryForm.city} 
                         onChange={e => fetchNpCities(e.target.value)} 
                         onFocus={() => { if(npCities.length > 0) setShowCities(true); }}
-                        onBlur={() => setTimeout(() => setShowCities(false), 200)}
+                        onBlur={() => setShowCities(false)}
                         className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" 
                       />
                       {isNpLoading && !showWarehouses && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
                       {showCities && npCities.length > 0 && (
                         <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
                           {npCities.map(city => (
-                            <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+                            <div key={city.Ref} onMouseDown={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
                               {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription} обл.)</span>
                             </div>
                           ))}
@@ -2617,14 +2608,14 @@ export default function App() {
                         value={deliveryForm.branch} 
                         onChange={e => fetchNpWarehouses(e.target.value)} 
                         onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(''); }}
-                        onBlur={() => setTimeout(() => setShowWarehouses(false), 200)}
+                        onBlur={() => setShowWarehouses(false)}
                         disabled={!deliveryForm.cityRef}
                         className={`w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors ${!deliveryForm.cityRef ? 'opacity-50 cursor-not-allowed' : ''}`} 
                       />
                       {showWarehouses && npWarehouses.length > 0 && (
                         <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
                           {npWarehouses.map(wh => (
-                            <div key={wh.Ref} onClick={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
+                            <div key={wh.Ref} onMouseDown={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
                               {wh.Description}
                             </div>
                           ))}
