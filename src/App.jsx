@@ -66,8 +66,8 @@ const GROUP_ACC = ['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Пер
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 const DEFAULT_COLORS = [
-  { name: 'Black', hex: '#000000', label: 'Чорний', imageIndex: 0 },
-  { name: 'White', hex: '#ffffff', label: 'Білий', imageIndex: 0 }
+  { name: 'Black', hex: '#000000', label: 'Чорний', imageIndexes: [0] },
+  { name: 'White', hex: '#ffffff', label: 'Білий', imageIndexes: [0] }
 ];
 const DEFAULT_SIZES_AVAILABILITY = { S: true, M: true, L: true, XL: true };
 
@@ -608,7 +608,10 @@ export default function App() {
       cartId: `${p.id}-${selectedSize}-${activeColor.name}-${activeColor.hex}`
     };
 
-    const imgUrl = p.images && p.images[activeColor.imageIndex] ? p.images[activeColor.imageIndex] : p.images[0];
+    // Отримуємо перше фото з прив'язаних до кольору, або загальне перше фото
+    const imgUrl = p.images && activeColor.imageIndexes && activeColor.imageIndexes.length > 0 && p.images[activeColor.imageIndexes[0]] 
+      ? p.images[activeColor.imageIndexes[0]] 
+      : (p.images ? p.images[0] : 'https://via.placeholder.com/800');
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
@@ -786,7 +789,7 @@ export default function App() {
          name: c.name || 'Color',
          label: c.label || 'Колір',
          hex: c.hex || '#ffffff',
-         imageIndex: Number(c.imageIndex) || 0
+         imageIndexes: Array.isArray(c.imageIndexes) ? c.imageIndexes : []
       }));
 
       const productData = {
@@ -973,6 +976,26 @@ export default function App() {
       key,
       direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
+  };
+
+  // Helper function to toggle image selection for a color
+  const toggleColorImage = (colorIndex, imgIndex) => {
+    const nc = [...editForm.colors];
+    if (!nc[colorIndex].imageIndexes) {
+      nc[colorIndex].imageIndexes = [];
+    }
+    
+    const indexPos = nc[colorIndex].imageIndexes.indexOf(imgIndex);
+    if (indexPos > -1) {
+      // Remove if already selected
+      nc[colorIndex].imageIndexes.splice(indexPos, 1);
+    } else {
+      // Add if not selected
+      nc[colorIndex].imageIndexes.push(imgIndex);
+      // Sort to keep order logical
+      nc[colorIndex].imageIndexes.sort((a, b) => a - b);
+    }
+    setEditForm({...editForm, colors: nc});
   };
 
   if (authLoading || !isProductsLoaded || !isSettingsLoaded || !isUserDataLoaded) {
@@ -1369,20 +1392,30 @@ export default function App() {
               const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
               const inStockGlobal = p.inStock !== false;
 
+              // Фільтруємо галерею, щоб показувати тільки фото, прив'язані до обраного кольору
+              // Якщо для кольору не обрано жодного фото, показуємо всі фото товару
+              const galleryImages = (activeColor.imageIndexes && activeColor.imageIndexes.length > 0 && p.images) 
+                ? activeColor.imageIndexes.filter(i => i < p.images.length).map(i => p.images[i]) 
+                : (p.images || []);
+
+              // Переконуємось, що activeImageIndex не виходить за межі відфільтрованої галереї
+              const safeImageIndex = activeImageIndex < galleryImages.length ? activeImageIndex : 0;
+              const currentMainImage = galleryImages[safeImageIndex] || 'https://via.placeholder.com/800';
+
               return (
                 <>
                   <div className="space-y-4">
                     <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                       {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">Немає в наявності</div>}
-                      <img src={p.images[activeImageIndex] || p.images[0] || 'https://via.placeholder.com/800'} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
+                      <img src={currentMainImage} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
                     </div>
-                    {p.images && p.images.length > 1 && (
+                    {galleryImages.length > 1 && (
                       <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
-                        {p.images.map((img, idx) => (
+                        {galleryImages.map((img, idx) => (
                           <button 
                             key={idx} 
                             onClick={() => setActiveImageIndex(idx)} 
-                            className={`snap-start w-16 h-20 md:w-20 md:h-24 shrink-0 bg-zinc-900 overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-white opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                            className={`snap-start w-16 h-20 md:w-20 md:h-24 shrink-0 bg-zinc-900 overflow-hidden border-2 transition-all ${safeImageIndex === idx ? 'border-white opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
                           >
                             <img src={img} className="w-full h-full object-cover" alt={`${p.name} view ${idx + 1}`} />
                           </button>
@@ -1410,7 +1443,7 @@ export default function App() {
                           return (
                           <button
                             key={i}
-                            onClick={() => { setSelectedColor(color); setActiveImageIndex(color.imageIndex || 0); }}
+                            onClick={() => { setSelectedColor(color); setActiveImageIndex(0); }} // Скидаємо індекс при зміні кольору
                             className={`w-10 h-10 rounded-full border-2 transition-all p-0.5 ${isSelected ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/50'}`}
                           >
                             <div className="w-full h-full rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
@@ -1756,15 +1789,17 @@ export default function App() {
                           </label>
                         </div>
 
-                        {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО */}
+                        {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО (МНОЖЕСТВЕННАЯ) */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50 space-y-4">
                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Кольори товару</h4>
                            <p className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">
-                             Додайте колір, а потім <strong>клікніть на мініатюру фотографії</strong> нижче, щоб прив'язати її до цього кольору. (Фотографії товару потрібно попередньо додати у блоці нижче).
+                             Додайте колір, а потім <strong>клікніть на мініатюри фотографій</strong> нижче, щоб прив'язати їх до цього кольору. Ви можете обрати декілька фото для одного кольору!
                            </p>
                            
                            {(editForm.colors || []).map((c, idx) => {
                              const parsedImagesForColors = editForm.images ? editForm.images.split('\n').map(i=>i.trim()).filter(Boolean) : [];
+                             const selectedIndexes = Array.isArray(c.imageIndexes) ? c.imageIndexes : (c.imageIndex !== undefined ? [c.imageIndex] : []);
+                             
                              return (
                              <div key={idx} className="flex flex-col gap-3 border border-white/5 p-4 bg-black/30 shadow-lg">
                                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
@@ -1776,33 +1811,37 @@ export default function App() {
                                </div>
 
                                <div className="flex flex-col gap-2 mt-2">
-                                 <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Оберіть фото для цього кольору:</span>
+                                 <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">
+                                   Оберіть фотографії для галереї цього кольору (обрано: {selectedIndexes.length}):
+                                 </span>
                                  {parsedImagesForColors.length === 0 ? (
                                    <span className="text-[8px] text-red-400 mt-1">Спочатку додайте/завантажте фото товару нижче 👇</span>
                                  ) : (
                                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">
-                                     {parsedImagesForColors.map((imgUrl, imgIdx) => (
+                                     {parsedImagesForColors.map((imgUrl, imgIdx) => {
+                                       const isSelected = selectedIndexes.includes(imgIdx);
+                                       return (
                                        <button
                                          key={imgIdx}
                                          type="button"
-                                         onClick={(e) => { e.preventDefault(); const nc=[...editForm.colors]; nc[idx].imageIndex=imgIdx; setEditForm({...editForm, colors:nc}) }}
-                                         className={`w-12 h-16 shrink-0 border-2 transition-all overflow-hidden relative ${c.imageIndex === imgIdx ? 'border-[#d4af37] opacity-100 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'border-transparent opacity-40 hover:opacity-100'}`}
+                                         onClick={(e) => { e.preventDefault(); toggleColorImage(idx, imgIdx); }}
+                                         className={`w-12 h-16 shrink-0 border-2 transition-all overflow-hidden relative ${isSelected ? 'border-[#d4af37] opacity-100 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'border-transparent opacity-40 hover:opacity-100'}`}
                                        >
                                          <img src={imgUrl} className="w-full h-full object-cover" alt="Color thumbnail" />
-                                         {c.imageIndex === imgIdx && (
+                                         {isSelected && (
                                            <div className="absolute top-0 right-0 bg-[#d4af37] text-black w-4 h-4 flex items-center justify-center">
                                              <Check size={12} strokeWidth={4} />
                                            </div>
                                          )}
                                        </button>
-                                     ))}
+                                     )})}
                                    </div>
                                  )}
                                </div>
                              </div>
                            )})}
                            
-                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-4 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
+                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndexes:[]}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-4 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
                         </div>
 
                         {/* Sizes Settings */}
@@ -1867,7 +1906,15 @@ export default function App() {
                           <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
                           <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                           <div className="flex gap-2 w-full">
-                            <button onClick={() => { setEditingProduct(p); setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: p.colors || DEFAULT_COLORS, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
+                            <button onClick={() => { 
+                              // Convert old single imageIndex format to array if needed for editing
+                              const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
+                                ...c,
+                                imageIndexes: Array.isArray(c.imageIndexes) ? c.imageIndexes : (c.imageIndex !== undefined ? [c.imageIndex] : [])
+                              }));
+                              setEditingProduct(p); 
+                              setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: mappedColors, sizes: p.sizes || DEFAULT_SIZES_AVAILABILITY }); 
+                            }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                           </div>
                         </div>
