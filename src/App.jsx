@@ -290,6 +290,7 @@ export default function App() {
   // checkoutStep: 1 = Delivery Form, 2 = Payment Stub
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [currentPendingOrderId, setCurrentPendingOrderId] = useState(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -779,13 +780,22 @@ export default function App() {
   };
 
   const handleFinalizePayment = async () => {
+    if (!user) {
+      showToast('Помилка: сесія користувача не знайдена.');
+      return;
+    }
     if (!currentPendingOrderId) {
       showToast('Помилка: Замовлення не знайдено (сесія скинута). Оформіть заново.');
       setCheckoutStep(1);
       return;
     }
 
+    setIsProcessingPayment(true);
+
     try {
+      // Штучна затримка для імітації банківської обробки
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'orders', currentPendingOrderId), { 
         status: 'new' 
       });
@@ -807,19 +817,21 @@ export default function App() {
 
       await sendTelegramMessage(text);
 
-      showToast('Оплата успішна! Замовлення оформлено.');
+      showToast('Тестова оплата успішна! Замовлення оформлено.');
       setCart([]);
-      setDeliveryForm({ name: '', phone: '', city: '', branch: '' });
+      setDeliveryForm({ name: '', phone: '', city: '', cityRef: '', branch: '' });
       setCurrentPendingOrderId(null);
       setIsCartOpen(false);
       setIsCheckoutForm(false);
       setCheckoutStep(1);
+      setIsProcessingPayment(false);
       
       navigate('home');
       
     } catch (err) {
       console.error("Помилка підтвердження оплати", err);
-      showToast('Помилка підтвердження оплати.');
+      showToast(`Помилка оплати: ${err.message || 'Спробуйте ще раз'}`);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -2650,7 +2662,12 @@ export default function App() {
                          <CreditCard size={24} className="text-[#d4af37]" />
                       </div>
                       <h3 className="font-black text-lg md:text-xl uppercase tracking-widest mb-2 mt-4 text-white">MonoPay</h3>
-                      <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Система безпечних платежів.<br/>Очікується підключення бойового ключа.</p>
+                      
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 mb-4 text-yellow-500 text-[9px] md:text-[10px] uppercase font-black tracking-widest rounded-sm flex items-center justify-center gap-2">
+                        <Activity size={14} /> Режим симуляції (Тестова оплата)
+                      </div>
+
+                      <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Ця форма є імітацією для перевірки роботи.<br/>Реальні кошти не списуються.</p>
                       
                       <div className="bg-black border border-white/10 p-6 mb-8 text-center">
                         <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">Сума до оплати</p>
@@ -2658,10 +2675,18 @@ export default function App() {
                       </div>
 
                       <div className="space-y-4">
-                        <button onClick={handleFinalizePayment} className="w-full py-4 bg-white text-black font-black uppercase text-[11px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
-                          Оплатити (Симуляція)
+                        <button 
+                          onClick={handleFinalizePayment} 
+                          disabled={isProcessingPayment}
+                          className="w-full py-4 bg-white text-black font-black uppercase text-[11px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:scale-100 flex justify-center items-center gap-2"
+                        >
+                          {isProcessingPayment ? <><Loader2 size={16} className="animate-spin" /> Обробка...</> : 'Оплатити (Симуляція)'}
                         </button>
-                        <button onClick={() => { setCheckoutStep(1); }} className="w-full py-3 text-zinc-500 font-black uppercase text-[9px] tracking-widest hover:text-white transition-opacity">
+                        <button 
+                          onClick={() => { setCheckoutStep(1); }} 
+                          disabled={isProcessingPayment}
+                          className="w-full py-3 text-zinc-500 font-black uppercase text-[9px] tracking-widest hover:text-white transition-opacity disabled:opacity-50"
+                        >
                           Назад до даних
                         </button>
                       </div>
