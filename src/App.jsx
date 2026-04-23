@@ -289,7 +289,7 @@ export default function App() {
   const [isCheckoutForm, setIsCheckoutForm] = useState(false);
   // checkoutStep: 1 = Delivery Form, 2 = Payment Stub
   const [checkoutStep, setCheckoutStep] = useState(1);
-  const [currentPendingOrderId, setCurrentPendingOrderId] = useState(null);
+  const [pendingOrderData, setPendingOrderData] = useState(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -763,9 +763,9 @@ export default function App() {
 
     try {
       const safeData = JSON.parse(JSON.stringify(orderData));
-      const docRef = await addDoc(getOrdersRef(), safeData);
       
-      setCurrentPendingOrderId(docRef.id);
+      // Зберігаємо дані локально, не відправляючи в БД до оплати
+      setPendingOrderData(safeData);
       setCheckoutStep(2); 
       
       setTimeout(() => {
@@ -784,7 +784,7 @@ export default function App() {
       showToast('Помилка: сесія користувача не знайдена.');
       return;
     }
-    if (!currentPendingOrderId) {
+    if (!pendingOrderData) {
       showToast('Помилка: Замовлення не знайдено (сесія скинута). Оформіть заново.');
       setCheckoutStep(1);
       return;
@@ -796,9 +796,9 @@ export default function App() {
       // Штучна затримка для імітації банківської обробки
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'orders', currentPendingOrderId), { 
-        status: 'new' 
-      });
+      // Відправляємо замовлення в БД тільки ПІСЛЯ оплати з правильним статусом
+      const finalOrderData = { ...pendingOrderData, status: 'new' };
+      await addDoc(getOrdersRef(), finalOrderData);
 
       const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
       let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
@@ -820,7 +820,7 @@ export default function App() {
       showToast('Тестова оплата успішна! Замовлення оформлено.');
       setCart([]);
       setDeliveryForm({ name: '', phone: '', city: '', cityRef: '', branch: '' });
-      setCurrentPendingOrderId(null);
+      setPendingOrderData(null);
       setIsCartOpen(false);
       setIsCheckoutForm(false);
       setCheckoutStep(1);
