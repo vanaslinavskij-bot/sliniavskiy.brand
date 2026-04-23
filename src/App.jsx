@@ -1756,28 +1756,53 @@ export default function App() {
                           </label>
                         </div>
 
-                        {/* Colors Settings */}
+                        {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50 space-y-4">
                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Кольори товару</h4>
                            <p className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">
-                             Ви можете прив'язати колір до певної фотографії.<br/>
-                             <span className="text-white">№ Фото</span> – це порядковий номер фотографії у списку (0 - перша, 1 - друга, 2 - третя і т.д.).
+                             Додайте колір, а потім <strong>клікніть на мініатюру фотографії</strong> нижче, щоб прив'язати її до цього кольору. (Фотографії товару потрібно попередньо додати у блоці нижче).
                            </p>
-                           {(editForm.colors || []).map((c, idx) => (
-                             <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center border-b border-white/10 pb-4 sm:border-none sm:pb-0">
-                               <input type="text" placeholder="Назва (Eng)" value={c.name} onChange={e => { const nc=[...editForm.colors]; nc[idx].name=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
-                               <input type="text" placeholder="Лейбл (Укр)" value={c.label} onChange={e => { const nc=[...editForm.colors]; nc[idx].label=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
-                               <input type="color" value={c.hex} onChange={e => { const nc=[...editForm.colors]; nc[idx].hex=e.target.value; setEditForm({...editForm, colors:nc}) }} className="h-10 w-full sm:w-16 bg-black border border-white/10 cursor-pointer" />
-                               
-                               <div className="w-full sm:w-32 relative">
-                                 <input type="number" min="0" placeholder="№ Фото" title="Порядковий номер фото (0 = перше, 1 = друге...)" value={c.imageIndex} onChange={e => { const nc=[...editForm.colors]; nc[idx].imageIndex=Number(e.target.value); setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full outline-none focus:border-white pl-12" />
-                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-zinc-500 uppercase">№</span>
+                           
+                           {(editForm.colors || []).map((c, idx) => {
+                             const parsedImagesForColors = editForm.images ? editForm.images.split('\n').map(i=>i.trim()).filter(Boolean) : [];
+                             return (
+                             <div key={idx} className="flex flex-col gap-3 border border-white/5 p-4 bg-black/30 shadow-lg">
+                               <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                                 <input type="text" placeholder="Назва (Eng)" value={c.name} onChange={e => { const nc=[...editForm.colors]; nc[idx].name=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
+                                 <input type="text" placeholder="Лейбл (Укр)" value={c.label} onChange={e => { const nc=[...editForm.colors]; nc[idx].label=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
+                                 <input type="color" value={c.hex} onChange={e => { const nc=[...editForm.colors]; nc[idx].hex=e.target.value; setEditForm({...editForm, colors:nc}) }} className="h-10 w-full sm:w-16 bg-black border border-white/10 cursor-pointer" />
+                                 
+                                 <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-500 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
                                </div>
 
-                               <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-50 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
+                               <div className="flex flex-col gap-2 mt-2">
+                                 <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Оберіть фото для цього кольору:</span>
+                                 {parsedImagesForColors.length === 0 ? (
+                                   <span className="text-[8px] text-red-400 mt-1">Спочатку додайте/завантажте фото товару нижче 👇</span>
+                                 ) : (
+                                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">
+                                     {parsedImagesForColors.map((imgUrl, imgIdx) => (
+                                       <button
+                                         key={imgIdx}
+                                         type="button"
+                                         onClick={(e) => { e.preventDefault(); const nc=[...editForm.colors]; nc[idx].imageIndex=imgIdx; setEditForm({...editForm, colors:nc}) }}
+                                         className={`w-12 h-16 shrink-0 border-2 transition-all overflow-hidden relative ${c.imageIndex === imgIdx ? 'border-[#d4af37] opacity-100 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'border-transparent opacity-40 hover:opacity-100'}`}
+                                       >
+                                         <img src={imgUrl} className="w-full h-full object-cover" alt="Color thumbnail" />
+                                         {c.imageIndex === imgIdx && (
+                                           <div className="absolute top-0 right-0 bg-[#d4af37] text-black w-4 h-4 flex items-center justify-center">
+                                             <Check size={12} strokeWidth={4} />
+                                           </div>
+                                         )}
+                                       </button>
+                                     ))}
+                                   </div>
+                                 )}
+                               </div>
                              </div>
-                           ))}
-                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-3 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
+                           )})}
+                           
+                           <button type="button" onClick={() => setEditForm({...editForm, colors: [...(editForm.colors || []), {name:'New', hex:'#888888', label:'Новий', imageIndex:0}]})} className="text-[9px] md:text-[10px] uppercase font-black tracking-widest px-6 py-4 border border-white/20 hover:bg-white hover:text-black mt-2 w-full sm:w-auto transition-colors">+ Додати колір</button>
                         </div>
 
                         {/* Sizes Settings */}
