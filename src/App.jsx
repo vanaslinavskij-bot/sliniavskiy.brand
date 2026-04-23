@@ -119,7 +119,7 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
+  const totalItems = useMemo(() => cart.reduce((s, i) => s + (Number(i.quantity) || 0), 0), [cart]);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
@@ -245,8 +245,21 @@ export default function App() {
 
   useEffect(() => { setShowAllProducts(false); }, [route, routeParams]);
 
-  const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_cart') || '[]'));
-  const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_wishlist') || '[]'));
+  // ЗАЩИТА: Безопасное извлечение корзины
+  const [cart, setCart] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('sliniavskiy_cart') || '[]');
+      return Array.isArray(stored) ? stored.filter(item => item && typeof item === 'object' && item.id) : [];
+    } catch { return []; }
+  });
+  
+  // ЗАЩИТА: Безопасное извлечение желаемого
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('sliniavskiy_wishlist') || '[]');
+      return Array.isArray(stored) ? stored.filter(item => item && typeof item === 'object' && item.id) : [];
+    } catch { return []; }
+  });
   
   const [dbProducts, setDbProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -256,7 +269,10 @@ export default function App() {
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
   
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('sliniavskiy_cookie_consent'));
-  const [cookiePrefs, setCookiePrefs] = useState(() => JSON.parse(localStorage.getItem('sliniavskiy_cookie_prefs') || '{"analytics":true,"marketing":false}'));
+  const [cookiePrefs, setCookiePrefs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sliniavskiy_cookie_prefs') || '{"analytics":true,"marketing":false}'); }
+    catch { return {analytics:true,marketing:false}; }
+  });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -441,8 +457,9 @@ export default function App() {
         const snap = await getDoc(userStoreRef);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.cart && data.cart.length > 0) setCart(data.cart);
-          if (data.wishlist && data.wishlist.length > 0) setWishlist(data.wishlist);
+          // Санитизация данных из базы
+          if (data.cart && Array.isArray(data.cart)) setCart(data.cart.filter(i=>i&&i.id));
+          if (data.wishlist && Array.isArray(data.wishlist)) setWishlist(data.wishlist.filter(i=>i&&i.id));
         } else {
           await setDoc(userStoreRef, { cart, wishlist }, { merge: true });
         }
@@ -465,7 +482,6 @@ export default function App() {
     );
   }, [searchQuery, storefrontProducts]);
 
-  // Оновлена функція навігації з ГАРАНТОВАНИМ скролом нагору
   const navigate = (r, p = {}, isBack = false) => {
     if (!isBack) {
       const stack = JSON.parse(sessionStorage.getItem('sliniavskiy_history') || '[]');
@@ -487,10 +503,7 @@ export default function App() {
     setActiveImageIndex(0);
     setSelectedColor(null);
     
-    // Гарантуємо прокручування сторінки до самого верху після зміни роута
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
+    setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 50);
   };
 
   const goBack = () => {
@@ -544,7 +557,6 @@ export default function App() {
       showToast('Успішний вхід через Google');
     } catch (err) {
       console.error("Google Auth Error:", err);
-      // Якщо це телефон і вікно заблокував внутрішній браузер (наприклад Instagram/Telegram)
       if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
         setAuthError('Ваш браузер заблокував вікно входу. Якщо ви відкрили сайт з Instagram/Telegram, будь ласка, відкрийте його у звичайному браузері Safari або Chrome.');
       } else {
@@ -586,13 +598,15 @@ export default function App() {
     }
   };
 
+  // ЗАЩИТА: Строгий подсчет суммы с защитой от NaN
   const cartSubtotal = useMemo(() => cart.reduce((total, item) => {
     const realProduct = activeProducts.find(p => p.id === item.id);
-    const realPrice = realProduct ? realProduct.price : 0;
-    return total + (realPrice * item.quantity);
+    const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+    const qty = Number(item.quantity) || 1;
+    return total + (realPrice * qty);
   }, 0), [cart, activeProducts]);
 
-  const cartTotal = cartSubtotal;
+  const cartTotal = Number(cartSubtotal) || 0;
 
   const addToCart = (p) => {
     if (p.inStock === false) return showToast('На жаль, товару немає в наявності');
@@ -601,14 +615,16 @@ export default function App() {
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
     
+    // Защита данных перед добавлением
     const productToAdd = {
-      ...p,
-      selectedSize,
-      selectedColor: activeColor.label,
+      id: String(p.id),
+      name: String(p.name),
+      price: Number(p.price) || 0,
+      selectedSize: String(selectedSize),
+      selectedColor: String(activeColor.label),
       cartId: `${p.id}-${selectedSize}-${activeColor.name}-${activeColor.hex}`
     };
 
-    // Отримуємо перше фото з прив'язаних до кольору, або загальне перше фото
     const imgUrl = p.images && activeColor.imageIndexes && activeColor.imageIndexes.length > 0 && p.images[activeColor.imageIndexes[0]] 
       ? p.images[activeColor.imageIndexes[0]] 
       : (p.images ? p.images[0] : 'https://via.placeholder.com/800');
@@ -617,10 +633,10 @@ export default function App() {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
       if (idx > -1) {
         const next = [...prev];
-        next[idx].quantity += 1;
+        next[idx].quantity = (Number(next[idx].quantity) || 0) + 1;
         return next;
       }
-      return [...prev, { ...productToAdd, quantity: 1, image: imgUrl }];
+      return [...prev, { ...productToAdd, quantity: 1, image: String(imgUrl) }];
     });
     showToast(`Додано: ${p.name} (${selectedSize})`);
   };
@@ -628,7 +644,7 @@ export default function App() {
   const updateQuantity = (cartId, delta) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
-        const newQ = item.quantity + delta;
+        const newQ = (Number(item.quantity) || 0) + delta;
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
@@ -693,40 +709,62 @@ export default function App() {
     setIsNpLoading(false);
   };
 
-  const selectNpWarehouse = (wh) => {
-    setDeliveryForm(prev => ({...prev, branch: wh.Description}));
-    setShowWarehouses(false);
-  };
-
+  // ЗАЩИТА: Полная санитизация данных перед отправкой в базу
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     
-    const itemsToSave = cart.map(item => {
-      const realPrice = activeProducts.find(p => p.id === item.id)?.price || item.price || 0;
-      return { ...item, price: realPrice };
-    });
+    if (!user || !user.uid) {
+      showToast('Помилка: Зачекайте, йде з\'єднання з сервером. Спробуйте ще раз.');
+      return;
+    }
     
+    // Броня: Очистка каждого товара от мусора F12
+    const itemsToSave = cart.map(item => {
+      const realProduct = activeProducts.find(p => p.id === item.id);
+      const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+      return { 
+        id: String(item.id || ''),
+        name: String(item.name || 'Товар'),
+        selectedSize: String(item.selectedSize || 'OS'),
+        selectedColor: String(item.selectedColor || ''),
+        quantity: Number(item.quantity) || 1,
+        price: realPrice,
+        image: String(item.image || 'https://via.placeholder.com/100')
+      };
+    }).filter(item => item.id && item.price >= 0); // Отсекаем полностью поломанные товары
+
+    const safeTotal = itemsToSave.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    if (itemsToSave.length === 0 || safeTotal <= 0) {
+      showToast('Помилка: Кошик порожній або дані пошкоджені. Будь ласка, очистіть кошик.');
+      return;
+    }
+
     const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
 
     const orderData = {
       userId: user.uid,
-      customer: deliveryForm,
+      customer: {
+        name: String(deliveryForm.name || ''),
+        phone: String(deliveryForm.phone || ''),
+        city: String(deliveryForm.city || ''),
+        branch: String(deliveryForm.branch || '')
+      },
       items: itemsToSave,
-      total: cartTotal,
+      total: safeTotal,
       status: 'pending_payment', 
       referralCode: appliedRef,
       createdAt: new Date().toISOString()
     };
 
     try {
+      // Двойная страховка JSON парсером
       const safeData = JSON.parse(JSON.stringify(orderData));
       const docRef = await addDoc(getOrdersRef(), safeData);
-      setCurrentPendingOrderId(docRef.id);
       
-      // Переходимо безпосередньо до Заглушки Оплати (Крок 2)
+      setCurrentPendingOrderId(docRef.id);
       setCheckoutStep(2); 
       
-      // Гарантовано прокручуємо контейнер кошика вгору, щоб користувач побачив оплату
       setTimeout(() => {
         const cartContainer = document.getElementById('cart-scroll-container');
         if (cartContainer) cartContainer.scrollTo({ top: 0, behavior: 'smooth' });
@@ -734,13 +772,16 @@ export default function App() {
 
     } catch (err) {
       console.error("Помилка збереження попереднього замовлення", err);
-      showToast('Помилка обробки замовлення.');
+      showToast('Помилка обробки замовлення. Можливо проблема зі з\'єднанням.');
     }
   };
 
-  // Викликається після успішної заглушки
   const handleFinalizePayment = async () => {
-    if (!currentPendingOrderId) return showToast('Помилка: Замовлення не знайдено');
+    if (!currentPendingOrderId) {
+      showToast('Помилка: Замовлення не знайдено (сесія скинута). Оформіть заново.');
+      setCheckoutStep(1);
+      return;
+    }
 
     try {
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'orders', currentPendingOrderId), { 
@@ -913,18 +954,13 @@ export default function App() {
     e.preventDefault();
     if (!newReferralName.trim()) return;
     
-    // Розумне створення красивого лінка: або те, що вказав адмін, або красива транслітерація імені
     let code = newReferralCode.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
     
     if (!code) {
-       // Словник транслітерації
        const map = {
          'а':'a', 'б':'b', 'в':'v', 'г':'g', 'ґ':'g', 'д':'d', 'е':'e', 'є':'ye', 'ж':'zh', 'з':'z', 'и':'y', 'і':'i', 'ї':'yi', 'й':'y', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s', 'т':'t', 'у':'u', 'ф':'f', 'х':'kh', 'ц':'ts', 'ч':'ch', 'ш':'sh', 'щ':'shch', 'ь':'', 'ю':'yu', 'я':'ya', ' ':'-'
        };
-       // Транслітеруємо та чистимо рядок
        code = newReferralName.toLowerCase().split('').map(char => map[char] || char).join('').replace(/[^a-z0-9-]/g, '');
-       
-       // Якщо все ж вийшло порожньо, додаємо щось стандартне
        if (!code) code = 'partner-' + Math.random().toString(36).substr(2, 4);
     }
     
@@ -978,7 +1014,6 @@ export default function App() {
     }));
   };
 
-  // Helper function to toggle image selection for a color
   const toggleColorImage = (colorIndex, imgIndex) => {
     const nc = [...editForm.colors];
     if (!nc[colorIndex].imageIndexes) {
@@ -987,12 +1022,9 @@ export default function App() {
     
     const indexPos = nc[colorIndex].imageIndexes.indexOf(imgIndex);
     if (indexPos > -1) {
-      // Remove if already selected
       nc[colorIndex].imageIndexes.splice(indexPos, 1);
     } else {
-      // Add if not selected
       nc[colorIndex].imageIndexes.push(imgIndex);
-      // Sort to keep order logical
       nc[colorIndex].imageIndexes.sort((a, b) => a - b);
     }
     setEditForm({...editForm, colors: nc});
@@ -1523,7 +1555,7 @@ export default function App() {
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">2. Оформлення замовлення</h3>
-                    <p>Замовлення вважається прийнятим після підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
+                    <p>Замовлення вважається прийнятим после підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Права та обов'язки сторін</h3>
@@ -1907,7 +1939,6 @@ export default function App() {
                           <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                           <div className="flex gap-2 w-full">
                             <button onClick={() => { 
-                              // Convert old single imageIndex format to array if needed for editing
                               const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
                                 ...c,
                                 imageIndexes: Array.isArray(c.imageIndexes) ? c.imageIndexes : (c.imageIndex !== undefined ? [c.imageIndex] : [])
@@ -1995,7 +2026,6 @@ export default function App() {
                               let shareSum = 0;
                               const percentValue = parseFloat(refPercent) || 0;
 
-                              // Обчислення по кожному окремому товару
                               targetOrders.forEach(o => {
                                 o.items.forEach(item => {
                                   const itemTotal = item.price * item.quantity;
@@ -2653,7 +2683,7 @@ export default function App() {
                      {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">Кошик порожній</div> :
                        cart.map((item, idx) => {
                          const realProduct = activeProducts.find(p => p.id === item.id);
-                         const realPrice = realProduct ? realProduct.price : 0;
+                         const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
                          return (
                            <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5">
                               <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0"><img src={item.image} className="w-full h-full object-cover" /></div>
