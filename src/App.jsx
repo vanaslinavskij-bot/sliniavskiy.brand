@@ -941,6 +941,18 @@ export default function App() {
     }
   };
 
+  const handleDeleteReferral = async (id) => {
+    if (!window.confirm('Ви впевнені, що хочете видалити цього партнера? Його існуючі замовлення збережуться, але нові не будуть фіксуватися.')) return;
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', id));
+      showToast('✅ Партнера видалено');
+      if (refFilterPartner === id) setRefFilterPartner('');
+    } catch (e) {
+      console.error(e);
+      showToast('❌ Помилка видалення');
+    }
+  };
+
   const copyToClipboard = (text) => {
     try {
       navigator.clipboard.writeText(text);
@@ -1747,12 +1759,21 @@ export default function App() {
                         {/* Colors Settings */}
                         <div className="md:col-span-2 border border-white/10 p-4 bg-black/50 space-y-4">
                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Кольори товару</h4>
+                           <p className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">
+                             Ви можете прив'язати колір до певної фотографії.<br/>
+                             <span className="text-white">№ Фото</span> – це порядковий номер фотографії у списку (0 - перша, 1 - друга, 2 - третя і т.д.).
+                           </p>
                            {(editForm.colors || []).map((c, idx) => (
                              <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center border-b border-white/10 pb-4 sm:border-none sm:pb-0">
                                <input type="text" placeholder="Назва (Eng)" value={c.name} onChange={e => { const nc=[...editForm.colors]; nc[idx].name=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
                                <input type="text" placeholder="Лейбл (Укр)" value={c.label} onChange={e => { const nc=[...editForm.colors]; nc[idx].label=e.target.value; setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:flex-1 outline-none focus:border-white" />
                                <input type="color" value={c.hex} onChange={e => { const nc=[...editForm.colors]; nc[idx].hex=e.target.value; setEditForm({...editForm, colors:nc}) }} className="h-10 w-full sm:w-16 bg-black border border-white/10 cursor-pointer" />
-                               <input type="number" min="0" placeholder="№ Фото" title="Індекс фото (0 = перше)" value={c.imageIndex} onChange={e => { const nc=[...editForm.colors]; nc[idx].imageIndex=Number(e.target.value); setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full sm:w-24 outline-none focus:border-white" />
+                               
+                               <div className="w-full sm:w-32 relative">
+                                 <input type="number" min="0" placeholder="№ Фото" title="Порядковий номер фото (0 = перше, 1 = друге...)" value={c.imageIndex} onChange={e => { const nc=[...editForm.colors]; nc[idx].imageIndex=Number(e.target.value); setEditForm({...editForm, colors:nc}) }} className="bg-black border border-white/10 p-3 text-xs w-full outline-none focus:border-white pl-12" />
+                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-zinc-500 uppercase">№</span>
+                               </div>
+
                                <button type="button" onClick={() => { const nc=editForm.colors.filter((_,i)=>i!==idx); setEditForm({...editForm, colors:nc}); }} className="text-red-500 p-3 border border-red-500/30 hover:bg-red-50 hover:text-white w-full sm:w-auto flex justify-center transition-colors"><Trash2 size={16}/></button>
                              </div>
                            ))}
@@ -1956,24 +1977,41 @@ export default function App() {
                       ) : (
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div className="w-full">
+                            
+                            {/* Выбор партнера + Кнопка удаления */}
+                            <div className="w-full sm:col-span-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Партнер</label>
-                              <select 
-                                value={refFilterPartner} 
-                                onChange={e => setRefFilterPartner(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
-                              >
-                                {referrals.map(r => (
-                                  <option key={r.id} value={r.code}>{r.name}</option>
-                                ))}
-                              </select>
+                              <div className="flex items-center gap-2">
+                                <select 
+                                  value={refFilterPartner} 
+                                  onChange={e => setRefFilterPartner(e.target.value)}
+                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none h-[42px]"
+                                >
+                                  {referrals.map(r => (
+                                    <option key={r.id} value={r.code}>{r.name}</option>
+                                  ))}
+                                </select>
+                                {refFilterPartner && (
+                                  <button 
+                                    onClick={() => {
+                                      const r = referrals.find(x => x.code === refFilterPartner);
+                                      if(r) handleDeleteReferral(r.id);
+                                    }} 
+                                    title="Видалити цього партнера"
+                                    className="h-[42px] px-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center shrink-0"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
+
                             <div className="w-full">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Статус</label>
                               <select 
                                 value={refFilterStatus} 
                                 onChange={e => setRefFilterStatus(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none"
+                                className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none h-[42px]"
                               >
                                 <option value="all">Всі статуси</option>
                                 {Object.entries(STATUS_MAP).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -1994,14 +2032,14 @@ export default function App() {
                                   type="date" 
                                   value={refFilterDateFrom}
                                   onChange={e => setRefFilterDateFrom(e.target.value)}
-                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer"
+                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer h-[42px]"
                                 />
                                 <span className="text-zinc-500 font-bold">-</span>
                                 <input 
                                   type="date" 
                                   value={refFilterDateTo}
                                   onChange={e => setRefFilterDateTo(e.target.value)}
-                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer"
+                                  className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark] cursor-pointer h-[42px]"
                                 />
                               </div>
                             </div>
