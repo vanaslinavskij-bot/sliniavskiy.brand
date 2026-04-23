@@ -325,6 +325,8 @@ export default function App() {
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
 
   const [newReferralName, setNewReferralName] = useState('');
+  const [newReferralCode, setNewReferralCode] = useState('');
+  
   const [refFilterPartner, setRefFilterPartner] = useState('');
   const [refFilterDateFrom, setRefFilterDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); });
   const [refFilterDateTo, setRefFilterDateTo] = useState(() => new Date().toISOString().slice(0, 10));
@@ -908,7 +910,20 @@ export default function App() {
     e.preventDefault();
     if (!newReferralName.trim()) return;
     
-    const code = newReferralName.trim().replace(/\s+/g, '-').toLowerCase() + '-' + Math.random().toString(36).substr(2, 4);
+    // Розумне створення красивого лінка: або те, що вказав адмін, або красива транслітерація імені
+    let code = newReferralCode.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    
+    if (!code) {
+       // Словник транслітерації
+       const map = {
+         'а':'a', 'б':'b', 'в':'v', 'г':'g', 'ґ':'g', 'д':'d', 'е':'e', 'є':'ye', 'ж':'zh', 'з':'z', 'и':'y', 'і':'i', 'ї':'yi', 'й':'y', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s', 'т':'t', 'у':'u', 'ф':'f', 'х':'kh', 'ц':'ts', 'ч':'ch', 'ш':'sh', 'щ':'shch', 'ь':'', 'ю':'yu', 'я':'ya', ' ':'-'
+       };
+       // Транслітеруємо та чистимо рядок
+       code = newReferralName.toLowerCase().split('').map(char => map[char] || char).join('').replace(/[^a-z0-9-]/g, '');
+       
+       // Якщо все ж вийшло порожньо, додаємо щось стандартне
+       if (!code) code = 'partner-' + Math.random().toString(36).substr(2, 4);
+    }
     
     try {
       const safeData = JSON.parse(JSON.stringify({
@@ -918,6 +933,7 @@ export default function App() {
       }));
       await addDoc(getReferralsRef(), safeData);
       setNewReferralName('');
+      setNewReferralCode('');
       showToast('✅ Реферала успішно створено');
     } catch (err) {
       console.error(err);
@@ -1127,10 +1143,7 @@ export default function App() {
             </div>
 
             <div className="w-full aspect-[4/3] md:aspect-video bg-zinc-900 mb-16 md:mb-32 overflow-hidden border border-white/10 shadow-2xl relative">
-               <img src={siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80'} alt="Brand Vision" className="w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-1000" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-center pb-8 md:pb-12">
-                 <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase text-white drop-shadow-2xl">V I S I O N</h1>
-               </div>
+               <img src={siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80'} alt="Brand Image" className="w-full h-full object-cover opacity-80 hover:scale-105 transition-transform duration-1000" />
             </div>
 
             <div className="border-t border-white/10 pt-16 md:pt-32 px-2">
@@ -1451,7 +1464,7 @@ export default function App() {
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Захист даних</h3>
-                    <p>Всі транзакції та особисті данные захищені протоколами шифрування (SSL). Фінансові данные карт не зберігаються на нашому сервері, а обробляються виключно на боці сертифікованого платіжного шлюзу (PCI DSS).</p>
+                    <p>Всі транзакції та особисті дані захищені протоколами шифрування (SSL). Фінансові дані карт не зберігаються на нашому сервері, а обробляються виключно на боці сертифікованого платіжного шлюзу (PCI DSS).</p>
                   </section>
                 </div>
               )}
@@ -1465,11 +1478,11 @@ export default function App() {
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">2. Оформлення замовлення</h3>
-                    <p>Замовлення вважається прийнятим после підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
+                    <p>Замовлення вважається прийнятим після підтвердження оплати на сайті через інтегровану платіжну систему. Продавець залишає за собою право скасувати замовлення у разі відсутності товару, повернувши кошти Покупцю у повному обсязі.</p>
                   </section>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Права та обов'язки сторін</h3>
-                    <p>Продавець зобов'язується передати товар відповідно до замовлення. Покупець зобов'язується надати достовірні данные для доставки (ПІБ, телефон, відділення) та своєчасно отримати товар.</p>
+                    <p>Продавець зобов'язується передати товар відповідно до замовлення. Покупець зобов'язується надати достовірні дані для доставки (ПІБ, телефон, відділення) та своєчасно отримати товар.</p>
                   </section>
                 </div>
               )}
@@ -1489,9 +1502,9 @@ export default function App() {
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Доставка</h3>
                     <p>Всі замовлення відправляються логістичною компанією <strong>«Нова Пошта»</strong>.</p>
                     <ul className="list-disc pl-5 mt-4 space-y-2">
-                      <li>Термін відправки: 1-3 робочих дні после підтвердження оплати.</li>
+                      <li>Термін відправки: 1-3 робочих дні після підтвердження оплати.</li>
                       <li>Вартість доставки розраховується за тарифами перевізника та оплачується Покупцем при отриманні.</li>
-                      <li>После відправки ви отримаєте SMS/Viber повідомлення з номером ТТН для відстеження посилки.</li>
+                      <li>Після відправки ви отримаєте SMS/Viber повідомлення з номером ТТН для відстеження посилки.</li>
                     </ul>
                   </section>
                 </div>
@@ -1513,7 +1526,7 @@ export default function App() {
                     <ol className="list-decimal pl-5 mt-4 space-y-2">
                       <li>Зв'яжіться з нашою підтримкою через Telegram або Email, вказавши номер замовлення та причину повернення.</li>
                       <li>Наш менеджер надасть вам реквізити для відправки товару «Новою Поштою» (доставку оплачує покупець).</li>
-                      <li>После отримання та перевірки товару на складі, кошти будуть повернуті на вашу банківську карту (з якої була здійснена оплата) протягом 3-7 робочих днів.</li>
+                      <li>Після отримання та перевірки товару на складі, кошти будуть повернуті на вашу банківську карту (з якої була здійснена оплата) протягом 3-7 робочих днів.</li>
                     </ol>
                   </section>
                 </div>
@@ -1835,10 +1848,19 @@ export default function App() {
                             value={newReferralName} 
                             onChange={e => setNewReferralName(e.target.value)}
                             placeholder="Наприклад: Ivan Ivanov"
+                            className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-3"
+                          />
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Код для посилання (опціонально)</label>
+                          <input 
+                            type="text" 
+                            value={newReferralCode} 
+                            onChange={e => setNewReferralCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            placeholder="Наприклад: ivan-vip (тільки латиниця)"
                             className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
                           />
+                          <p className="text-[8px] text-zinc-500 mt-2 leading-relaxed">Якщо залишити пустим, система автоматично згенерує гарне посилання з імені партнера.</p>
                         </div>
-                        <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2">
+                        <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2 mt-4">
                           <LinkIcon size={14} /> Згенерувати посилання
                         </button>
                       </form>
@@ -2117,7 +2139,7 @@ export default function App() {
                       {/* ЗАГРУЗКА ДЛЯ РОЗДІЛУ БРЕНД */}
                       <div className="border border-white/10 p-4 bg-black/50 mt-2">
                         <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Фото для розділу "Бренд"</label>
-                        <p className="text-[8px] text-zinc-500 mb-2">Картинка, яка відображається під текстом про компанію.</p>
+                        <p className="text-[8px] text-zinc-500 mb-2">Картинка, яка відображається під текстом про компанію. Рекомендований розмір: 1920x1080 (або пропорція 16:9).</p>
                         <input 
                           type="file" 
                           accept="image/*" 
