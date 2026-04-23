@@ -219,8 +219,8 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
   );
 }
 
-// --- MAIN APP ---
-export default function App() {
+// --- MAIN APP COMPONENT ---
+function MainApp() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   
@@ -2740,5 +2740,61 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+// --- ERROR BOUNDARY ---
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Система перехопила критичну помилку:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white p-6 text-center font-sans">
+           <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 flex items-center justify-center rounded-full mb-6">
+             <RefreshCw size={24} className="text-red-500" />
+           </div>
+           <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Стався збій</h2>
+           <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-widest mb-8 leading-relaxed max-w-md">
+             Система виявила пошкодження локальних даних або помилку з'єднання. Натисніть кнопку нижче, щоб автоматично відновити роботу сайту.
+           </p>
+           <button 
+             onClick={() => {
+               // Сброс всех кэшей, которые могли вызвать сбой
+               localStorage.removeItem('sliniavskiy_cart');
+               localStorage.removeItem('sliniavskiy_wishlist');
+               localStorage.removeItem('sliniavskiy_routeParams');
+               sessionStorage.clear();
+               window.location.reload();
+             }} 
+             className="px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-[10px] hover:bg-zinc-200 transition-colors shadow-2xl active:scale-95"
+           >
+             Відновити роботу сайту
+           </button>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
+// Экспортируем приложение, обернутое в защитный барьер
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
   );
 }
