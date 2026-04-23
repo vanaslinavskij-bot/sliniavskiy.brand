@@ -287,7 +287,12 @@ export default function App() {
   const NP_API_KEY = '8208cf2c74ddc570769381a82649fb8c'; 
 
   const [adminTab, setAdminTab] = useState('orders');
-  const [siteSettings, setSiteSettings] = useState({ heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', heroImageMobile: '', categories: DEFAULT_CATEGORIES });
+  const [siteSettings, setSiteSettings] = useState({ 
+    heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
+    heroImageMobile: '', 
+    brandImage: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+    categories: DEFAULT_CATEGORIES 
+  });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
   
   const groupedCategories = useMemo(() => {
@@ -309,8 +314,11 @@ export default function App() {
 
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: [], sizes: DEFAULT_SIZES_AVAILABILITY });
+  
+  // Settings edit forms
   const [settingsFormUrl, setSettingsFormUrl] = useState('');
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
+  const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
   const [settingsCategories, setSettingsCategories] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
@@ -394,10 +402,12 @@ export default function App() {
           setSiteSettings({
             heroImage: data.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
             heroImageMobile: data.heroImageMobile || '',
+            brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
             categories: data.categories || DEFAULT_CATEGORIES
           });
           setSettingsFormUrl(data.heroImage || '');
           setSettingsFormUrlMobile(data.heroImageMobile || '');
+          setSettingsBrandUrl(data.brandImage || '');
           setSettingsCategories(data.categories?.join(', ') || DEFAULT_CATEGORIES.join(', '));
         } else {
           setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
@@ -834,7 +844,7 @@ export default function App() {
     }
   };
 
-  const handleHeroUpload = async (e, type) => {
+  const handleImageSettingUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
     setIsUploadingFile(true);
@@ -844,6 +854,7 @@ export default function App() {
       const url = await getDownloadURL(fileRef);
       if (type === 'desktop') setSettingsFormUrl(url);
       if (type === 'mobile') setSettingsFormUrlMobile(url);
+      if (type === 'brand') setSettingsBrandUrl(url);
       showToast('⚠️ Зображення завантажено! Натисніть "Зберегти налаштування"');
     } catch (error) {
       console.error("Помилка завантаження зображення", error);
@@ -869,6 +880,7 @@ export default function App() {
       const dataToSave = { 
         heroImage: settingsFormUrl || siteSettings.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
         heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile || '',
+        brandImage: settingsBrandUrl || siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -1109,13 +1121,13 @@ export default function App() {
             
             <div className="mb-12 md:mb-24 px-2">
                <h2 className="text-xl sm:text-3xl md:text-5xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] leading-snug md:leading-relaxed mb-6 md:mb-8">
-                 "Ми створюємо не просто одяг. Ми створюємо форму для ваших амбіцій, де кожна деталь має значення."
+                 "Не знаю моди, створюю свій стиль"
                </h2>
                <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-[9px] md:text-[11px]">— Засновник SLINIAVSKIY</p>
             </div>
 
             <div className="w-full aspect-[4/3] md:aspect-video bg-zinc-900 mb-16 md:mb-32 overflow-hidden border border-white/10 shadow-2xl relative">
-               <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80" alt="Brand Vision" className="w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-1000" />
+               <img src={siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80'} alt="Brand Vision" className="w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-1000" />
                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-center pb-8 md:pb-12">
                  <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase text-white drop-shadow-2xl">V I S I O N</h1>
                </div>
@@ -1835,7 +1847,8 @@ export default function App() {
                       <div className="mt-8 pt-8 border-t border-white/10">
                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Розрахунок прибутку та виплат</h4>
                          <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 mb-4 leading-relaxed">
-                           Враховуються успішні замовлення для обраного партнера за обраний період у фільтрах праворуч.
+                           Враховуються успішні замовлення для обраного партнера за обраний період у фільтрах праворуч.<br/>
+                           Відсоток розраховується від вартості <span className="text-white">кожного окремого товару</span> в замовленні.
                          </p>
 
                          <div className="mb-4">
@@ -1853,6 +1866,7 @@ export default function App() {
                          <button 
                            onClick={() => {
                               if (!refFilterPartner) return showToast('Оберіть партнера у фільтрі праворуч');
+                              
                               const targetOrders = orders.filter(o => {
                                  if (o.status === 'pending_payment' || o.status === 'cancelled') return false;
                                  if (o.referralCode !== refFilterPartner) return false;
@@ -1861,14 +1875,27 @@ export default function App() {
                                  if (refFilterDateTo && oDate > refFilterDateTo) return false;
                                  return true;
                               });
-                              const total = targetOrders.reduce((sum, o) => sum + o.total, 0);
+
+                              let totalSum = 0;
+                              let shareSum = 0;
                               const percentValue = parseFloat(refPercent) || 0;
-                              const share = total * (percentValue / 100);
-                              const net = total - share;
+
+                              // Обчислення по кожному окремому товару
+                              targetOrders.forEach(o => {
+                                o.items.forEach(item => {
+                                  const itemTotal = item.price * item.quantity;
+                                  const itemShare = itemTotal * (percentValue / 100);
+                                  totalSum += itemTotal;
+                                  shareSum += itemShare;
+                                });
+                              });
+
+                              const netSum = totalSum - shareSum;
+
                               setRefCalcResult({
-                                 total: Math.round(total),
-                                 share: Math.round(share),
-                                 net: Math.round(net),
+                                 total: Math.round(totalSum),
+                                 share: Math.round(shareSum),
+                                 net: Math.round(netSum),
                                  count: targetOrders.length
                               });
                            }}
@@ -2051,17 +2078,18 @@ export default function App() {
                 <section className="animate-in fade-in duration-500 space-y-8 max-w-2xl w-full">
                   
                   <div className="border border-white/10 p-4 md:p-8 bg-zinc-900/20 w-full">
-                    <h2 className="text-lg md:text-xl font-black uppercase tracking-widest mb-6">Головне фото сайту (Hero Image)</h2>
+                    <h2 className="text-lg md:text-xl font-black uppercase tracking-widest mb-6">Головні зображення сайту</h2>
                     
                     <div className="flex flex-col gap-4 w-full">
                       
                       {/* ЗАГРУЗКА ДЛЯ ПК */}
                       <div className="border border-white/10 p-4 bg-black/50">
-                        <label className="block text-[10px] font-black uppercase mb-2">Для комп'ютера (Точний розмір: 1920x1080)</label>
+                        <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Головне фото (Hero) для комп'ютера</label>
+                        <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1920x1080</p>
                         <input 
                           type="file" 
                           accept="image/*" 
-                          onChange={(e) => handleHeroUpload(e, 'desktop')}
+                          onChange={(e) => handleImageSettingUpload(e, 'desktop')}
                           disabled={isUploadingFile}
                           className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
                         />
@@ -2072,16 +2100,33 @@ export default function App() {
                       
                       {/* ЗАГРУЗКА ДЛЯ ТЕЛЕФОНА */}
                       <div className="border border-white/10 p-4 bg-black/50">
-                        <label className="block text-[10px] font-black uppercase mt-2 mb-2">Для телефону (Точний розмір: 1080x1920)</label>
+                        <label className="block text-[10px] font-black uppercase mt-2 mb-2 text-[#d4af37]">Головне фото (Hero) для телефону</label>
+                        <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1080x1920</p>
                         <input 
                           type="file" 
                           accept="image/*" 
-                          onChange={(e) => handleHeroUpload(e, 'mobile')}
+                          onChange={(e) => handleImageSettingUpload(e, 'mobile')}
                           disabled={isUploadingFile}
                           className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
                         />
                         {settingsFormUrlMobile || siteSettings.heroImageMobile ? (
                           <img src={settingsFormUrlMobile || siteSettings.heroImageMobile} alt="Preview Mobile" className="w-full max-w-[200px] h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                        ) : null}
+                      </div>
+
+                      {/* ЗАГРУЗКА ДЛЯ РОЗДІЛУ БРЕНД */}
+                      <div className="border border-white/10 p-4 bg-black/50 mt-2">
+                        <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Фото для розділу "Бренд"</label>
+                        <p className="text-[8px] text-zinc-500 mb-2">Картинка, яка відображається під текстом про компанію.</p>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => handleImageSettingUpload(e, 'brand')}
+                          disabled={isUploadingFile}
+                          className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
+                        />
+                        {settingsBrandUrl || siteSettings.brandImage ? (
+                          <img src={settingsBrandUrl || siteSettings.brandImage} alt="Preview Brand" className="w-full h-48 md:h-64 object-cover border border-white/10 mt-2 opacity-80" />
                         ) : null}
                       </div>
 
