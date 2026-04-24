@@ -124,7 +124,7 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
 
   return (
     <header className={`fixed top-0 w-full z-[500] transition-all duration-500 ${scrolled ? 'bg-[#050505]/95 backdrop-blur-md border-b border-white/5 py-3 md:py-4' : 'bg-transparent py-4 md:py-8'}`}>
-      <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
+      <div className="max-w-[1920px] w-full mx-auto px-4 md:px-10 flex justify-between items-center">
         
         {/* LEFT SECTION */}
         <div className="flex-1 flex items-center justify-start relative z-50">
@@ -192,6 +192,10 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
 
         {/* RIGHT SECTION: Icons */}
         <div className="flex-1 flex items-center justify-end gap-3 xs:gap-4 md:gap-6 text-white relative z-50">
+          <button onClick={() => navigate('tracking')} className="hover:opacity-50 transition-opacity p-1" title="Мої замовлення">
+            <Package size={20} className="w-5 h-5 md:w-5 md:h-5" />
+          </button>
+
           <button onClick={() => setIsWishlistOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
             <Heart size={20} className="w-5 h-5 md:w-5 md:h-5" />
             {wishlist.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
@@ -201,14 +205,6 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
             <Search size={20} className="w-5 h-5 md:w-5 md:h-5" />
           </button>
           
-          <button onClick={() => navigate('account')} className="hover:opacity-50 transition-opacity p-1">
-            {user && !user.isAnonymous && user.photoURL ? (
-              <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full object-cover border border-white/20" />
-            ) : (
-              <User size={20} className="w-5 h-5 md:w-5 md:h-5" />
-            )}
-          </button>
-
           <button onClick={() => setIsCartOpen(true)} className="relative hover:opacity-50 transition-opacity p-1">
             <ShoppingBag size={20} className="w-5 h-5 md:w-5 md:h-5" />
             {totalItems > 0 && <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center">{totalItems}</span>}
@@ -227,6 +223,7 @@ function MainApp() {
   const [isProductsLoaded, setIsProductsLoaded] = useState(false);
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  const [minLoadTimePassed, setMinLoadTimePassed] = useState(false);
   
   const [route, setRoute] = useState(() => sessionStorage.getItem('sliniavskiy_route') || 'home');
   const [routeParams, setRouteParams] = useState(() => {
@@ -244,6 +241,12 @@ function MainApp() {
   }, []);
 
   useEffect(() => { setShowAllProducts(false); }, [route, routeParams]);
+
+  // Мінімальний час для красивої анімації завантаження (2.2 сек)
+  useEffect(() => {
+    const timer = setTimeout(() => setMinLoadTimePassed(true), 2200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ЗАЩИТА: Безопасное извлечение корзины
   const [cart, setCart] = useState(() => {
@@ -264,6 +267,13 @@ function MainApp() {
   const [dbProducts, setDbProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [referrals, setReferrals] = useState([]);
+  
+  const [localOrders, setLocalOrders] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sliniavskiy_local_orders') || '[]'); }
+    catch { return []; }
+  });
+
+  useEffect(() => { localStorage.setItem('sliniavskiy_local_orders', JSON.stringify(localOrders)); }, [localOrders]);
   
   const activeProducts = dbProducts;
   const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
@@ -709,7 +719,6 @@ function MainApp() {
     setIsNpLoading(false);
   };
 
-  // ИСПРАВЛЕНО: Добавлена отсутствующая функция выбора отделения
   const selectNpWarehouse = (wh) => {
     setDeliveryForm(prev => ({...prev, branch: wh.Description}));
     setShowWarehouses(false);
@@ -798,7 +807,10 @@ function MainApp() {
 
       // Відправляємо замовлення в БД тільки ПІСЛЯ оплати з правильним статусом
       const finalOrderData = { ...pendingOrderData, status: 'new' };
-      await addDoc(getOrdersRef(), finalOrderData);
+      const newOrderRef = await addDoc(getOrdersRef(), finalOrderData);
+
+      // Зберігаємо замовлення в локальну історію браузера
+      setLocalOrders(prev => [newOrderRef.id, ...prev]);
 
       const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
       let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
@@ -1044,8 +1056,30 @@ function MainApp() {
     setEditForm({...editForm, colors: nc});
   };
 
-  if (authLoading || !isProductsLoaded || !isSettingsLoaded || !isUserDataLoaded) {
-    return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white"><Loader2 className="animate-spin w-10 h-10"/></div>;
+  const isLoading = authLoading || !isProductsLoaded || !isSettingsLoaded || !isUserDataLoaded || !minLoadTimePassed;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center font-sans">
+        <style>{`
+          @keyframes fillText {
+            0% { width: 0%; }
+            100% { width: 100%; }
+          }
+        `}</style>
+        <div className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-[0.2em] px-4 cursor-default selection:bg-transparent">
+          <span className="relative inline-block text-transparent" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.15)' }}>
+            SLINIAVSKIY
+            <span 
+              className="absolute top-0 left-0 h-full text-white overflow-hidden whitespace-nowrap"
+              style={{ width: '0%', animation: 'fillText 2s cubic-bezier(0.7, 0, 0.3, 1) forwards', WebkitTextStroke: '0px' }}
+            >
+              SLINIAVSKIY
+            </span>
+          </span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1086,7 +1120,7 @@ function MainApp() {
               </div>
             </section>
 
-            <section className="max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32 text-center md:text-left">
+            <section className="max-w-[1920px] w-full mx-auto px-4 md:px-10 py-20 md:py-32 text-center md:text-left">
               <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-10 md:mb-16 border-b border-white/10 pb-6 md:pb-8 gap-4">
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-center md:text-left">New Arrivals</h2>
                 <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">Переглянути всі</button>
@@ -1115,7 +1149,7 @@ function MainApp() {
 
         {/* CATALOG ROUTE */}
         {route === 'catalog' && (
-           <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-7xl mx-auto px-4 md:px-6">
+           <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
               <div className="flex flex-col mb-10 md:mb-16 border-b border-white/10 pb-6 md:pb-10">
                 <h2 className="text-3xl sm:text-4xl md:text-6xl font-black uppercase tracking-widest mb-8 md:mb-12 leading-none break-words">
                   {routeParams.category || 'Уся Колекція'}
@@ -1266,7 +1300,7 @@ function MainApp() {
 
         {/* ACCOUNT ROUTE */}
         {route === 'account' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-7xl mx-auto px-4 md:px-6 animate-in fade-in duration-700">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
             {!user || user.isAnonymous ? (
               <div className="max-w-md mx-auto text-center py-12 md:py-16 border border-white/5 p-6 md:p-10 bg-zinc-900/20 shadow-2xl">
                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest mb-4">Кабінет Клієнта</h2>
@@ -1425,7 +1459,7 @@ function MainApp() {
 
         {/* PRODUCT PAGE */}
         {route === 'product' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 animate-in fade-in duration-700 text-left">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 animate-in fade-in duration-700 text-left">
             {(() => {
               const p = activeProducts.find(i => i.id === routeParams.id);
               if (!p) return <div className="py-40 text-center font-black uppercase tracking-widest col-span-1 lg:col-span-2">Товар не знайдено</div>;
@@ -1521,6 +1555,63 @@ function MainApp() {
           </div>
         )}
 
+        {/* TRACKING ROUTE */}
+        {route === 'tracking' && (
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
+             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-4 text-center">Мої замовлення</h1>
+             <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-center mb-10 md:mb-16 leading-relaxed max-w-2xl mx-auto">
+               Тут відображаються замовлення, автоматично збережені на цьому пристрої.
+             </p>
+
+             <div className="space-y-6 max-w-4xl mx-auto">
+                {(() => {
+                   const myOrders = orders.filter(o => localOrders.includes(o.id)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                   
+                   if (myOrders.length === 0) {
+                      return (
+                         <div className="p-8 border border-white/5 bg-zinc-900/20 text-center">
+                            <History size={32} className="mx-auto text-zinc-700 mb-4" />
+                            <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2">Історія порожня</h4>
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Ви ще не робили замовлень або очистили пам'ять браузера.</p>
+                         </div>
+                      );
+                   }
+
+                   return myOrders.map(order => (
+                      <div key={order.id} className="p-5 md:p-6 border border-white/10 bg-zinc-900/40 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                         <div className="w-full">
+                            <div className="flex items-center gap-3 mb-3">
+                              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400 break-words">
+                                 Замовлення <span className="text-white">#{order.id.slice(0, 8)}</span>
+                              </p>
+                              <button onClick={() => copyToClipboard(order.id)} className="text-zinc-500 hover:text-white transition-colors" title="Копіювати повний номер">
+                                <Copy size={12} />
+                              </button>
+                            </div>
+                            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">
+                               {new Date(order.createdAt).toLocaleDateString()} <span className="mx-2">•</span> {order.customer.city}
+                            </p>
+                            <div className="space-y-2">
+                               {order.items.map((item, idx) => (
+                                  <p key={idx} className="text-[11px] md:text-xs font-bold text-zinc-300">
+                                     {item.name} ({item.selectedColor}, {item.selectedSize}) <span className="text-zinc-500 ml-1 md:ml-2">x{item.quantity}</span>
+                                  </p>
+                               ))}
+                            </div>
+                         </div>
+                         <div className="text-left md:text-right mt-2 md:mt-0 w-full md:w-auto border-t md:border-t-0 border-white/10 pt-4 md:pt-0">
+                            <p className="text-lg md:text-xl font-black">{order.total} ₴</p>
+                            <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mt-1 md:mt-2 ${STATUS_MAP[order.status]?.color || 'text-white'}`}>
+                               {STATUS_MAP[order.status]?.label || order.status}
+                            </p>
+                         </div>
+                      </div>
+                   ));
+                })()}
+             </div>
+          </div>
+        )}
+
         {/* LEGAL PAGES */}
         {route === 'legal' && (
           <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 animate-in fade-in duration-500 text-left">
@@ -1546,7 +1637,7 @@ function MainApp() {
                     <p>Ми не передаємо ваші данные третім особам, за винятком логістичних партнерів (ТОВ «Нова Пошта») для доставки та фінансових установ/платіжних систем (для обробки транзакцій Visa/Mastercard).</p>
                   </section>
                   <section>
-                    <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Захист даних</h3>
+                    <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">3. Захист данных</h3>
                     <p>Всі транзакції та особисті дані захищені протоколами шифрування (SSL). Фінансові дані карт не зберігаються на нашому сервері, а обробляються виключно на боці сертифікованого платіжного шлюзу (PCI DSS).</p>
                   </section>
                 </div>
@@ -1646,7 +1737,7 @@ function MainApp() {
                   <p>Файли cookie — це невеликі текстові файли, які зберігаються на вашому пристрої для покращення взаємодії з сайтом.</p>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Керування файлами</h3>
-                    <p>Ми використовуємо технічні (необхідні) та аналітичні cookies. Ви можете будь-якої миті змінити налаштування нижче.</p>
+                    <p>Ми використовуємо технічні (необхідні) та аналітичні cookies. Ви ক্ষমতায় будь-якої миті змінити налаштування нижче.</p>
                     
                     <div className="mt-8 space-y-4 border border-white/10 p-6 bg-zinc-900/20">
                       <div className="flex justify-between items-center border-b border-white/5 pb-4">
@@ -1691,7 +1782,7 @@ function MainApp() {
 
         {/* ADMIN ROUTE */}
         {route === 'admin' && user?.email === ADMIN_EMAIL && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-7xl mx-auto px-4 md:px-6 animate-in fade-in duration-700">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 text-[#d4af37]">Панель Адміністратора</h1>
             
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 mb-8 md:mb-12 border-b border-white/10 snap-x">
@@ -2397,8 +2488,8 @@ function MainApp() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-black border-t border-white/5 pt-20 md:pt-32 pb-10 md:pb-16 px-4 md:px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
+      <footer className="bg-black border-t border-white/5 pt-20 md:pt-32 pb-10 md:pb-16 px-4 md:px-10 overflow-hidden">
+        <div className="max-w-[1920px] w-full mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-20 mb-16 md:mb-20">
             <div className="flex flex-col">
               <h2 className="text-2xl font-black tracking-tighter uppercase mb-6 md:mb-8 text-white">SLINIAVSKIY</h2>
@@ -2448,7 +2539,13 @@ function MainApp() {
           </div>
           
           <div className="pt-8 md:pt-10 border-t border-white/5 flex flex-col justify-center items-center">
-            <p className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-center mb-2">© {new Date().getFullYear()} SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.</p>
+            <p 
+              onDoubleClick={() => navigate('account')} 
+              title="Для входу в панель адміністратора"
+              className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-center mb-2 cursor-default selection:bg-transparent"
+            >
+              © {new Date().getFullYear()} SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.
+            </p>
             <div className="flex gap-4 text-zinc-800 text-[8px] uppercase font-bold tracking-widest">
                <button onClick={() => navigate('legal', {type: 'terms'})} className="hover:text-zinc-500 transition-colors">Публічна оферта</button>
                <span>|</span>
@@ -2461,7 +2558,7 @@ function MainApp() {
       {/* COOKIE CONSENT BANNER */}
       {!cookieConsent && (
         <div className="fixed bottom-0 left-0 w-full z-[500] bg-[#0a0a0a] border-t border-white/10 p-4 sm:p-6 md:p-10 animate-in slide-in-from-bottom duration-700 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-          <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 md:gap-8">
+          <div className="max-w-[1920px] w-full mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 md:gap-8">
             <div className="text-left max-w-2xl">
               <h4 className="text-white font-black uppercase tracking-widest text-sm md:text-lg mb-2">Ми використовуємо Cookies</h4>
               <p className="text-zinc-500 text-[10px] md:text-xs font-medium leading-relaxed uppercase tracking-wider">Ми використовуємо файли cookie для покращення роботи сайту. Ви ক্ষমতায় прийняти всі файли, відхилити необов'язкові або змінити налаштування.</p>
@@ -2512,7 +2609,7 @@ function MainApp() {
       {/* SEARCH OVERLAY */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col p-4 md:p-20 search-overlay overflow-y-auto no-scrollbar">
-           <div className="max-w-7xl mx-auto w-full flex flex-col pt-10 md:pt-0">
+           <div className="max-w-[1920px] w-full mx-auto flex flex-col pt-10 md:pt-0">
               <div className="flex justify-between items-center mb-8 md:mb-16">
                  <h2 className="text-xl md:text-4xl font-black uppercase tracking-[0.2em]">Пошук</h2>
                  <button onClick={() => setIsSearchOpen(false)} className="p-2 hover:rotate-90 transition-transform duration-300"><X size={32} className="md:w-10 md:h-10" strokeWidth={1}/></button>
