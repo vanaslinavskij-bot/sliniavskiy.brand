@@ -310,7 +310,8 @@ function MainApp() {
   const NP_API_KEY = '8208cf2c74ddc570769381a82649fb8c'; 
 
   const [adminTab, setAdminTab] = useState('orders');
-  const [orderSubTab, setOrderSubTab] = useState('active'); // active, archived
+  const [orderSubTab, setOrderSubTab] = useState('all'); // all, new, processing, shipped, completed, cancelled
+  
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -344,8 +345,6 @@ function MainApp() {
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
   const [settingsCategories, setSettingsCategories] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
-
-  const [orderFilterStatus, setOrderFilterStatus] = useState('all');
 
   const [newReferralName, setNewReferralName] = useState('');
   const [newReferralCode, setNewReferralCode] = useState('');
@@ -1080,7 +1079,7 @@ function MainApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden animate-in fade-in duration-[1500ms] ease-out">
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -1106,7 +1105,7 @@ function MainApp() {
       <main>
         {/* HOME ROUTE */}
         {route === 'home' && (
-          <div className="animate-in fade-in duration-1000">
+          <div>
             <section className="relative h-[100svh] flex flex-col items-center justify-center overflow-hidden">
               <img src={siteSettings.heroImage} className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-50" alt="Hero Desktop" />
               <img src={siteSettings.heroImageMobile || siteSettings.heroImage} className="md:hidden absolute inset-0 w-full h-full object-cover opacity-50" alt="Hero Mobile" />
@@ -1244,7 +1243,7 @@ function MainApp() {
 
         {/* BRAND ROUTE */}
         {route === 'brand' && (
-          <div className="pt-28 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 animate-in fade-in duration-700 text-center">
+          <div className="pt-28 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 text-center">
             
             <div className="mb-12 md:mb-24 px-2">
                <h2 className="text-xl sm:text-3xl md:text-5xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] leading-snug md:leading-relaxed mb-6 md:mb-8">
@@ -1297,7 +1296,7 @@ function MainApp() {
 
         {/* ACCOUNT ROUTE */}
         {route === 'account' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
             {!user || user.isAnonymous ? (
               <div className="max-w-md mx-auto text-center py-12 md:py-16 border border-white/5 p-6 md:p-10 bg-zinc-900/20 shadow-2xl">
                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest mb-4">Кабінет Клієнта</h2>
@@ -1456,7 +1455,7 @@ function MainApp() {
 
         {/* PRODUCT PAGE */}
         {route === 'product' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 animate-in fade-in duration-700 text-left">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 text-left">
             {(() => {
               const p = activeProducts.find(i => i.id === routeParams.id);
               if (!p) return <div className="py-40 text-center font-black uppercase tracking-widest col-span-1 lg:col-span-2">Товар не знайдено</div>;
@@ -1554,7 +1553,7 @@ function MainApp() {
 
         {/* TRACKING ROUTE */}
         {route === 'tracking' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-4 text-center">Мої замовлення</h1>
              <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-center mb-10 md:mb-16 leading-relaxed max-w-2xl mx-auto">
                Тут відображаються замовлення, автоматично збережені на цьому пристрої.
@@ -1611,7 +1610,7 @@ function MainApp() {
 
         {/* LEGAL PAGES */}
         {route === 'legal' && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 animate-in fade-in duration-500 text-left">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-4xl mx-auto px-4 md:px-6 text-left">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 leading-tight">
               {routeParams.type === 'privacy' && 'Політика конфіденційності'}
               {routeParams.type === 'terms' && 'Публічна оферта (Умови надання послуг)'}
@@ -1779,7 +1778,7 @@ function MainApp() {
 
         {/* ADMIN ROUTE */}
         {route === 'admin' && user?.email === ADMIN_EMAIL && (
-          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 animate-in fade-in duration-700">
+          <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 text-[#d4af37]">Панель Адміністратора</h1>
             
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 mb-8 md:mb-12 border-b border-white/10 snap-x">
@@ -1801,55 +1800,34 @@ function MainApp() {
             
             <div className="space-y-12">
               
-              {/* --- ORDERS TAB (ПОЛНОСТЬЮ ОБНОВЛЕННЫЙ ДИЗАЙН) --- */}
+              {/* --- ORDERS TAB --- */}
               {adminTab === 'orders' && (
-                <section className="animate-in fade-in duration-500">
-                  <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl items-end">
-                    
-                    {/* КНОПКИ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК (АКТИВНЫЕ / АРХИВ) */}
-                    <div className="flex gap-2 flex-1 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                <section>
+                  {/* КНОПКИ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ПО СТАТУСАМ */}
+                  <div className="flex gap-2 w-full overflow-x-auto no-scrollbar pb-2 mb-8 border-b border-white/10">
+                     {[
+                       { id: 'all', label: 'Всі замовлення' },
+                       { id: 'new', label: 'Нове' },
+                       { id: 'processing', label: 'В обробці' },
+                       { id: 'shipped', label: 'Відправлено' },
+                       { id: 'completed', label: 'Отримано' },
+                       { id: 'cancelled', label: 'Скасовано' }
+                     ].map(tab => (
                        <button 
-                         onClick={() => { setOrderSubTab('active'); setOrderFilterStatus('all'); }} 
-                         className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${orderSubTab === 'active' ? 'bg-white text-black border-white' : 'border-white/20 text-zinc-500 hover:border-white/50 hover:text-white'}`}
+                         key={tab.id}
+                         onClick={() => setOrderSubTab(tab.id)} 
+                         className={`px-4 py-3 mb-2 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${orderSubTab === tab.id ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 text-zinc-500 hover:border-white/50 hover:text-white bg-black/50'}`}
                        >
-                         Активні замовлення
+                         {tab.label}
                        </button>
-                       <button 
-                         onClick={() => { setOrderSubTab('archived'); setOrderFilterStatus('all'); }} 
-                         className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${orderSubTab === 'archived' ? 'bg-white text-black border-white' : 'border-white/20 text-zinc-500 hover:border-white/50 hover:text-white'}`}
-                       >
-                         Архів / Виконані
-                       </button>
-                    </div>
-
-                    {/* ДОПОЛНИТЕЛЬНЫЙ ФИЛЬТР ПО СТАТУСАМ */}
-                    <div className="w-full sm:w-64 shrink-0">
-                       <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">
-                         Детальний фільтр ({orderSubTab === 'active' ? 'Активні' : 'Архів'})
-                       </label>
-                       <select 
-                         value={orderFilterStatus} 
-                         onChange={e=>setOrderFilterStatus(e.target.value)} 
-                         className="w-full bg-black border border-white/10 p-3 text-[10px] uppercase font-black outline-none focus:border-white transition-colors cursor-pointer h-[42px]"
-                       >
-                          <option value="all">Всі {orderSubTab === 'active' ? 'активні' : 'архівні'}</option>
-                          {Object.entries(STATUS_MAP)
-                            .filter(([k]) => orderSubTab === 'active' ? ['new', 'processing', 'shipped'].includes(k) : ['completed', 'cancelled'].includes(k))
-                            .map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                       </select>
-                    </div>
+                     ))}
                   </div>
 
                   <div className="space-y-6">
                     {orders
                       .filter(o => o.status !== 'pending_payment')
-                      // Фильтрация по текущей вкладке: Активные или Архив
-                      .filter(o => {
-                         const isActiveStatus = ['new', 'processing', 'shipped'].includes(o.status);
-                         return orderSubTab === 'active' ? isActiveStatus : !isActiveStatus;
-                      })
-                      // Дополнительная фильтрация по выпадающему списку
-                      .filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus)
+                      // Фильтрация по выбранной вкладке
+                      .filter(o => orderSubTab === 'all' ? true : o.status === orderSubTab)
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                       .map(order => (
                        <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20 relative">
@@ -1920,17 +1898,14 @@ function MainApp() {
                                      <option key={val} value={val} className="bg-black text-white">{label}</option>
                                    ))}
                                  </select>
-                                 {orderSubTab === 'active' && ['completed', 'cancelled'].includes(order.status) && (
-                                    <p className="text-[8px] text-zinc-500 uppercase mt-2 text-center animate-pulse">Замовлення переміщено в архів</p>
-                                 )}
                               </div>
 
                            </div>
                        </div>
                     ))}
-                    {orders.filter(o => o.status !== 'pending_payment' && (orderSubTab === 'active' ? ['new', 'processing', 'shipped'].includes(o.status) : ['completed', 'cancelled'].includes(o.status)) && (orderFilterStatus === 'all' || o.status === orderFilterStatus)).length === 0 && (
-                      <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">
-                        {orderSubTab === 'active' ? 'Активних замовлень не знайдено' : 'Архівних замовлень не знайдено'}
+                    {orders.filter(o => o.status !== 'pending_payment' && (orderSubTab === 'all' ? true : o.status === orderSubTab)).length === 0 && (
+                      <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10 border border-white/5 bg-zinc-900/20">
+                        Замовлень за цим статусом не знайдено
                       </p>
                     )}
                   </div>
@@ -1939,7 +1914,7 @@ function MainApp() {
 
               {/* --- PRODUCTS TAB --- */}
               {adminTab === 'products' && (
-                <section className="animate-in fade-in duration-500">
+                <section>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
                     <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">Каталог</h2>
                     <button onClick={() => { setEditingProduct({}); setEditForm({ name: '', price: '', category: activeCategories[0] || 'Категорія', images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: DEFAULT_COLORS, sizes: DEFAULT_SIZES_AVAILABILITY }); }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
@@ -2115,7 +2090,7 @@ function MainApp() {
 
               {/* --- REFERRALS TAB --- */}
               {adminTab === 'referrals' && (
-                <section className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
+                <section className="space-y-8 md:space-y-12">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
                     {/* Create New Referral */}
@@ -2395,7 +2370,7 @@ function MainApp() {
 
               {/* --- SETTINGS TAB --- */}
               {adminTab === 'settings' && (
-                <section className="animate-in fade-in duration-500 space-y-8 max-w-2xl w-full">
+                <section className="space-y-8 max-w-2xl w-full">
                   
                   <div className="border border-white/10 p-4 md:p-8 bg-zinc-900/20 w-full">
                     <h2 className="text-lg md:text-xl font-black uppercase tracking-widest mb-6">Головні зображення сайту</h2>
