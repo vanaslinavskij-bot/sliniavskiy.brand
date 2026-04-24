@@ -371,11 +371,17 @@ function MainApp() {
     setTimeout(() => setToast(null), 4000); 
   }, []);
 
+  // ОБНОВЛЕННАЯ ЛОГИКА РЕФЕРАЛОВ: sessionStorage
   useEffect(() => {
+    // Очищаем старый localStorage, чтобы обнулить "вечные" реферальные ссылки из прошлой версии
+    localStorage.removeItem('sliniavskiy_ref');
+
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
+    
     if (refCode) {
-      localStorage.setItem('sliniavskiy_ref', refCode);
+      // Сохраняем ТОЛЬКО для текущей вкладки/сессии
+      sessionStorage.setItem('sliniavskiy_ref', refCode);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -665,7 +671,7 @@ function MainApp() {
 
   const fetchNpCities = async (query) => {
     setDeliveryForm(prev => ({...prev, city: query, branch: '', cityRef: ''}));
-    setNpWarehouses([]); // Очищаем старые отделения при вводе нового города
+    setNpWarehouses([]); 
     
     if (query.length < 2) { setNpCities([]); setShowCities(false); return; }
     
@@ -753,7 +759,8 @@ function MainApp() {
       return;
     }
 
-    const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
+    // БЕРЕМ РЕФЕРАЛА ИЗ СЕССИИ (sessionStorage)
+    const appliedRef = sessionStorage.getItem('sliniavskiy_ref') || null;
 
     const orderData = {
       userId: user.uid,
@@ -773,7 +780,6 @@ function MainApp() {
     try {
       const safeData = JSON.parse(JSON.stringify(orderData));
       
-      // Зберігаємо дані локально, не відправляючи в БД до оплати
       setPendingOrderData(safeData);
       setCheckoutStep(2); 
       
@@ -802,17 +808,14 @@ function MainApp() {
     setIsProcessingPayment(true);
 
     try {
-      // Штучна затримка для імітації банківської обробки
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Відправляємо замовлення в БД тільки ПІСЛЯ оплати з правильним статусом
       const finalOrderData = { ...pendingOrderData, status: 'new' };
       const newOrderRef = await addDoc(getOrdersRef(), finalOrderData);
 
-      // Зберігаємо замовлення в локальну історію браузера
       setLocalOrders(prev => [newOrderRef.id, ...prev]);
 
-      const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
+      const appliedRef = sessionStorage.getItem('sliniavskiy_ref') || null;
       let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
       text += `👤 <b>ПІБ:</b> ${deliveryForm.name}\n`;
       text += `📞 <b>Телефон:</b> ${deliveryForm.phone}\n`;
@@ -830,6 +833,10 @@ function MainApp() {
       await sendTelegramMessage(text);
 
       showToast('Тестова оплата успішна! Замовлення оформлено.');
+      
+      // ОЧИЩАЕМ РЕФЕРАЛА ПОСЛЕ УСПЕШНОГО ЗАКАЗА
+      sessionStorage.removeItem('sliniavskiy_ref');
+      
       setCart([]);
       setDeliveryForm({ name: '', phone: '', city: '', cityRef: '', branch: '' });
       setPendingOrderData(null);
@@ -1690,7 +1697,7 @@ function MainApp() {
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Умови повернення</h3>
                     <ul className="list-disc pl-5 mt-4 space-y-2">
-                      <li>Товар не був у вжитку і не має слідів носіння (подряпин, плям, потертостей, запаху парфумів/прання).</li>
+                      <li>Товар не був у вжитку і не имеет слідів носіння (подряпин, плям, потертостей, запаху парфумів/прання).</li>
                       <li>Збережено товарний вигляд, споживчі властивості, фабричні ярлики, пломби та оригінальне пакування.</li>
                       <li>Наявний розрахунковий документ (електронна квитанція про оплату або чек).</li>
                     </ul>
