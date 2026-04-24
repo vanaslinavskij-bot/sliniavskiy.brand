@@ -310,6 +310,7 @@ function MainApp() {
   const NP_API_KEY = '8208cf2c74ddc570769381a82649fb8c'; 
 
   const [adminTab, setAdminTab] = useState('orders');
+  const [orderSubTab, setOrderSubTab] = useState('active'); // active, archived
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -1733,7 +1734,7 @@ function MainApp() {
                   <p>Файли cookie — це невеликі текстові файли, які зберігаються на вашому пристрої для покращення взаємодії з сайтом.</p>
                   <section>
                     <h3 className="text-white uppercase font-black tracking-widest mb-3 md:mb-4 text-sm md:text-base">Керування файлами</h3>
-                    <p>Ми використовуємо технічні (необхідні) та аналітичні cookies. Ви ক্ষমতায় будь-якої миті змінити налаштування нижче.</p>
+                    <p>Ми використовуємо технічні (необхідні) та аналітичні cookies. Ви можете будь-якої миті змінити налаштування нижче.</p>
                     
                     <div className="mt-8 space-y-4 border border-white/10 p-6 bg-zinc-900/20">
                       <div className="flex justify-between items-center border-b border-white/5 pb-4">
@@ -1803,12 +1804,38 @@ function MainApp() {
               {/* --- ORDERS TAB (ПОЛНОСТЬЮ ОБНОВЛЕННЫЙ ДИЗАЙН) --- */}
               {adminTab === 'orders' && (
                 <section className="animate-in fade-in duration-500">
-                  <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl">
-                    <div className="flex-1 w-full">
-                       <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Фільтр за статусом</label>
-                       <select value={orderFilterStatus} onChange={e=>setOrderFilterStatus(e.target.value)} className="w-full bg-black border border-white/10 p-3 text-[10px] uppercase font-black outline-none focus:border-white transition-colors cursor-pointer">
-                          <option value="all">Всі статуси</option>
-                          {Object.entries(STATUS_MAP).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl items-end">
+                    
+                    {/* КНОПКИ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК (АКТИВНЫЕ / АРХИВ) */}
+                    <div className="flex gap-2 flex-1 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                       <button 
+                         onClick={() => { setOrderSubTab('active'); setOrderFilterStatus('all'); }} 
+                         className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${orderSubTab === 'active' ? 'bg-white text-black border-white' : 'border-white/20 text-zinc-500 hover:border-white/50 hover:text-white'}`}
+                       >
+                         Активні замовлення
+                       </button>
+                       <button 
+                         onClick={() => { setOrderSubTab('archived'); setOrderFilterStatus('all'); }} 
+                         className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${orderSubTab === 'archived' ? 'bg-white text-black border-white' : 'border-white/20 text-zinc-500 hover:border-white/50 hover:text-white'}`}
+                       >
+                         Архів / Виконані
+                       </button>
+                    </div>
+
+                    {/* ДОПОЛНИТЕЛЬНЫЙ ФИЛЬТР ПО СТАТУСАМ */}
+                    <div className="w-full sm:w-64 shrink-0">
+                       <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">
+                         Детальний фільтр ({orderSubTab === 'active' ? 'Активні' : 'Архів'})
+                       </label>
+                       <select 
+                         value={orderFilterStatus} 
+                         onChange={e=>setOrderFilterStatus(e.target.value)} 
+                         className="w-full bg-black border border-white/10 p-3 text-[10px] uppercase font-black outline-none focus:border-white transition-colors cursor-pointer h-[42px]"
+                       >
+                          <option value="all">Всі {orderSubTab === 'active' ? 'активні' : 'архівні'}</option>
+                          {Object.entries(STATUS_MAP)
+                            .filter(([k]) => orderSubTab === 'active' ? ['new', 'processing', 'shipped'].includes(k) : ['completed', 'cancelled'].includes(k))
+                            .map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
                        </select>
                     </div>
                   </div>
@@ -1816,10 +1843,16 @@ function MainApp() {
                   <div className="space-y-6">
                     {orders
                       .filter(o => o.status !== 'pending_payment')
+                      // Фильтрация по текущей вкладке: Активные или Архив
+                      .filter(o => {
+                         const isActiveStatus = ['new', 'processing', 'shipped'].includes(o.status);
+                         return orderSubTab === 'active' ? isActiveStatus : !isActiveStatus;
+                      })
+                      // Дополнительная фильтрация по выпадающему списку
                       .filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus)
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                       .map(order => (
-                       <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20">
+                       <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20 relative">
                            
                            {/* HEADER ЗАКАЗА */}
                            <div className="bg-black/60 px-4 md:px-6 py-3 border-b border-white/5 flex flex-wrap justify-between items-center gap-4">
@@ -1887,13 +1920,18 @@ function MainApp() {
                                      <option key={val} value={val} className="bg-black text-white">{label}</option>
                                    ))}
                                  </select>
+                                 {orderSubTab === 'active' && ['completed', 'cancelled'].includes(order.status) && (
+                                    <p className="text-[8px] text-zinc-500 uppercase mt-2 text-center animate-pulse">Замовлення переміщено в архів</p>
+                                 )}
                               </div>
 
                            </div>
                        </div>
                     ))}
-                    {orders.filter(o => o.status !== 'pending_payment' && (orderFilterStatus === 'all' || o.status === orderFilterStatus)).length === 0 && (
-                      <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">Замовлень не знайдено</p>
+                    {orders.filter(o => o.status !== 'pending_payment' && (orderSubTab === 'active' ? ['new', 'processing', 'shipped'].includes(o.status) : ['completed', 'cancelled'].includes(o.status)) && (orderFilterStatus === 'all' || o.status === orderFilterStatus)).length === 0 && (
+                      <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">
+                        {orderSubTab === 'active' ? 'Активних замовлень не знайдено' : 'Архівних замовлень не знайдено'}
+                      </p>
                     )}
                   </div>
                 </section>
@@ -2219,7 +2257,7 @@ function MainApp() {
                                       const r = referrals.find(x => x.code === refFilterPartner);
                                       if(r) handleDeleteReferral(r.id);
                                     }} 
-                                    title="Видалити этого партнера"
+                                    title="Видалити цього партнера"
                                     className="h-[42px] px-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center shrink-0"
                                   >
                                     <Trash2 size={16} />
@@ -2587,7 +2625,7 @@ function MainApp() {
           <div className="max-w-[1920px] w-full mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 md:gap-8">
             <div className="text-left max-w-2xl">
               <h4 className="text-white font-black uppercase tracking-widest text-sm md:text-lg mb-2">Ми використовуємо Cookies</h4>
-              <p className="text-zinc-500 text-[10px] md:text-xs font-medium leading-relaxed uppercase tracking-wider">Ми використовуємо файли cookie для покращення роботи сайту. Ви ক্ষমতায় прийняти всі файли, відхилити необов'язкові або змінити налаштування.</p>
+              <p className="text-zinc-500 text-[10px] md:text-xs font-medium leading-relaxed uppercase tracking-wider">Ми використовуємо файли cookie для покращення роботи сайту. Ви можете прийняти всі файли, відхилити необов'язкові або змінити налаштування.</p>
             </div>
             <div className="flex flex-wrap lg:flex-nowrap gap-3 md:gap-4 shrink-0 w-full lg:w-auto">
               <button onClick={() => handleCookieAction('declined')} className="flex-1 lg:flex-none px-4 py-3 border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:border-white transition-all text-center">Відхилити</button>
