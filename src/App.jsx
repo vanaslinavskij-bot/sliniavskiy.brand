@@ -7,7 +7,7 @@ import {
   Plus, Edit, Trash2, Image as ImageIcon, Settings, ArrowRight, ArrowLeft, ChevronRight,
   Target, Award, Fingerprint, Shirt, Scissors, Sparkles, Box, Wind, 
   Layers, Gem, Feather, Shield, Activity, Fingerprint as IconFingerprint,
-  Infinity, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle
+  Infinity, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle, MapPin
 } from 'lucide-react';
 
 // --- INITIALIZE FIREBASE ---
@@ -242,13 +242,11 @@ function MainApp() {
 
   useEffect(() => { setShowAllProducts(false); }, [route, routeParams]);
 
-  // Мінімальний час для красивої анімації завантаження (2.2 сек)
   useEffect(() => {
     const timer = setTimeout(() => setMinLoadTimePassed(true), 2200);
     return () => clearTimeout(timer);
   }, []);
 
-  // ЗАЩИТА: Безопасное извлечение корзины
   const [cart, setCart] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('sliniavskiy_cart') || '[]');
@@ -256,7 +254,6 @@ function MainApp() {
     } catch { return []; }
   });
   
-  // ЗАЩИТА: Безопасное извлечение желаемого
   const [wishlist, setWishlist] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('sliniavskiy_wishlist') || '[]');
@@ -297,7 +294,6 @@ function MainApp() {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(null);
   
   const [isCheckoutForm, setIsCheckoutForm] = useState(false);
-  // checkoutStep: 1 = Delivery Form, 2 = Payment Stub
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [pendingOrderData, setPendingOrderData] = useState(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -342,7 +338,6 @@ function MainApp() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: [], sizes: DEFAULT_SIZES_AVAILABILITY });
   
-  // Settings edit forms
   const [settingsFormUrl, setSettingsFormUrl] = useState('');
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
@@ -371,17 +366,18 @@ function MainApp() {
     setTimeout(() => setToast(null), 4000); 
   }, []);
 
-  // ОБНОВЛЕННАЯ ЛОГИКА РЕФЕРАЛОВ: sessionStorage
+  // НАДІЙНА ФІКСАЦІЯ РЕФЕРАЛІВ:
+  // Використовуємо localStorage, щоб він не втрачався при переходах, 
+  // але очищуємо його після успішної покупки (див. handleFinalizePayment)
   useEffect(() => {
-    // Очищаем старый localStorage, чтобы обнулить "вечные" реферальные ссылки из прошлой версии
-    localStorage.removeItem('sliniavskiy_ref');
+    // Очищення sessionStorage якщо залишився з попередньої версії
+    sessionStorage.removeItem('sliniavskiy_ref');
 
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
     
     if (refCode) {
-      // Сохраняем ТОЛЬКО для текущей вкладки/сессии
-      sessionStorage.setItem('sliniavskiy_ref', refCode);
+      localStorage.setItem('sliniavskiy_ref', refCode);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -725,11 +721,6 @@ function MainApp() {
     setIsNpLoading(false);
   };
 
-  const selectNpWarehouse = (wh) => {
-    setDeliveryForm(prev => ({...prev, branch: wh.Description}));
-    setShowWarehouses(false);
-  };
-
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     
@@ -759,8 +750,8 @@ function MainApp() {
       return;
     }
 
-    // БЕРЕМ РЕФЕРАЛА ИЗ СЕССИИ (sessionStorage)
-    const appliedRef = sessionStorage.getItem('sliniavskiy_ref') || null;
+    // ЗЧИТУЄМО РЕФЕРАЛА З LOCAL STORAGE (надійніше)
+    const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
 
     const orderData = {
       userId: user.uid,
@@ -815,7 +806,7 @@ function MainApp() {
 
       setLocalOrders(prev => [newOrderRef.id, ...prev]);
 
-      const appliedRef = sessionStorage.getItem('sliniavskiy_ref') || null;
+      const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
       let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
       text += `👤 <b>ПІБ:</b> ${deliveryForm.name}\n`;
       text += `📞 <b>Телефон:</b> ${deliveryForm.phone}\n`;
@@ -834,8 +825,8 @@ function MainApp() {
 
       showToast('Тестова оплата успішна! Замовлення оформлено.');
       
-      // ОЧИЩАЕМ РЕФЕРАЛА ПОСЛЕ УСПЕШНОГО ЗАКАЗА
-      sessionStorage.removeItem('sliniavskiy_ref');
+      // СУВОРО ОЧИЩАЄМО РЕФЕРАЛА ПІСЛЯ УСПІШНОЇ ОПЛАТИ
+      localStorage.removeItem('sliniavskiy_ref');
       
       setCart([]);
       setDeliveryForm({ name: '', phone: '', city: '', cityRef: '', branch: '' });
@@ -1811,7 +1802,7 @@ function MainApp() {
             
             <div className="space-y-12">
               
-              {/* --- ORDERS TAB --- */}
+              {/* --- ORDERS TAB (ПОЛНОСТЬЮ ОБНОВЛЕННЫЙ ДИЗАЙН) --- */}
               {adminTab === 'orders' && (
                 <section className="animate-in fade-in duration-500">
                   <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-black/50 p-4 border border-white/10 shadow-xl">
@@ -1830,48 +1821,78 @@ function MainApp() {
                       .filter(o => orderFilterStatus === 'all' || o.status === orderFilterStatus)
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                       .map(order => (
-                      <div key={order.id} className="border border-white/10 p-4 md:p-6 bg-zinc-900/40 shadow-xl flex flex-col">
-                         <div className="flex flex-col lg:flex-row justify-between gap-6 mb-6">
-                            <div className="w-full">
-                               <h4 className="font-black text-[#d4af37] mb-2 uppercase tracking-widest text-xs md:text-sm break-words">Замовлення #{order.id.slice(0,8)}</h4>
-                               <p className="text-[9px] md:text-[10px] text-zinc-400 uppercase tracking-widest mb-3">{new Date(order.createdAt).toLocaleString()}</p>
-                               <p className="text-[11px] md:text-xs font-bold mb-1 break-words">👤 {order.customer.name} <span className="text-zinc-500 mx-1 md:mx-2">|</span> 📞 {order.customer.phone}</p>
-                               <p className="text-[11px] md:text-xs text-zinc-400 break-words mb-2">📍 {order.customer.city}, Відділення: {order.customer.branch}</p>
-                               <div className="flex flex-wrap gap-2 mt-2">
+                       <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20">
+                           
+                           {/* HEADER ЗАКАЗА */}
+                           <div className="bg-black/60 px-4 md:px-6 py-3 border-b border-white/5 flex flex-wrap justify-between items-center gap-4">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                 <span className="font-black text-[#d4af37] tracking-widest text-xs md:text-sm">#{order.id.slice(0,8)}</span>
+                                 <span className="text-zinc-500 text-[10px] md:text-xs">{new Date(order.createdAt).toLocaleString()}</span>
+                                 {/* ВЫДЕЛЕННЫЙ БЕЙДЖ РЕФЕРАЛА */}
                                  {order.referralCode && (
-                                   <p className="inline-block px-3 py-1 bg-white/10 text-[#d4af37] text-[9px] font-black uppercase tracking-widest rounded-sm border border-[#d4af37]/30 break-all">Реферал: {order.referralCode}</p>
+                                    <span className="px-2 py-1 bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 text-[9px] font-black uppercase tracking-widest rounded-sm flex items-center gap-1 shadow-[0_0_10px_rgba(212,175,55,0.1)]">
+                                       <LinkIcon size={10} /> Реферал: {order.referralCode}
+                                    </span>
                                  )}
-                               </div>
-                            </div>
-                            <div className="text-left lg:text-right flex flex-col lg:items-end w-full lg:w-auto mt-4 lg:mt-0">
-                               <p className="text-lg md:text-xl font-black mb-3">{order.total} ₴</p>
-                               <select 
-                                 value={order.status}
-                                 onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                 className={`w-full lg:w-auto bg-black border border-white/20 text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 px-4 outline-none focus:border-white transition-colors cursor-pointer ${STATUS_MAP[order.status]?.color || 'text-white'}`}
-                               >
-                                 {Object.entries(STATUS_MAP).map(([val, {label}]) => (
-                                   <option key={val} value={val} className="bg-black text-white">{label}</option>
-                                 ))}
-                               </select>
-                            </div>
-                         </div>
-                         <div className="pt-4 border-t border-white/5 space-y-3 w-full">
-                            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Придбані товари:</p>
-                            {order.items.map((item, idx) => (
-                               <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs border-b border-white/5 pb-3">
-                                 <div className="flex items-center gap-4 w-full sm:w-auto">
-                                    <img src={item.images?.[0] || item.image || 'https://via.placeholder.com/100'} className="w-10 h-12 md:w-8 md:h-10 object-cover bg-zinc-900 border border-white/10 shrink-0" alt="" />
-                                    <span className="font-bold flex-1 break-words">{item.name} <span className="text-zinc-500 font-normal">({item.selectedColor}, {item.selectedSize})</span></span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                  <span className="font-black text-white text-sm md:text-base">{order.total} ₴</span>
+                              </div>
+                           </div>
+
+                           {/* BODY ЗАКАЗА (СЕТКА) */}
+                           <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
+                              
+                              {/* КОЛОНКА КЛИЕНТА */}
+                              <div className="md:col-span-3 p-4 md:p-6 border-b md:border-b-0 md:border-r border-white/5 space-y-3 flex flex-col justify-center">
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Клієнт</p>
+                                 <p className="text-xs md:text-sm font-bold text-white flex items-center gap-2"><User size={14} className="text-zinc-400 shrink-0"/> <span className="truncate">{order.customer.name}</span></p>
+                                 <p className="text-xs text-zinc-400 flex items-center gap-2"><Smartphone size={14} className="text-zinc-400 shrink-0"/> <span>{order.customer.phone}</span></p>
+                              </div>
+
+                              {/* КОЛОНКА ДОСТАВКИ */}
+                              <div className="md:col-span-3 p-4 md:p-6 border-b md:border-b-0 md:border-r border-white/5 space-y-3 flex flex-col justify-center">
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Доставка</p>
+                                 <p className="text-xs md:text-sm text-white flex items-center gap-2"><MapPin size={14} className="text-zinc-400 shrink-0"/> <span className="truncate" title={order.customer.city}>{order.customer.city}</span></p>
+                                 <p className="text-xs text-zinc-400 flex items-center gap-2"><Package size={14} className="text-zinc-400 shrink-0"/> <span className="line-clamp-2" title={order.customer.branch}>{order.customer.branch}</span></p>
+                              </div>
+
+                              {/* КОЛОНКА ТОВАРОВ */}
+                              <div className="md:col-span-4 p-4 md:p-6 border-b md:border-b-0 md:border-r border-white/5 flex flex-col justify-center">
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-3">Товари ({order.items.length})</p>
+                                 <div className="max-h-32 overflow-y-auto no-scrollbar space-y-3 pr-2">
+                                    {order.items.map((item, idx) => (
+                                       <div key={idx} className="flex items-center gap-3 text-xs">
+                                          <img src={item.image || item.images?.[0] || 'https://via.placeholder.com/100'} className="w-8 h-10 object-cover bg-zinc-800 border border-white/10 shrink-0" alt="item" />
+                                          <div className="flex-1 min-w-0">
+                                             <p className="text-white font-bold truncate">{item.name}</p>
+                                             <p className="text-zinc-500 text-[10px] mt-0.5">{item.selectedColor}, {item.selectedSize}</p>
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                             <p className="text-zinc-400">x{item.quantity}</p>
+                                             <p className="text-white font-bold text-[10px]">{item.price * item.quantity} ₴</p>
+                                          </div>
+                                       </div>
+                                    ))}
                                  </div>
-                                 <div className="text-left sm:text-right w-full sm:w-auto bg-white/5 sm:bg-transparent p-2 sm:p-0 flex justify-between sm:block">
-                                    <span className="text-zinc-400 sm:mr-4">Кількість: x{item.quantity}</span>
-                                    <span className="font-black text-white">{item.price * item.quantity} ₴</span>
-                                 </div>
-                               </div>
-                            ))}
-                         </div>
-                      </div>
+                              </div>
+
+                              {/* КОЛОНКА ДЕЙСТВИЙ */}
+                              <div className="md:col-span-2 p-4 md:p-6 flex flex-col justify-center bg-black/20">
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Статус</p>
+                                 <select 
+                                   value={order.status}
+                                   onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                   className={`w-full bg-black border border-white/20 text-[10px] font-black uppercase tracking-widest py-3 px-3 outline-none focus:border-white transition-colors cursor-pointer ${STATUS_MAP[order.status]?.color || 'text-white'}`}
+                                 >
+                                   {Object.entries(STATUS_MAP).map(([val, {label}]) => (
+                                     <option key={val} value={val} className="bg-black text-white">{label}</option>
+                                   ))}
+                                 </select>
+                              </div>
+
+                           </div>
+                       </div>
                     ))}
                     {orders.filter(o => o.status !== 'pending_payment' && (orderFilterStatus === 'all' || o.status === orderFilterStatus)).length === 0 && (
                       <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center py-10">Замовлень не знайдено</p>
@@ -1962,7 +1983,7 @@ function MainApp() {
                                        >
                                          <img src={imgUrl} className="w-full h-full object-cover" alt="Color thumbnail" />
                                          {isSelected && (
-                                           <div className="absolute top-0 right-0 bg-[#d4af37] text-black w-4 h-4 flex items-center justify-center">
+                                            <div className="absolute top-0 right-0 bg-[#d4af37] text-black w-4 h-4 flex items-center justify-center">
                                              <Check size={12} strokeWidth={4} />
                                            </div>
                                          )}
