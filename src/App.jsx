@@ -6,8 +6,8 @@ import {
   Mail, Ruler, Settings2, Send, CreditCard, ShieldCheck, Database,
   Plus, Edit, Trash2, Image as ImageIcon, Settings, ArrowRight, ArrowLeft, ChevronRight,
   Target, Award, Fingerprint, Shirt, Scissors, Sparkles, Box, Wind, 
-  Layers, Gem, Feather, Shield, Activity, Fingerprint as IconFingerprint,
-  Infinity, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle, MapPin
+  Layers, Gem, Feather, Shield, Activity,
+  Infinity as InfinityIcon, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle, MapPin
 } from 'lucide-react';
 
 // --- INITIALIZE FIREBASE ---
@@ -366,13 +366,8 @@ function MainApp() {
     setTimeout(() => setToast(null), 4000); 
   }, []);
 
-  // НАДІЙНА ФІКСАЦІЯ РЕФЕРАЛІВ:
-  // Використовуємо localStorage, щоб він не втрачався при переходах, 
-  // але очищуємо його після успішної покупки (див. handleFinalizePayment)
   useEffect(() => {
-    // Очищення sessionStorage якщо залишився з попередньої версії
     sessionStorage.removeItem('sliniavskiy_ref');
-
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
     
@@ -721,6 +716,11 @@ function MainApp() {
     setIsNpLoading(false);
   };
 
+  const selectNpWarehouse = (wh) => {
+    setDeliveryForm(prev => ({...prev, branch: wh.Description}));
+    setShowWarehouses(false);
+  };
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     
@@ -750,7 +750,6 @@ function MainApp() {
       return;
     }
 
-    // ЗЧИТУЄМО РЕФЕРАЛА З LOCAL STORAGE (надійніше)
     const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
 
     const orderData = {
@@ -825,7 +824,6 @@ function MainApp() {
 
       showToast('Тестова оплата успішна! Замовлення оформлено.');
       
-      // СУВОРО ОЧИЩАЄМО РЕФЕРАЛА ПІСЛЯ УСПІШНОЇ ОПЛАТИ
       localStorage.removeItem('sliniavskiy_ref');
       
       setCart([]);
@@ -1281,7 +1279,7 @@ function MainApp() {
                     <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Ергономічний крій, який не сковує рухів і дарує свободу.</p>
                  </div>
                  <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
-                    <Infinity size={32} className="mb-4 text-[#d4af37]" />
+                    <InfinityIcon size={32} className="mb-4 text-[#d4af37]" />
                     <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Довговічність</h4>
                     <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Речі, які зберігають свій вигляд навіть після сотень циклів прання.</p>
                  </div>
@@ -2221,7 +2219,7 @@ function MainApp() {
                                       const r = referrals.find(x => x.code === refFilterPartner);
                                       if(r) handleDeleteReferral(r.id);
                                     }} 
-                                    title="Видалити цього партнера"
+                                    title="Видалити этого партнера"
                                     className="h-[42px] px-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center shrink-0"
                                   >
                                     <Trash2 size={16} />
@@ -2721,15 +2719,15 @@ function MainApp() {
                         placeholder="Місто (почніть вводити...)" 
                         value={deliveryForm.city} 
                         onChange={e => fetchNpCities(e.target.value)} 
-                        onFocus={() => { if(npCities.length > 0) setShowCities(true); }}
-                        onBlur={() => setShowCities(false)}
+                        onFocus={() => { if(npCities.length > 0) setShowCities(true); else if (deliveryForm.city.length >= 2) fetchNpCities(deliveryForm.city); }}
+                        onBlur={() => setTimeout(() => setShowCities(false), 200)}
                         className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" 
                       />
                       {isNpLoading && !showWarehouses && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
                       {showCities && npCities.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
+                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl no-scrollbar">
                           {npCities.map(city => (
-                            <div key={city.Ref} onMouseDown={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+                            <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
                               {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription} обл.)</span>
                             </div>
                           ))}
@@ -2744,15 +2742,15 @@ function MainApp() {
                         placeholder={deliveryForm.cityRef ? "Відділення або поштомат..." : "Спочатку оберіть місто"} 
                         value={deliveryForm.branch} 
                         onChange={e => fetchNpWarehouses(e.target.value)} 
-                        onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(''); }}
-                        onBlur={() => setShowWarehouses(false)}
+                        onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(deliveryForm.branch || ''); }}
+                        onBlur={() => setTimeout(() => setShowWarehouses(false), 200)}
                         disabled={!deliveryForm.cityRef}
                         className={`w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors ${!deliveryForm.cityRef ? 'opacity-50 cursor-not-allowed' : ''}`} 
                       />
                       {showWarehouses && npWarehouses.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl">
+                        <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl no-scrollbar">
                           {npWarehouses.map(wh => (
-                            <div key={wh.Ref} onMouseDown={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
+                            <div key={wh.Ref} onClick={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
                               {wh.Description}
                             </div>
                           ))}
