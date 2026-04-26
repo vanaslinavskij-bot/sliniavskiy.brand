@@ -125,7 +125,73 @@ const DICT = {
     contacts: 'Контакти та реквізити', delivery: 'Доставка та оплата', returns: 'Обмін та повернення',
     terms: 'Публічна оферта', privacy: 'Політика конфіденційності', socials: 'Соцмережі',
     clients: 'Клієнтам', info: 'Інформація', support: 'Підтримка', to_collection: 'До Колекції',
-    language: 'Мова сайту / Language'
+    language: 'Мова сайту / Language',
+    
+    brand_quote: '"Не знаю моди, створюю свій стиль"',
+    brand_founder: '— Засновник SLINIAVSKIY',
+    brand_goal_title: 'Ціль бренду',
+    brand_p1: 'Наша головна ціль — забезпечити вас преміальним базовим гардеробом, який не підвладний швидкоплинним трендам. Ми віримо, що справжній стиль починається з бездоганного крою та виняткового комфорту.',
+    brand_p2: 'Кожна річ SLINIAVSKIY створена для того, щоб підкреслити вашу індивідуальність. Використовуючи кращі матеріали за європейськими стандартами, ми гарантуємо довговічність та естетичне задоволення від кожного дотику до тканини.',
+    quality: 'Якість',
+    quality_desc: 'Використання виключно преміальних тканин та фурнітури.',
+    comfort: 'Комфорт',
+    comfort_desc: 'Ергономічний крій, який не сковує рухів і дарує свободу.',
+    durability: 'Довговічність',
+    durability_desc: 'Речі, які зберігають свій вигляд навіть після сотень циклів прання.',
+    
+    login_title: 'Кабінет Клієнта',
+    login_desc: 'Увійдіть, щоб відстежувати замовлення та мати доступ до персональних налаштувань.',
+    login_google: 'Увійти через Google',
+    or_email: 'Або за допомогою Email',
+    email_label: 'Електронна пошта',
+    pass_label: 'Пароль',
+    login_btn: 'Увійти через Email',
+    register_btn: 'Зареєструватися через Email',
+    already_have: 'Вже є акаунт?',
+    dont_have: 'Немає акаунта?',
+    login_link: 'Увійти',
+    register_link: 'Створити акаунт',
+    logout: 'Вийти з акаунта',
+    order_history: 'Історія замовлень',
+    no_orders: 'Замовлень поки немає',
+    history_empty: 'Ваша історія порожня',
+    to_shopping: 'До покупок',
+    
+    product_desc: 'Базовий елемент вашого гардеробу. Виконано з преміальних матеріалів за європейськими стандартами якості.',
+    search_placeholder: 'Що ви шукаєте?',
+    search_title: 'Пошук',
+    rights: '© 2026 SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.',
+    empty_cat: 'Товарів в цій категорії ще немає',
+    
+    checkout_title: 'Оформлення',
+    delivery_data: 'Дані доставки (Нова Пошта)',
+    full_name: 'ПІБ',
+    phone: 'Номер телефону',
+    city_placeholder: 'Місто (почніть вводити...)',
+    branch_placeholder: 'Відділення або поштомат...',
+    branch_disabled: 'Спочатку оберіть місто',
+    agree_terms: 'Я погоджуюсь з',
+    and: 'та',
+    mandatory: '(обов\'язково)',
+    back_to_cart: 'Назад до кошика',
+    test_payment: 'Режим симуляції (Тестова оплата)',
+    test_desc: 'Ця форма є імітацією для перевірки роботи. Реальні кошти не списуються.',
+    pay_amount: 'Сума до оплати',
+    pay_btn: 'Оплатити (Симуляція)',
+    processing: 'Обробка...',
+    back_to_data: 'Назад до даних',
+    
+    tracking_desc: 'Тут відображаються замовлення, автоматично збережені на цьому пристрої.',
+    tracking_empty_title: 'Історія порожня',
+    tracking_empty_desc: 'Ви ще не робили замовлень або очистили пам\'ять браузера.',
+    order_num: 'Замовлення',
+    copied: '✅ Скопійовано!',
+    copy: 'Копіювати',
+    
+    added_to_cart: 'Додано',
+    added_to_wishlist: 'Додано до списку бажань',
+    removed_from_wishlist: 'Видалено зі списку бажань',
+    wishlist_empty: 'Список порожній'
   },
   en: {
     collection: 'Collection', brand: 'Brand', all_products: 'All Products',
@@ -139,12 +205,78 @@ const DICT = {
     contacts: 'Contacts & Details', delivery: 'Delivery & Payment', returns: 'Returns & Exchanges',
     terms: 'Terms of Service', privacy: 'Privacy Policy', socials: 'Socials',
     clients: 'Clients', info: 'Information', support: 'Support', to_collection: 'To Collection',
-    language: 'Site Language'
+    language: 'Site Language',
+    
+    brand_quote: '"I don\'t know fashion, I create my own style"',
+    brand_founder: '— Founder of SLINIAVSKIY',
+    brand_goal_title: 'Brand Goal',
+    brand_p1: 'Our main goal is to provide you with a premium basic wardrobe that is not subject to fleeting trends. We believe that true style begins with a flawless cut and exceptional comfort.',
+    brand_p2: 'Every SLINIAVSKIY piece is created to highlight your individuality. Using the best materials according to European standards, we guarantee durability and aesthetic pleasure from every touch of the fabric.',
+    quality: 'Quality',
+    quality_desc: 'Using only premium fabrics and accessories.',
+    comfort: 'Comfort',
+    comfort_desc: 'Ergonomic cut that does not restrict movement and gives freedom.',
+    durability: 'Durability',
+    durability_desc: 'Items that retain their appearance even after hundreds of wash cycles.',
+    
+    login_title: 'Client Area',
+    login_desc: 'Log in to track orders and access personal settings.',
+    login_google: 'Sign in with Google',
+    or_email: 'Or using Email',
+    email_label: 'Email address',
+    pass_label: 'Password',
+    login_btn: 'Sign in with Email',
+    register_btn: 'Register with Email',
+    already_have: 'Already have an account?',
+    dont_have: 'Don\'t have an account?',
+    login_link: 'Sign in',
+    register_link: 'Create account',
+    logout: 'Log out',
+    order_history: 'Order History',
+    no_orders: 'No orders yet',
+    history_empty: 'Your history is empty',
+    to_shopping: 'Go shopping',
+    
+    product_desc: 'A staple of your wardrobe. Made from premium materials according to European quality standards.',
+    search_placeholder: 'What are you looking for?',
+    search_title: 'Search',
+    rights: '© 2026 SLINIAVSKIY BRAND. ALL RIGHTS RESERVED.',
+    empty_cat: 'No products in this category yet',
+    
+    checkout_title: 'Checkout',
+    delivery_data: 'Delivery Details (Nova Poshta)',
+    full_name: 'Full Name',
+    phone: 'Phone Number',
+    city_placeholder: 'City (start typing...)',
+    branch_placeholder: 'Branch or postomat...',
+    branch_disabled: 'Select city first',
+    agree_terms: 'I agree to the',
+    and: 'and',
+    mandatory: '(required)',
+    back_to_cart: 'Back to cart',
+    test_payment: 'Simulation mode (Test payment)',
+    test_desc: 'This form is a simulation to check functionality. Real funds are not charged.',
+    pay_amount: 'Amount to pay',
+    pay_btn: 'Pay (Simulation)',
+    processing: 'Processing...',
+    back_to_data: 'Back to details',
+    
+    tracking_desc: 'Orders automatically saved on this device are displayed here.',
+    tracking_empty_title: 'History is empty',
+    tracking_empty_desc: 'You haven\'t made any orders yet or cleared your browser cache.',
+    order_num: 'Order',
+    copied: '✅ Copied!',
+    copy: 'Copy',
+    
+    added_to_cart: 'Added',
+    added_to_wishlist: 'Added to wishlist',
+    removed_from_wishlist: 'Removed from wishlist',
+    wishlist_empty: 'Wishlist is empty'
   }
 };
 
 // --- HEADER ---
-function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, user, groupedCategories, t }) {
+function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setIsWishlistOpen, isCatalogOpen, setIsCatalogOpen, setIsCartOpen, user, groupedCategories, t, tCat }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 30);
@@ -189,25 +321,25 @@ function Header({ navigate, goBack, route, setIsSearchOpen, cart, wishlist, setI
                   {groupedCategories.top.length > 0 && (
                      <div className="flex flex-col mt-3">
                        <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">{t('outerwear')}</span>
-                       {groupedCategories.top.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                       {groupedCategories.top.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{tCat(c)}</button>)}
                      </div>
                   )}
                   {groupedCategories.bottom.length > 0 && (
                      <div className="flex flex-col mt-3">
                        <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">{t('bottoms')}</span>
-                       {groupedCategories.bottom.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                       {groupedCategories.bottom.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{tCat(c)}</button>)}
                      </div>
                   )}
                   {groupedCategories.acc.length > 0 && (
                      <div className="flex flex-col mt-3">
                        <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">{t('accessories')}</span>
-                       {groupedCategories.acc.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                       {groupedCategories.acc.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{tCat(c)}</button>)}
                      </div>
                   )}
                   {groupedCategories.other.length > 0 && (
                      <div className="flex flex-col mt-3 mb-3">
                        <span className="px-6 py-2 text-[8px] text-[#d4af37] font-black uppercase tracking-widest">{t('other')}</span>
-                       {groupedCategories.other.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{c}</button>)}
+                       {groupedCategories.other.map(c => <button key={c} onClick={() => navigate('catalog', { category: c })} className="text-left px-6 py-2 hover:bg-white/10 transition-colors text-zinc-300 font-bold uppercase text-[9px] tracking-widest">{tCat(c)}</button>)}
                      </div>
                   )}
                 </div>
@@ -261,10 +393,26 @@ function MainApp() {
   const [lang, setLang] = useState(() => localStorage.getItem('sliniavskiy_lang') || 'uk');
   useEffect(() => localStorage.setItem('sliniavskiy_lang', lang), [lang]);
   const t = useCallback((key) => DICT[lang]?.[key] || key, [lang]);
+  
+  // Translation for dynamic categories
+  const tCat = useCallback((cat) => {
+    if(lang === 'uk' || !cat) return cat;
+    const map = {
+      'Футболки':'T-Shirts', 'Штани':'Pants', 'Джинси':'Jeans', 'Брюки':'Trousers', 'Шорти':'Shorts',
+      'Футболка':'T-Shirt', 'Рубашка':'Shirt', 'Свитшот':'Sweatshirt', 'Худи':'Hoodie', 'Толстовка':'Hoodie',
+      'Джемпер':'Jumper', 'Жилет':'Vest', 'Свитер':'Sweater', 'Пиджак':'Jacket', 'Куртка':'Jacket', 'Пальто':'Coat', 'Ветровка':'Windbreaker',
+      'Джинсы':'Jeans', 'Штаны':'Pants', 'Шорты':'Shorts',
+      'Шапка':'Beanie', 'Кепка':'Cap', 'Шляпа':'Hat', 'Шарф':'Scarf', 'Перчатки':'Gloves', 'Ремень':'Belt', 'Аксесуари':'Accessories'
+    };
+    return map[cat] || cat;
+  }, [lang]);
 
   // Loading animations state
   const [showLoader, setShowLoader] = useState(true);
   const [fadeLoader, setFadeLoader] = useState(false);
+  
+  // Lang switch animation state
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const [route, setRoute] = useState(() => sessionStorage.getItem('sliniavskiy_route') || 'home');
   const [routeParams, setRouteParams] = useState(() => {
@@ -410,6 +558,15 @@ function MainApp() {
     setToast(msg); 
     setTimeout(() => setToast(null), 4000); 
   }, []);
+  
+  const handleLangChange = (newLang) => {
+    if (lang === newLang) return;
+    setIsTranslating(true);
+    setTimeout(() => {
+      setLang(newLang);
+      setTimeout(() => setIsTranslating(false), 50);
+    }, 300);
+  };
 
   // --- Real Visit Tracking ---
   useEffect(() => {
@@ -620,10 +777,10 @@ function MainApp() {
     setWishlist(prev => {
       const exists = prev.find(item => item.id === p.id);
       if (exists) {
-        showToast('Видалено зі списку бажань');
+        showToast(t('removed_from_wishlist'));
         return prev.filter(item => item.id !== p.id);
       } else {
-        showToast('Додано до списку бажань');
+        showToast(t('added_to_wishlist'));
         return [...prev, p];
       }
     });
@@ -711,13 +868,14 @@ function MainApp() {
     
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
+    const colorName = lang === 'uk' ? activeColor.label : activeColor.name;
     
     const productToAdd = {
       id: String(p.id),
       name: String(p.name),
       price: Number(p.price) || 0,
       selectedSize: String(selectedSize),
-      selectedColor: String(activeColor.label),
+      selectedColor: String(colorName),
       cartId: `${p.id}-${selectedSize}-${activeColor.name}-${activeColor.hex}`
     };
 
@@ -734,7 +892,7 @@ function MainApp() {
       }
       return [...prev, { ...productToAdd, quantity: 1, image: String(imgUrl) }];
     });
-    showToast(`Додано: ${p.name} (${selectedSize})`);
+    showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
   };
 
   const updateQuantity = (cartId, delta) => {
@@ -1127,7 +1285,7 @@ function MainApp() {
   const copyToClipboard = (text) => {
     try {
       navigator.clipboard.writeText(text);
-      showToast('✅ Посилання скопійовано!');
+      showToast(t('copied'));
     } catch (err) {
       const textArea = document.createElement("textarea");
       textArea.value = text;
@@ -1135,7 +1293,7 @@ function MainApp() {
       textArea.select();
       document.execCommand("Copy");
       textArea.remove();
-      showToast('✅ Посилання скопійовано!');
+      showToast(t('copied'));
     }
   };
 
@@ -1189,7 +1347,7 @@ function MainApp() {
 
       {/* MAIN APP CONTENT */}
       {isReady && (
-        <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden animate-in fade-in duration-[1500ms] ease-out">
+        <div className={`min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden transition-opacity duration-300 ease-in-out ${isTranslating ? 'opacity-0 blur-sm' : 'opacity-100 blur-0'}`}>
           <style>{`
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -1211,6 +1369,7 @@ function MainApp() {
             user={user} 
             groupedCategories={groupedCategories}
             t={t}
+            tCat={tCat}
           />
 
           <main>
@@ -1259,7 +1418,7 @@ function MainApp() {
                <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
                   <div className="flex flex-col mb-10 md:mb-16 border-b border-white/10 pb-6 md:pb-10">
                     <h2 className="text-3xl sm:text-4xl md:text-6xl font-black uppercase tracking-widest mb-8 md:mb-12 leading-none break-words">
-                      {routeParams.category || t('collection')}
+                      {routeParams.category ? tCat(routeParams.category) : t('collection')}
                     </h2>
                     
                     {/* ENHANCED PREMIUM CATEGORY SELECTOR */}
@@ -1278,7 +1437,7 @@ function MainApp() {
                              onClick={() => navigate('catalog', { category: c })} 
                              className={`relative px-6 py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-500 whitespace-nowrap rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105' : 'bg-transparent text-zinc-500 border-white/10 hover:border-white/50 hover:text-white'}`}
                            >
-                             {c}
+                             {tCat(c)}
                            </button>
                          ))}
                       </div>
@@ -1292,7 +1451,7 @@ function MainApp() {
                       const displayedProducts = showAllProducts ? filteredProducts : filteredProducts.slice(0, limit);
                       
                       if (filteredProducts.length === 0) {
-                         return <div className="col-span-3 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">Товарів в цій категорії ще немає</div>;
+                         return <div className="col-span-3 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">{t('empty_cat')}</div>;
                       }
 
                       return (
@@ -1330,9 +1489,9 @@ function MainApp() {
                 
                 <div className="mb-12 md:mb-24 px-2">
                    <h2 className="text-xl sm:text-3xl md:text-5xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] leading-snug md:leading-relaxed mb-6 md:mb-8">
-                     "Не знаю моди, створюю свій стиль"
+                     {t('brand_quote')}
                    </h2>
-                   <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-[9px] md:text-[11px]">— Засновник SLINIAVSKIY</p>
+                   <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-[9px] md:text-[11px]">{t('brand_founder')}</p>
                 </div>
 
                 <div className="w-full aspect-[4/3] md:aspect-video bg-zinc-900 mb-16 md:mb-32 overflow-hidden border border-white/10 shadow-2xl relative">
@@ -1340,31 +1499,31 @@ function MainApp() {
                 </div>
 
                 <div className="border-t border-white/10 pt-16 md:pt-32 px-2">
-                   <h3 className="text-lg md:text-3xl font-black uppercase tracking-[0.3em] mb-8 md:mb-12 text-[#d4af37]">Ціль бренду</h3>
+                   <h3 className="text-lg md:text-3xl font-black uppercase tracking-[0.3em] mb-8 md:mb-12 text-[#d4af37]">{t('brand_goal_title')}</h3>
                    <div className="space-y-6 md:space-y-10 text-zinc-300 text-sm md:text-lg leading-relaxed md:leading-loose max-w-3xl mx-auto font-medium text-left md:text-center">
                      <p>
-                       Наша головна ціль — забезпечити вас преміальним базовим гардеробом, який не підвладний швидкоплинним трендам. Ми віримо, що справжній стиль починається з бездоганного крою та виняткового комфорту.
+                       {t('brand_p1')}
                      </p>
                      <p>
-                       Кожна річ <span className="font-black text-white">SLINIAVSKIY</span> створена для того, щоб підкреслити вашу індивідуальність. Використовуючи кращі матеріали за європейськими стандартами, ми гарантуємо довговічність та естетичне задоволення від кожного дотику до тканини.
+                       {t('brand_p2')}
                      </p>
                    </div>
                    
                    <div className="mt-16 md:mt-24 pt-8 md:pt-16 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                      <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
                         <Shield size={32} className="mb-4 text-[#d4af37]" />
-                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Якість</h4>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Використання виключно преміальних тканин та фурнітури.</p>
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">{t('quality')}</h4>
+                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">{t('quality_desc')}</p>
                      </div>
                      <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
                         <Feather size={32} className="mb-4 text-[#d4af37]" />
-                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Комфорт</h4>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Ергономічний крій, який не сковує рухів і дарує свободу.</p>
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">{t('comfort')}</h4>
+                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">{t('comfort_desc')}</p>
                      </div>
                      <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/30 border border-white/5">
                         <InfinityIcon size={32} className="mb-4 text-[#d4af37]" />
-                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">Довговічність</h4>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">Речі, які зберігають свій вигляд навіть після сотень циклів прання.</p>
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest mb-2">{t('durability')}</h4>
+                        <p className="text-[10px] text-zinc-500 leading-relaxed text-center">{t('durability_desc')}</p>
                      </div>
                    </div>
                    
@@ -1382,9 +1541,9 @@ function MainApp() {
               <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
                 {!user || user.isAnonymous ? (
                   <div className="max-w-md mx-auto text-center py-12 md:py-16 border border-white/5 p-6 md:p-10 bg-zinc-900/20 shadow-2xl">
-                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest mb-4">Кабінет Клієнта</h2>
+                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest mb-4">{t('login_title')}</h2>
                      <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-8 md:mb-10 leading-relaxed">
-                       Увійдіть, щоб відстежувати замовлення та мати доступ до персональних налаштувань.
+                       {t('login_desc')}
                      </p>
                      
                      <button 
@@ -1397,12 +1556,12 @@ function MainApp() {
                          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                        </svg>
-                       Увійти через Google
+                       {t('login_google')}
                      </button>
 
                      <div className="relative flex items-center justify-center mb-8">
                         <div className="absolute border-t border-white/10 w-full"></div>
-                        <span className="relative bg-[#0a0a0a] px-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500">Або за допомогою Email</span>
+                        <span className="relative bg-[#0a0a0a] px-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500">{t('or_email')}</span>
                      </div>
 
                      <form onSubmit={handleEmailAuth} className="space-y-4 mb-8 text-left">
@@ -1412,7 +1571,7 @@ function MainApp() {
                           </div>
                         )}
                         <div>
-                          <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Електронна пошта</label>
+                          <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">{t('email_label')}</label>
                           <input 
                             type="email" 
                             value={authEmail} 
@@ -1422,7 +1581,7 @@ function MainApp() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Пароль</label>
+                          <label className="block text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">{t('pass_label')}</label>
                           <input 
                             type="password" 
                             value={authPassword} 
@@ -1433,20 +1592,20 @@ function MainApp() {
                           />
                         </div>
                         <button type="submit" className="w-full py-4 border border-white/20 bg-transparent text-white font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all active:scale-95 shadow-xl mt-2">
-                          {isRegistering ? 'Зареєструватися через Email' : 'Увійти через Email'}
+                          {isRegistering ? t('register_btn') : t('login_btn')}
                         </button>
                      </form>
 
                      <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-6 gap-4">
                         <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                          {isRegistering ? 'Вже є акаунт?' : 'Немає акаунта?'}
+                          {isRegistering ? t('already_have') : t('dont_have')}
                         </span>
                         <button 
                           type="button" 
                           onClick={() => setIsRegistering(!isRegistering)} 
                           className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white hover:text-zinc-400 underline underline-offset-4"
                         >
-                          {isRegistering ? 'Увійти' : 'Створити акаунт'}
+                          {isRegistering ? t('login_link') : t('register_link')}
                         </button>
                      </div>
                   </div>
@@ -1473,13 +1632,13 @@ function MainApp() {
                             className="flex items-center justify-center sm:justify-start gap-4 py-4 text-red-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:opacity-70 transition-opacity"
                           >
                             <LogOut size={16}/>
-                            <span>Вийти з акаунта</span>
+                            <span>{t('logout')}</span>
                           </button>
                        </nav>
                     </div>
 
                     <div className="lg:col-span-2 space-y-8 md:space-y-12">
-                       <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-center sm:text-left">Історія замовлень</h2>
+                       <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-center sm:text-left">{t('order_history')}</h2>
                        
                        {(() => {
                           const myOrders = orders.filter(o => o.userId === user.uid).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -1491,12 +1650,12 @@ function MainApp() {
                                      <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
                                         <History size={24} className="text-zinc-700" />
                                         <div>
-                                           <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Замовлень поки немає</p>
-                                           <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest">Ваша історія порожня</h4>
+                                           <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">{t('no_orders')}</p>
+                                           <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest">{t('history_empty')}</h4>
                                         </div>
                                      </div>
                                      <button onClick={() => navigate('catalog')} className="w-full md:w-auto px-8 py-4 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all active:scale-95">
-                                        До покупок
+                                        {t('to_shopping')}
                                      </button>
                                   </div>
                                </div>
@@ -1509,7 +1668,7 @@ function MainApp() {
                                    <div key={order.id} className="p-5 md:p-6 border border-white/10 bg-zinc-900/40 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                                       <div className="w-full">
                                          <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 break-words">
-                                            Замовлення #{order.id.slice(0, 8)} <span className="mx-1 md:mx-2">•</span> {new Date(order.createdAt).toLocaleDateString()}
+                                            {t('order_num')} #{order.id.slice(0, 8)} <span className="mx-1 md:mx-2">•</span> {new Date(order.createdAt).toLocaleDateString()}
                                          </p>
                                          <div className="space-y-2">
                                             {order.items.map((item, idx) => (
@@ -1545,6 +1704,7 @@ function MainApp() {
                   
                   const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
                   const activeColor = selectedColor || colors[0];
+                  const colorLabel = lang === 'uk' ? activeColor.label : activeColor.name;
                   const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
                   const inStockGlobal = p.inStock !== false;
 
@@ -1588,7 +1748,7 @@ function MainApp() {
                         </div>
                         
                         <div className="mb-8 md:mb-10">
-                          <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 md:mb-6">{t('color')}: {activeColor.label}</h4>
+                          <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 md:mb-6">{t('color')}: {colorLabel}</h4>
                           <div className="flex gap-4">
                             {colors.map((color, i) => {
                               const isSelected = activeColor.name === color.name && activeColor.hex === color.hex;
@@ -1622,7 +1782,7 @@ function MainApp() {
                         </div>
 
                         <div className="space-y-8 md:space-y-12">
-                           <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose">Базовий елемент вашого гардеробу. Виконано з преміальних матеріалів за європейськими стандартами якості.</p>
+                           <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose">{t('product_desc')}</p>
                            <button onClick={() => addToCart(p)} disabled={!inStockGlobal || !isSizeAvailable} className={`w-full py-5 md:py-6 font-black uppercase tracking-[0.3em] text-[10px] md:text-[11px] transition-all flex items-center justify-center gap-3 md:gap-4 ${(inStockGlobal && isSizeAvailable) ? 'bg-white text-black hover:bg-zinc-200 active:scale-[0.98] shadow-[0_20px_40px_rgba(255,255,255,0.1)]' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>
                             <ShoppingBag size={18} /> {inStockGlobal ? (isSizeAvailable ? t('add_to_cart') : t('no_size')) : t('sold_out')}
                           </button>
@@ -1639,7 +1799,7 @@ function MainApp() {
               <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-4 text-center">{t('tracking')}</h1>
                  <p className="text-zinc-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-center mb-10 md:mb-16 leading-relaxed max-w-2xl mx-auto">
-                   Тут відображаються замовлення, автоматично збережені на цьому пристрої.
+                   {t('tracking_desc')}
                  </p>
 
                  <div className="space-y-6 max-w-4xl mx-auto">
@@ -1650,8 +1810,8 @@ function MainApp() {
                           return (
                              <div className="p-8 border border-white/5 bg-zinc-900/20 text-center">
                                 <History size={32} className="mx-auto text-zinc-700 mb-4" />
-                                <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2">Історія порожня</h4>
-                                <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">Ви ще не робили замовлень або очистили пам'ять браузера.</p>
+                                <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2">{t('tracking_empty_title')}</h4>
+                                <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-widest">{t('tracking_empty_desc')}</p>
                              </div>
                           );
                        }
@@ -1661,9 +1821,9 @@ function MainApp() {
                              <div className="w-full">
                                 <div className="flex items-center gap-3 mb-3">
                                   <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-400 break-words">
-                                     Замовлення <span className="text-white">#{order.id.slice(0, 8)}</span>
+                                     {t('order_num')} <span className="text-white">#{order.id.slice(0, 8)}</span>
                                   </p>
-                                  <button onClick={() => copyToClipboard(order.id)} className="text-zinc-500 hover:text-white transition-colors" title="Копіювати повний номер">
+                                  <button onClick={() => copyToClipboard(order.id)} className="text-zinc-500 hover:text-white transition-colors" title={t('copy')}>
                                     <Copy size={12} />
                                   </button>
                                 </div>
@@ -1697,11 +1857,18 @@ function MainApp() {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 leading-tight">
                   {routeParams.type === 'privacy' && t('privacy')}
                   {routeParams.type === 'terms' && t('terms')}
-                  {routeParams.type === 'cookies' && 'Налаштування Cookies'}
+                  {routeParams.type === 'cookies' && (lang === 'uk' ? 'Налаштування Cookies' : 'Cookies Settings')}
                   {routeParams.type === 'delivery' && t('delivery')}
                   {routeParams.type === 'returns' && t('returns')}
                   {routeParams.type === 'contacts' && t('contacts')}
                 </h1>
+                
+                {lang === 'en' ? (
+                  <div className="border border-white/10 bg-zinc-900/40 p-8 text-center text-zinc-400">
+                    <p className="font-bold uppercase tracking-widest text-sm mb-4">Content currently available in Ukrainian only</p>
+                    <p className="text-xs leading-relaxed">The legal documents are currently being translated and reviewed. Please switch the language back to Ukrainian to read the original text, or use your browser's translation feature.</p>
+                  </div>
+                ) : (
                 <div className="prose prose-invert max-w-none text-zinc-400 space-y-8 md:space-y-10 text-xs sm:text-sm md:text-base leading-relaxed font-medium">
                   
                   {routeParams.type === 'privacy' && (
@@ -1856,6 +2023,7 @@ function MainApp() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             )}
 
@@ -2864,11 +3032,12 @@ function MainApp() {
                 </div>
               </div>
               
-              <div className="flex flex-col items-center gap-6 mt-10 md:mt-16 border-t border-white/10 pt-10">
+              {/* Переключатель языка сдвинут влево */}
+              <div className="flex flex-col items-start gap-6 mt-10 md:mt-16 border-t border-white/10 pt-10">
                 <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-2">{t('language')}</p>
                 <div className="flex gap-4 p-1 bg-zinc-900 rounded-full border border-white/10">
-                   <button onClick={() => setLang('uk')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'uk' ? 'bg-white text-black shadow-lg scale-105' : 'text-zinc-500 hover:text-white'}`}>УКР</button>
-                   <button onClick={() => setLang('en')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'en' ? 'bg-white text-black shadow-lg scale-105' : 'text-zinc-500 hover:text-white'}`}>ENG</button>
+                   <button onClick={() => handleLangChange('uk')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'uk' ? 'bg-white text-black shadow-lg scale-105' : 'text-zinc-500 hover:text-white'}`}>УКР</button>
+                   <button onClick={() => handleLangChange('en')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${lang === 'en' ? 'bg-white text-black shadow-lg scale-105' : 'text-zinc-500 hover:text-white'}`}>ENG</button>
                 </div>
               </div>
               
@@ -2878,7 +3047,7 @@ function MainApp() {
                   title="Для входу в панель адміністратора"
                   className="text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-center cursor-default selection:bg-transparent w-full md:w-auto"
                 >
-                  © {new Date().getFullYear()} SLINIAVSKIY BRAND. ВСІ ПРАВА ЗАХИЩЕНО.
+                  {t('rights')}
                 </p>
                 
                 <div className="flex gap-4 text-zinc-800 text-[8px] uppercase font-bold tracking-widest hidden md:flex">
@@ -2946,10 +3115,10 @@ function MainApp() {
             <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col p-4 md:p-20 search-overlay overflow-y-auto no-scrollbar">
                <div className="max-w-[1920px] w-full mx-auto flex flex-col pt-10 md:pt-0">
                   <div className="flex justify-between items-center mb-8 md:mb-16">
-                     <h2 className="text-xl md:text-4xl font-black uppercase tracking-[0.2em]">Пошук</h2>
+                     <h2 className="text-xl md:text-4xl font-black uppercase tracking-[0.2em]">{t('search_title')}</h2>
                      <button onClick={() => setIsSearchOpen(false)} className="p-2 hover:rotate-90 transition-transform duration-300"><X size={32} className="md:w-10 md:h-10" strokeWidth={1}/></button>
                   </div>
-                  <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Що ви шукаєте?" className="w-full bg-transparent border-b-2 border-white/10 py-4 md:py-8 text-2xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter outline-none focus:border-white transition-colors" />
+                  <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('search_placeholder')} className="w-full bg-transparent border-b-2 border-white/10 py-4 md:py-8 text-2xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter outline-none focus:border-white transition-colors" />
                   {searchResults.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-12 mt-8 md:mt-10">
                       {searchResults.map(p => (
@@ -2980,7 +3149,7 @@ function MainApp() {
                    <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
-                   {wishlist.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">Список порожній</div> :
+                   {wishlist.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('wishlist_empty')}</div> :
                      wishlist.map((item, idx) => (
                        <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5 cursor-pointer group" onClick={() => { setIsWishlistOpen(false); navigate('product', { id: item.id }); }}>
                           <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
@@ -2988,7 +3157,7 @@ function MainApp() {
                           </div>
                           <div className="flex-1 text-left flex flex-col justify-center">
                              <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2">{item.name}</h4>
-                             <p className="text-[8px] md:text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-2 md:mb-3">{item.category}</p>
+                             <p className="text-[8px] md:text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-2 md:mb-3">{tCat(item.category)}</p>
                              <div className="flex items-center justify-between mt-auto">
                                 <p className="text-xs md:text-sm font-black">{item.price} ₴</p>
                                 <button onClick={(e) => toggleWishlist(item, e)} className="text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
@@ -3009,7 +3178,7 @@ function MainApp() {
               <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
                 <div className="flex justify-between items-center mb-8 md:mb-12">
                    <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">
-                     {isCheckoutForm ? (checkoutStep === 1 ? 'Оформлення' : 'Оплата (Тест)') : t('cart')}
+                     {isCheckoutForm ? (checkoutStep === 1 ? t('checkout_title') : t('test_payment')) : t('cart')}
                    </h2>
                    <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
                 </div>
@@ -3017,15 +3186,15 @@ function MainApp() {
                 {isCheckoutForm ? (
                    checkoutStep === 1 ? (
                      <form id="cart-scroll-container" onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col pb-32">
-                        <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Дані доставки (Нова Пошта)</h3>
-                        <input required type="text" placeholder="ПІБ" value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
-                        <input required type="tel" placeholder="Номер телефону" value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
+                        <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">{t('delivery_data')}</h3>
+                        <input required type="text" placeholder={t('full_name')} value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
+                        <input required type="tel" placeholder={t('phone')} value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
                         
                         <div className="relative">
                           <input 
                             required 
                             type="text" 
-                            placeholder="Місто (почніть вводити...)" 
+                            placeholder={t('city_placeholder')} 
                             value={deliveryForm.city} 
                             onChange={e => fetchNpCities(e.target.value)} 
                             onFocus={() => { if(npCities.length > 0) setShowCities(true); else if (deliveryForm.city.length >= 2) fetchNpCities(deliveryForm.city); }}
@@ -3037,7 +3206,7 @@ function MainApp() {
                             <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl no-scrollbar">
                               {npCities.map(city => (
                                 <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
-                                  {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription} обл.)</span>
+                                  {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription})</span>
                                 </div>
                               ))}
                             </div>
@@ -3048,7 +3217,7 @@ function MainApp() {
                           <input 
                             required 
                             type="text" 
-                            placeholder={deliveryForm.cityRef ? "Відділення або поштомат..." : "Спочатку оберіть місто"} 
+                            placeholder={deliveryForm.cityRef ? t('branch_placeholder') : t('branch_disabled')} 
                             value={deliveryForm.branch} 
                             onChange={e => fetchNpWarehouses(e.target.value)} 
                             onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(deliveryForm.branch || ''); }}
@@ -3071,7 +3240,7 @@ function MainApp() {
                           <label className="flex items-start gap-3 cursor-pointer group">
                             <input required type="checkbox" className="mt-1 w-5 h-5 cursor-pointer shrink-0 appearance-none border-2 border-white/20 rounded-sm checked:bg-white checked:border-white relative flex items-center justify-center after:content-['✓'] after:text-black after:text-[14px] after:font-black after:hidden checked:after:block transition-colors" />
                             <span className="text-[9px] md:text-[10px] text-zinc-400 font-medium leading-relaxed group-hover:text-white transition-colors pt-0.5">
-                              Я погоджуюсь з <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'terms'}); }} className="underline">Умовами надання послуг</button> та <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'privacy'}); }} className="underline">Політикою конфіденційності</button> (обов'язково)
+                              {t('agree_terms')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'terms'}); }} className="underline">{t('terms')}</button> {t('and')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'privacy'}); }} className="underline">{t('privacy')}</button> {t('mandatory')}
                             </span>
                           </label>
                         </div>
@@ -3084,7 +3253,7 @@ function MainApp() {
                           <button type="submit" className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 active:scale-95">
                             <CreditCard size={16} /> {t('delivery_details')}
                           </button>
-                          <button type="button" onClick={() => setIsCheckoutForm(false)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">Назад до кошика</button>
+                          <button type="button" onClick={() => setIsCheckoutForm(false)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">{t('back_to_cart')}</button>
                         </div>
                      </form>
                    ) : (
@@ -3096,13 +3265,13 @@ function MainApp() {
                           <h3 className="font-black text-lg md:text-xl uppercase tracking-widest mb-2 mt-4 text-white">MonoPay</h3>
                           
                           <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 mb-4 text-yellow-500 text-[9px] md:text-[10px] uppercase font-black tracking-widest rounded-sm flex items-center justify-center gap-2">
-                            <Activity size={14} /> Режим симуляції (Тестова оплата)
+                            <Activity size={14} /> {t('test_payment')}
                           </div>
 
-                          <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">Ця форма є імітацією для перевірки роботи.<br/>Реальні кошти не списуються.</p>
+                          <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">{t('test_desc')}</p>
                           
                           <div className="bg-black border border-white/10 p-6 mb-8 text-center">
-                            <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">Сума до оплати</p>
+                            <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
                             <p className="text-3xl md:text-4xl font-black">{cartTotal} ₴</p>
                           </div>
 
@@ -3112,14 +3281,14 @@ function MainApp() {
                               disabled={isProcessingPayment}
                               className="w-full py-4 bg-white text-black font-black uppercase text-[11px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:scale-100 flex justify-center items-center gap-2"
                             >
-                              {isProcessingPayment ? <><Loader2 size={16} className="animate-spin" /> Обробка...</> : 'Оплатити (Симуляція)'}
+                              {isProcessingPayment ? <><Loader2 size={16} className="animate-spin" /> {t('processing')}</> : t('pay_btn')}
                             </button>
                             <button 
                               onClick={() => { setCheckoutStep(1); }} 
                               disabled={isProcessingPayment}
                               className="w-full py-3 text-zinc-500 font-black uppercase text-[9px] tracking-widest hover:text-white transition-opacity disabled:opacity-50"
                             >
-                              Назад до даних
+                              {t('back_to_data')}
                             </button>
                           </div>
                         </div>
@@ -3128,7 +3297,7 @@ function MainApp() {
                 ) : (
                    <>
                       <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
-                         {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('empty_cart')}</div> :
+                         {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('cart_empty')}</div> :
                            cart.map((item, idx) => {
                              const realProduct = activeProducts.find(p => p.id === item.id);
                              const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
