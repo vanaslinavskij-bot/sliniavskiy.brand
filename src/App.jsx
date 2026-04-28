@@ -1646,7 +1646,7 @@ function MainApp() {
 
                     return (
                       <>
-                        <div className="space-y-4">
+                        <div className="w-full max-w-[350px] md:max-w-[450px] mx-auto lg:ml-auto lg:mr-8 space-y-4">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                             {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
                             <img src={currentMainImage} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
