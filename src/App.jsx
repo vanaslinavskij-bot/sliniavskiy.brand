@@ -1320,18 +1320,18 @@ function MainApp() {
                       <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-center md:text-left">{t('new_arrivals')}</h2>
                       <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">{t('view_all')}</button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 md:gap-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 md:gap-10 lg:px-16 xl:px-32">
                       {storefrontProducts.slice(0, 6).map(p => (
                         <div key={p.id} className="group cursor-pointer" onClick={() => navigate('product', { id: p.id })}>
-                          <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-4 md:mb-6 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
-                            {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
+                          <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3 md:mb-5 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
+                            {p.inStock === false && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
                             <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
-                            <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
-                              <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
+                            <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                              <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={`md:w-4 md:h-4 ${isInWishlist(p.id) ? "text-white" : "text-white/50"}`} />
                             </button>
                           </div>
-                          <h3 className="font-bold uppercase tracking-widest text-[11px] md:text-sm mb-1 md:mb-2">{p.name}</h3>
-                          <p className="text-zinc-500 font-medium text-xs md:text-base">{p.price} ₴</p>
+                          <h3 className="font-bold uppercase tracking-widest text-[9px] md:text-xs mb-1">{p.name}</h3>
+                          <p className="text-zinc-500 font-medium text-[10px] md:text-sm">{p.price} ₴</p>
                         </div>
                       ))}
                     </div>
@@ -3041,10 +3041,10 @@ function MainApp() {
             <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col p-4 md:p-20 search-overlay overflow-y-auto no-scrollbar">
                <div className="max-w-[1920px] w-full mx-auto flex flex-col pt-10 md:pt-0">
                   <div className="flex justify-between items-center mb-8 md:mb-16">
-                     <h2 className="text-xl md:text-4xl font-black uppercase tracking-[0.2em]">{t('search_title')}</h2>
-                     <button onClick={() => setIsSearchOpen(false)} className="p-2 hover:rotate-90 transition-transform duration-300"><X size={32} className="md:w-10 md:h-10" strokeWidth={1}/></button>
+                     <h2 className="text-xl md:text-4xl font-black uppercase tracking-[0.2em] text-[#d4af37]">{t('search_title')}</h2>
+                     <button onClick={() => setIsSearchOpen(false)} className="p-2 hover:rotate-90 transition-transform duration-300 text-white"><X size={32} className="md:w-10 md:h-10" strokeWidth={1}/></button>
                   </div>
-                  <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('search_placeholder')} className="w-full bg-transparent border-b-2 border-white/10 py-4 md:py-8 text-2xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter outline-none focus:border-white transition-colors" />
+                  <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('search_placeholder')} className="w-full bg-transparent border-b-2 border-white/10 py-4 md:py-8 text-2xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter outline-none focus:border-white transition-colors text-white" />
                   {searchResults.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-12 mt-8 md:mt-10">
                       {searchResults.map(p => (
@@ -3071,8 +3071,8 @@ function MainApp() {
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsWishlistOpen(false)} />
               <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
                 <div className="flex justify-between items-center mb-8 md:mb-12">
-                   <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">{t('wishlist')}</h2>
-                   <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
+                   <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-[#d4af37]">{t('wishlist')}</h2>
+                   <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2 text-white"><X size={24} className="md:w-6 md:h-6"/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
                    {wishlist.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('wishlist_empty')}</div> :
@@ -3103,10 +3103,10 @@ function MainApp() {
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} />
               <div className="absolute top-0 right-0 w-full sm:w-full md:max-w-md h-full bg-[#0a0a0a] border-l border-white/10 flex flex-col p-6 md:p-10 animate-in slide-in-from-right duration-500 shadow-2xl">
                 <div className="flex justify-between items-center mb-8 md:mb-12">
-                   <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">
+                   <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-[#d4af37]">
                      {isCheckoutForm ? (checkoutStep === 1 ? t('checkout_title') : t('test_payment')) : t('cart')}
                    </h2>
-                   <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2"><X size={24} className="md:w-6 md:h-6"/></button>
+                   <button onClick={() => { setIsCartOpen(false); setIsCheckoutForm(false); setCheckoutStep(1); }} className="hover:opacity-50 transition-opacity p-2 text-white"><X size={24} className="md:w-6 md:h-6"/></button>
                 </div>
 
                 {isCheckoutForm ? (
@@ -3223,7 +3223,7 @@ function MainApp() {
                 ) : (
                    <>
                       <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
-                         {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('cart_empty')}</div> :
+                         {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('empty_cart')}</div> :
                            cart.map((item, idx) => {
                              const realProduct = activeProducts.find(p => p.id === item.id);
                              const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
