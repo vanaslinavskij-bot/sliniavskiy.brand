@@ -1646,13 +1646,13 @@ function MainApp() {
 
                     return (
                       <>
-                        <div className="w-full max-w-[280px] md:max-w-[360px] mx-auto lg:ml-auto lg:mr-8 space-y-4">
+                        <div className="w-full max-w-[300px] md:max-w-[420px] mx-auto space-y-4">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                             {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
                             <img src={currentMainImage} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
                           </div>
                           {galleryImages.length > 1 && (
-                            <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
+                            <div className="flex justify-center gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
                               {galleryImages.map((img, idx) => (
                                 <button 
                                   key={idx} 
@@ -3010,14 +3010,14 @@ function MainApp() {
             const body = rows.slice(1);
 
             return (
-              <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300 text-white font-sans">
+              <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300">
                  <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsSizeGuideOpen(null)} />
                  <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-6 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300">
-                    <button onClick={() => setIsSizeGuideOpen(null)} className="absolute top-4 right-4 md:top-6 md:right-6 text-white hover:text-zinc-300 p-2"><X size={20} className="md:w-6 md:h-6"/></button>
-                    <h2 className="text-white text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8">{t('size_guide')}</h2>
+                    <button onClick={() => setIsSizeGuideOpen(null)} className="absolute top-4 right-4 md:top-6 md:right-6 text-zinc-500 hover:text-white p-2"><X size={20} className="md:w-6 md:h-6"/></button>
+                    <h2 className="text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8">{t('size_guide')}</h2>
                     <div className="overflow-x-auto no-scrollbar">
-                       <table className="text-white w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
-                         <thead className="text-white border-b border-white/5">
+                       <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
+                         <thead className="text-zinc-600 border-b border-white/5">
                            <tr className="py-2 md:py-4">
                              {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
                            </tr>
