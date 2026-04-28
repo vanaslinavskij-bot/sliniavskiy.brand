@@ -1373,33 +1373,33 @@ function MainApp() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
                       {(() => {
                         const filteredProducts = storefrontProducts.filter(p => !routeParams.category || p.category === routeParams.category);
-                        const limit = isMobileView ? 8 : 12;
+                        const limit = isMobileView ? 5 : 10;
                         const displayedProducts = showAllProducts ? filteredProducts : filteredProducts.slice(0, limit);
                         
                         if (filteredProducts.length === 0) {
-                           return <div className="col-span-2 md:col-span-3 lg:col-span-4 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">{t('empty_cat')}</div>;
+                           return <div className="col-span-3 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">{t('empty_cat')}</div>;
                         }
 
                         return (
                           <>
                             {displayedProducts.map(p => (
                               <div key={p.id} onClick={() => navigate('product', { id: p.id })} className="cursor-pointer group">
-                                <div className="relative aspect-[3/4] bg-zinc-900 mb-3 md:mb-5 overflow-hidden border border-white/5">
-                                  {p.inStock === false && <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
+                                <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
+                                  {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
                                   <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
-                                  <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-3 md:right-3 z-20 p-2 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
-                                    <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
+                                  <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                                    <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                                   </button>
                                 </div>
-                                <h3 className="font-bold uppercase text-[9px] md:text-[11px] tracking-widest mb-1 truncate">{p.name}</h3>
-                                <p className="text-zinc-500 font-medium text-[10px] md:text-sm">{p.price} ₴</p>
+                                <h3 className="font-bold uppercase text-[11px] md:text-sm tracking-widest mb-1">{p.name}</h3>
+                                <p className="text-zinc-500 font-medium text-xs md:text-base">{p.price} ₴</p>
                               </div>
                             ))}
                             {filteredProducts.length > limit && !showAllProducts && (
-                              <div className="col-span-2 md:col-span-3 lg:col-span-4 mt-6 mb-4 flex justify-center w-full">
+                              <div className="col-span-1 sm:col-span-2 md:col-span-3 mt-6 mb-4 flex justify-center w-full">
                                 <button onClick={() => setShowAllProducts(true)} className="px-10 py-5 bg-white text-black text-[11px] md:text-xs font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-xl">
                                   {t('view_all')} ({filteredProducts.length})
                                 </button>
@@ -1626,7 +1626,7 @@ function MainApp() {
 
               {/* PRODUCT PAGE */}
               {route === 'product' && (
-                <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 text-left items-start">
+                <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-20 text-left">
                   {(() => {
                     const p = activeProducts.find(i => i.id === routeParams.id);
                     if (!p) return <div className="py-40 text-center font-black uppercase tracking-widest col-span-1 lg:col-span-2">Товар не знайдено</div>;
@@ -1646,18 +1646,18 @@ function MainApp() {
 
                     return (
                       <>
-                        <div className="w-full max-w-[320px] md:max-w-[480px] mx-auto lg:ml-auto lg:mr-0 space-y-4">
+                        <div className="w-full max-w-[300px] md:max-w-[420px] mx-auto space-y-4">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
-                            {!inStockGlobal && <div className="absolute top-3 left-3 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
+                            {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
                             <img src={currentMainImage} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
                           </div>
                           {galleryImages.length > 1 && (
-                            <div className="flex justify-center lg:justify-end gap-2 md:gap-3 overflow-x-auto no-scrollbar pb-2 snap-x">
+                            <div className="flex justify-center gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
                               {galleryImages.map((img, idx) => (
                                 <button 
                                   key={idx} 
                                   onClick={() => setActiveImageIndex(idx)} 
-                                  className={`snap-start w-14 h-18 md:w-16 md:h-20 shrink-0 bg-zinc-900 overflow-hidden border transition-all ${safeImageIndex === idx ? 'border-white opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                                  className={`snap-start w-16 h-20 md:w-20 md:h-24 shrink-0 bg-zinc-900 overflow-hidden border-2 transition-all ${safeImageIndex === idx ? 'border-white opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
                                 >
                                   <img src={img} className="w-full h-full object-cover" alt={`${p.name} view ${idx + 1}`} />
                                 </button>
@@ -1665,55 +1665,55 @@ function MainApp() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col pt-2 md:pt-0 lg:sticky lg:top-32 w-full max-w-xl mx-auto lg:mx-0">
-                          <h1 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-widest mb-2 md:mb-4 leading-none">{p.name}</h1>
+                        <div className="flex flex-col pt-4 md:pt-10">
+                          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
                           
-                          <div className="flex justify-between items-center mb-6 md:mb-10 pb-6 border-b border-white/10">
-                            <p className="text-xl md:text-3xl font-bold text-white">{p.price} ₴</p>
+                          <div className="flex justify-between items-center mb-8 md:mb-12">
+                            <p className="text-xl md:text-2xl font-bold text-zinc-400">{p.price} ₴</p>
                             <button onClick={() => toggleWishlist(p)} className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
                                <Heart size={18} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : ""} />
                                <span className="hidden sm:inline">{isInWishlist(p.id) ? t('in_wishlist') : t('add_to_wishlist')}</span>
                             </button>
                           </div>
                           
-                          <div className="mb-6 md:mb-8">
-                            <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-3">{t('color')}: <span className="text-white">{colorLabel}</span></h4>
-                            <div className="flex gap-3">
+                          <div className="mb-8 md:mb-10">
+                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 md:mb-6">{t('color')}: {colorLabel}</h4>
+                            <div className="flex gap-4">
                               {colors.map((color, i) => {
                                 const isSelected = activeColor.name === color.name && activeColor.hex === color.hex;
                                 return (
                                 <button
                                   key={i}
                                   onClick={() => { setSelectedColor(color); setActiveImageIndex(0); }} 
-                                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full border transition-all p-0.5 ${isSelected ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-transparent hover:border-white/50'}`}
+                                  className={`w-10 h-10 rounded-full border-2 transition-all p-0.5 ${isSelected ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/50'}`}
                                 >
-                                  <div className="w-full h-full rounded-full border border-white/20" style={{ backgroundColor: color.hex }} />
+                                  <div className="w-full h-full rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
                                 </button>
                               )})}
                             </div>
                           </div>
 
-                          <div className="mb-8 md:mb-10">
-                            <div className="flex justify-between items-center mb-3">
-                              <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">{t('size')}</h4>
-                              <button onClick={() => setIsSizeGuideOpen(p)} className="text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 underline underline-offset-4">
-                                <Ruler size={12} /> {t('size_guide')}
+                          <div className="mb-10 md:mb-12">
+                            <div className="flex justify-between items-center mb-4 md:mb-6">
+                              <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">{t('size')}</h4>
+                              <button onClick={() => setIsSizeGuideOpen(p)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest border-b border-white/20 hover:border-white transition-all flex items-center gap-2">
+                                <Ruler size={14} /> {t('size_guide')}
                               </button>
                             </div>
-                            <div className="grid grid-cols-4 gap-2 md:gap-3">
+                            <div className="grid grid-cols-4 gap-3 md:gap-4">
                               {SIZES.map(size => {
                                 const avail = p.sizes ? p.sizes[size] !== false : true;
                                 return (
-                                  <button key={size} disabled={!inStockGlobal || !avail} onClick={() => setSelectedSize(size)} className={`py-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5 bg-white/5' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_5px_15px_rgba(255,255,255,0.1)]' : 'border-white/20 text-white hover:border-white bg-transparent'}`}>{size}</button>
+                                  <button key={size} disabled={!inStockGlobal || !avail} onClick={() => setSelectedSize(size)} className={`py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}>{size}</button>
                                 );
                               })}
                             </div>
                           </div>
 
-                          <div className="space-y-6 md:space-y-8">
-                             <p className="text-zinc-400 text-[10px] md:text-[11px] font-medium leading-relaxed">{t('product_desc')}</p>
-                             <button onClick={() => addToCart(p)} disabled={!inStockGlobal || !isSizeAvailable} className={`w-full py-4 md:py-5 font-black uppercase tracking-[0.2em] text-[10px] md:text-[11px] transition-all flex items-center justify-center gap-3 ${(inStockGlobal && isSizeAvailable) ? 'bg-white text-black hover:bg-zinc-200 active:scale-[0.98] shadow-xl' : 'bg-zinc-900 text-zinc-600 border border-white/5 cursor-not-allowed'}`}>
-                              <ShoppingBag size={16} /> {inStockGlobal ? (isSizeAvailable ? t('add_to_cart') : t('no_size')) : t('sold_out')}
+                          <div className="space-y-8 md:space-y-12">
+                             <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose">{t('product_desc')}</p>
+                             <button onClick={() => addToCart(p)} disabled={!inStockGlobal || !isSizeAvailable} className={`w-full py-5 md:py-6 font-black uppercase tracking-[0.3em] text-[10px] md:text-[11px] transition-all flex items-center justify-center gap-3 md:gap-4 ${(inStockGlobal && isSizeAvailable) ? 'bg-white text-black hover:bg-zinc-200 active:scale-[0.98] shadow-[0_20px_40px_rgba(255,255,255,0.1)]' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>
+                              <ShoppingBag size={18} /> {inStockGlobal ? (isSizeAvailable ? t('add_to_cart') : t('no_size')) : t('sold_out')}
                             </button>
                           </div>
                         </div>
