@@ -1351,24 +1351,66 @@ function MainApp() {
                       </h2>
                       
                       {/* ENHANCED PREMIUM CATEGORY SELECTOR */}
-                      <div className="flex flex-col gap-6 w-full overflow-hidden">
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-6 pt-2 -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth">
-                           <button 
-                             onClick={() => navigate('catalog', { category: null })} 
-                             className={`relative px-6 py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-500 whitespace-nowrap rounded-sm border ${!routeParams.category ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105' : 'bg-transparent text-zinc-500 border-white/10 hover:border-white/50 hover:text-white'}`}
-                           >
-                             {t('all_products')}
-                           </button>
-                           
-                           {activeCategories.map(c => (
-                             <button 
-                               key={c} 
-                               onClick={() => navigate('catalog', { category: c })} 
-                               className={`relative px-6 py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-500 whitespace-nowrap rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105' : 'bg-transparent text-zinc-500 border-white/10 hover:border-white/50 hover:text-white'}`}
-                             >
-                               {tCat(c)}
-                             </button>
-                           ))}
+                      <div className="w-full flex flex-col gap-4 md:gap-6 mt-4">
+                        <button 
+                          onClick={() => navigate('catalog', { category: null })} 
+                          className={`self-start px-8 py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 rounded-sm border ${!routeParams.category ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-transparent text-zinc-400 border-white/20 hover:border-white hover:text-white'}`}
+                        >
+                          {t('all_products')}
+                        </button>
+
+                        <div className="flex flex-col gap-5 md:gap-6 border-t border-white/5 pt-5 md:pt-6">
+                          {groupedCategories.top.length > 0 && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d4af37] w-24 shrink-0">{t('outerwear')}</span>
+                              <div className="flex flex-wrap gap-2 md:gap-3">
+                                {groupedCategories.top.map(c => (
+                                  <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-5 py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-transparent text-zinc-400 border-white/10 hover:border-white hover:text-white'}`}>
+                                    {tCat(c)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {groupedCategories.bottom.length > 0 && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d4af37] w-24 shrink-0">{t('bottoms')}</span>
+                               <div className="flex flex-wrap gap-2 md:gap-3">
+                                 {groupedCategories.bottom.map(c => (
+                                    <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-5 py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-transparent text-zinc-400 border-white/10 hover:border-white hover:text-white'}`}>
+                                      {tCat(c)}
+                                    </button>
+                                 ))}
+                               </div>
+                            </div>
+                          )}
+
+                          {groupedCategories.acc.length > 0 && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d4af37] w-24 shrink-0">{t('accessories')}</span>
+                               <div className="flex flex-wrap gap-2 md:gap-3">
+                                 {groupedCategories.acc.map(c => (
+                                    <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-5 py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-transparent text-zinc-400 border-white/10 hover:border-white hover:text-white'}`}>
+                                      {tCat(c)}
+                                    </button>
+                                 ))}
+                               </div>
+                            </div>
+                          )}
+
+                          {groupedCategories.other.length > 0 && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d4af37] w-24 shrink-0">{t('other')}</span>
+                               <div className="flex flex-wrap gap-2 md:gap-3">
+                                 {groupedCategories.other.map(c => (
+                                    <button key={c} onClick={() => navigate('catalog', { category: c })} className={`px-5 py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all rounded-sm border ${routeParams.category === c ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-transparent text-zinc-400 border-white/10 hover:border-white hover:text-white'}`}>
+                                      {tCat(c)}
+                                    </button>
+                                 ))}
+                               </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
