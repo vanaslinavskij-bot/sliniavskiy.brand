@@ -3059,7 +3059,7 @@ function MainApp() {
                     <h2 className="text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8">{t('size_guide')}</h2>
                     <div className="overflow-x-auto no-scrollbar">
                        <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
-                         <thead className="text-zinc-600 border-b border-white/5">
+                         <thead className="text-white border-b border-white/5">
                            <tr className="py-2 md:py-4">
                              {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
                            </tr>
@@ -3097,8 +3097,8 @@ function MainApp() {
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                             </button>
                           </div>
-                          <h5 className="font-black uppercase tracking-widest text-[9px] md:text-[10px] mb-1 md:mb-2 truncate">{p.name}</h5>
-                          <p className="text-zinc-500 font-bold text-[9px] md:text-[10px]">{p.price} ₴</p>
+                          <h5 className="font-black uppercase tracking-widest text-[9px] md:text-[10px] mb-1 md:mb-2 truncate text-white">{p.name}</h5>
+                          <p className="text-white font-bold text-[9px] md:text-[10px]">{p.price} ₴</p>
                         </div>
                       ))}
                     </div>
@@ -3117,18 +3117,18 @@ function MainApp() {
                    <button onClick={() => setIsWishlistOpen(false)} className="hover:opacity-50 transition-opacity p-2 text-white"><X size={24} className="md:w-6 md:h-6"/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
-                   {wishlist.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('wishlist_empty')}</div> :
+                   {wishlist.length === 0 ? <div className="text-center py-20 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('wishlist_empty')}</div> :
                      wishlist.map((item, idx) => (
                        <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5 cursor-pointer group" onClick={() => { setIsWishlistOpen(false); navigate('product', { id: item.id }); }}>
                           <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
                             <img src={item.images && item.images[0] ? item.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={item.name} />
                           </div>
                           <div className="flex-1 text-left flex flex-col justify-center">
-                             <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2">{item.name}</h4>
-                             <p className="text-[8px] md:text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-2 md:mb-3">{tCat(item.category)}</p>
+                             <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2 text-white">{item.name}</h4>
+                             <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-2 md:mb-3">{tCat(item.category)}</p>
                              <div className="flex items-center justify-between mt-auto">
-                                <p className="text-xs md:text-sm font-black">{item.price} ₴</p>
-                                <button onClick={(e) => toggleWishlist(item, e)} className="text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
+                                <p className="text-xs md:text-sm font-black text-white">{item.price} ₴</p>
+                                <button onClick={(e) => toggleWishlist(item, e)} className="text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
                              </div>
                           </div>
                        </div>
@@ -3265,7 +3265,7 @@ function MainApp() {
                 ) : (
                    <>
                       <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
-                         {cart.length === 0 ? <div className="text-center py-20 text-zinc-600 text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('empty_cart')}</div> :
+                         {cart.length === 0 ? <div className="text-center py-20 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('empty_cart')}</div> :
                            cart.map((item, idx) => {
                              const realProduct = activeProducts.find(p => p.id === item.id);
                              const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
@@ -3274,15 +3274,15 @@ function MainApp() {
                                   <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
                                   <div className="flex-1 text-left flex flex-col justify-between">
                                      <div>
-                                       <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2">{item.name}</h4>
-                                       <p className="text-[8px] md:text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 md:mb-2">{item.selectedSize} / {item.selectedColor}</p>
-                                       <p className="text-xs md:text-sm font-black">{realPrice * item.quantity} ₴</p>
+                                       <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2 text-white">{item.name}</h4>
+                                       <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-1 md:mb-2">{item.selectedSize} / {item.selectedColor}</p>
+                                       <p className="text-xs md:text-sm font-black text-white">{realPrice * item.quantity} ₴</p>
                                      </div>
                                      <div className="flex items-center gap-3 md:gap-4 mt-2">
-                                        <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-zinc-500 hover:text-white transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
-                                        <span className="text-[9px] md:text-[10px] font-black">{item.quantity}</span>
-                                        <button type="button" onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-zinc-500 hover:text-white transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
-                                        <button type="button" onClick={() => removeItem(item.cartId)} className="ml-auto text-zinc-600 hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
+                                        <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
+                                        <span className="text-[9px] md:text-[10px] font-black text-white">{item.quantity}</span>
+                                        <button type="button" onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
+                                        <button type="button" onClick={() => removeItem(item.cartId)} className="ml-auto text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
                                      </div>
                                   </div>
                                </div>
