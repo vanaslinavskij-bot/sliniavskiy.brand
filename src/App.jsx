@@ -1308,8 +1308,8 @@ function MainApp() {
                     {/* Добавляем стили для плавной анимации картинки */}
                     <style>{`
                       @keyframes smoothReveal {
-                        0% { opacity: 0; transform: scale(1.05); }
-                        100% { opacity: 0.5; transform: scale(1); }
+                        0% { opacity: 0; }
+                        100% { opacity: 0.5; }
                       }
                       .hero-image-smooth {
                         animation: smoothReveal 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
