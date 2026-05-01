@@ -1738,7 +1738,7 @@ function MainApp() {
                           <div className="mb-10 md:mb-12">
                             <div className="flex justify-between items-center mb-4 md:mb-6">
                               <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">{t('size')}</h4>
-                              <button onClick={() => setIsSizeGuideOpen(p)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest border-b border-white/20 hover:border-white transition-all flex items-center gap-2">
+                              <button onClick={() => setIsSizeGuideOpen(p)} className="text-[9px] md:text-[10px] text-white font-black uppercase tracking-widest border-b border-white/20 hover:border-white transition-all flex items-center gap-2">
                                 <Ruler size={14} /> {t('size_guide')}
                               </button>
                             </div>
@@ -3056,7 +3056,7 @@ function MainApp() {
                  <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsSizeGuideOpen(null)} />
                  <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-6 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300">
                     <button onClick={() => setIsSizeGuideOpen(null)} className="absolute top-4 right-4 md:top-6 md:right-6 text-zinc-500 hover:text-white p-2"><X size={20} className="md:w-6 md:h-6"/></button>
-                    <h2 className="text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8">{t('size_guide')}</h2>
+                    <h2 className="text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8 text-white">{t('size_guide')}</h2>
                     <div className="overflow-x-auto no-scrollbar">
                        <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
                          <thead className="text-white border-b border-white/5">
