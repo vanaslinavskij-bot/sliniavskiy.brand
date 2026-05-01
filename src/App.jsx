@@ -1304,12 +1304,35 @@ function MainApp() {
               <main>
                 {/* HOME ROUTE */}
                 {route === 'home' && (
-                  <div>
+                  <div className="animate-in fade-in duration-1000">
+                    {/* Добавляем стили для плавной анимации картинки */}
+                    <style>{`
+                      @keyframes smoothReveal {
+                        0% { opacity: 0; transform: scale(1.05); }
+                        100% { opacity: 0.5; transform: scale(1); }
+                      }
+                      .hero-image-smooth {
+                        animation: smoothReveal 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                      }
+                      @keyframes smoothTextReveal {
+                        0% { opacity: 0; transform: translateY(20px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                      }
+                      .hero-text-smooth {
+                        opacity: 0;
+                        animation: smoothTextReveal 2s ease-out 0.5s forwards;
+                      }
+                    `}</style>
+                    
                     <section className="relative h-[100svh] flex flex-col items-center justify-center overflow-hidden">
-                      <img src={siteSettings.heroImage} className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-50" alt="Hero Desktop" />
-                      <img src={siteSettings.heroImageMobile || siteSettings.heroImage} className="md:hidden absolute inset-0 w-full h-full object-cover opacity-50" alt="Hero Mobile" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/40" />
-                      <div className="relative z-10 text-center px-4 w-full overflow-hidden">
+                      {/* Картинки теперь используют класс hero-image-smooth */}
+                      <img src={siteSettings.heroImage} className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-0 hero-image-smooth" alt="Hero Desktop" />
+                      <img src={siteSettings.heroImageMobile || siteSettings.heroImage} className="md:hidden absolute inset-0 w-full h-full object-cover opacity-0 hero-image-smooth" alt="Hero Mobile" />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-transparent to-[#1c1c1c]/40" />
+                      
+                      {/* Текст также плавно выплывает с небольшой задержкой */}
+                      <div className="relative z-10 text-center px-4 w-full overflow-hidden hero-text-smooth">
                         <h1 className="text-[11vw] sm:text-6xl md:text-7xl lg:text-[7rem] xl:text-[9rem] font-black tracking-tighter uppercase leading-none mb-8 md:mb-12 text-white whitespace-nowrap">SLINIAVSKIY</h1>
                         <button onClick={() => navigate('catalog')} className="px-8 py-4 md:px-12 md:py-5 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors text-[10px] md:text-xs active:scale-95">{t('to_collection')}</button>
                       </div>
