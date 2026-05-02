@@ -426,6 +426,8 @@ function MainApp() {
 
   const [adminTab, setAdminTab] = useState('analytics'); 
   const [orderSubTab, setOrderSubTab] = useState('all');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
   
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
@@ -1388,9 +1390,16 @@ function MainApp() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-12 md:hidden">
-                      <button onClick={() => navigate('catalog')} className="w-full py-4 bg-white text-black text-[11px] font-black uppercase tracking-widest active:scale-95 transition-transform">{t('view_all')}</button>
-                    </div>
+                    {storefrontProducts.length > 6 && (
+                      <div className="mt-12 md:mt-16 flex justify-center w-full">
+                        <button onClick={() => navigate('catalog')} className="group flex flex-col items-center gap-3 pb-2">
+                          <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-zinc-500 group-hover:text-white transition-colors">
+                            {t('view_all')}
+                          </span>
+                          <div className="w-8 h-[1px] bg-zinc-700 group-hover:bg-white group-hover:w-16 transition-all duration-300" />
+                        </button>
+                      </div>
+                    )}
                   </section>
                 </div>
               )}
@@ -2115,11 +2124,25 @@ function MainApp() {
                            ))}
                         </div>
 
+                        {/* SEARCH INPUT FOR ORDERS */}
+                        <div className="mb-6 relative">
+                           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                           <input 
+                             type="text" 
+                             placeholder="Пошук за унікальним кодом замовлення..." 
+                             value={orderSearch}
+                             onChange={(e) => setOrderSearch(e.target.value)}
+                             className="w-full bg-black/50 border border-white/10 pl-12 pr-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors text-white"
+                           />
+                        </div>
+
                         <div className="space-y-6">
                           {orders
                             .filter(o => o.status !== 'pending_payment')
                             // Фильтрация по выбранной вкладке
                             .filter(o => orderSubTab === 'all' ? true : o.status === orderSubTab)
+                            // Фильтрация по поисковому запросу ID
+                            .filter(o => !orderSearch.trim() || o.id?.toLowerCase().includes(orderSearch.toLowerCase()))
                             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                             .map(order => (
                              <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20 relative">
@@ -2554,8 +2577,73 @@ function MainApp() {
                                 />
                                 {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлів у хмару. Зачекайте...</p>}
                                 
-                                <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mt-6 mb-2">Або посилання на фото (кожне з нового рядка)</label>
-                                <textarea value={editForm.images} onChange={e => setEditForm({...editForm, images: e.target.value})} rows={4} className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none mt-4" placeholder="https://image1.jpg&#10;https://image2.jpg" />
+                                {/* NEW INTERACTIVE LINK SECTION */}
+                                <div className="mt-6 pt-6 border-t border-white/10">
+                                   <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Управління фотографіями товару</label>
+                                   
+                                   {(() => {
+                                      const currentImages = editForm.images ? editForm.images.split('\n').map(i=>i.trim()).filter(Boolean) : [];
+                                      if (currentImages.length > 0) {
+                                        return (
+                                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-6">
+                                            {currentImages.map((imgUrl, idx) => (
+                                              <div key={idx} className="relative group aspect-[3/4] bg-zinc-900 border border-white/10 overflow-hidden">
+                                                <img src={imgUrl} alt={`Preview ${idx}`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                       const newArr = currentImages.filter((_, i) => i !== idx);
+                                                       setEditForm({...editForm, images: newArr.join('\n')});
+                                                    }}
+                                                    className="p-3 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/50"
+                                                    title="Видалити фото"
+                                                  >
+                                                    <Trash2 size={16} />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                   })()}
+
+                                   <div className="flex gap-2">
+                                      <input
+                                        type="url"
+                                        placeholder="Вставте посилання на фото (URL)..."
+                                        value={newImageUrl}
+                                        onChange={e => setNewImageUrl(e.target.value)}
+                                        onKeyDown={e => {
+                                           if(e.key === 'Enter') {
+                                              e.preventDefault();
+                                              if(newImageUrl.trim()){
+                                                 const current = editForm.images ? editForm.images.split('\n').filter(i=>i.trim()) : [];
+                                                 setEditForm({...editForm, images: [...current, newImageUrl.trim()].join('\n')});
+                                                 setNewImageUrl('');
+                                              }
+                                           }
+                                        }}
+                                        className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs md:text-sm focus:border-white outline-none transition-colors"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                           if(newImageUrl.trim()){
+                                              const current = editForm.images ? editForm.images.split('\n').filter(i=>i.trim()) : [];
+                                              setEditForm({...editForm, images: [...current, newImageUrl.trim()].join('\n')});
+                                              setNewImageUrl('');
+                                           }
+                                        }}
+                                        disabled={!newImageUrl.trim()}
+                                        className="px-6 bg-white text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50 hover:bg-zinc-200 transition-colors"
+                                      >
+                                        Додати
+                                      </button>
+                                   </div>
+                                </div>
                               </div>
 
                               <div className="md:col-span-2">
