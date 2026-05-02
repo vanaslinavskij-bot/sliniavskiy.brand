@@ -83,21 +83,6 @@ const STATUS_MAP = {
 const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
 
-const getProductPrice = (p) => {
-  const original = Number(p.price) || 0;
-  let final = original;
-  let isDiscounted = false;
-  let percent = Number(p.discountPercent) || 0;
-
-  if (percent > 0 && percent <= 100) {
-    if (!p.discountEndsAt || new Date(p.discountEndsAt).getTime() > new Date().getTime()) {
-      final = Math.round(original * (1 - percent / 100));
-      isDiscounted = true;
-    }
-  }
-  return { original, final, isDiscounted, percent };
-};
-
 const DEFAULT_SIZE_GUIDE = "Розмір,Груди (см),Довжина (см),Плечі (см)\nS,52,70,48\nM,54,72,50\nL,56,74,52\nXL,58,76,54";
 
 const sendTelegramMessage = async (text) => {
@@ -479,8 +464,6 @@ function MainApp() {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [newReferralName, setNewReferralName] = useState('');
-  const [newRefDiscount, setNewRefDiscount] = useState('');
-  const [newRefCategory, setNewRefCategory] = useState('all');
   
   const [refFilterPartner, setRefFilterPartner] = useState('');
   const [refFilterDateFrom, setRefFilterDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); });
@@ -806,32 +789,14 @@ function MainApp() {
     }
   };
 
-  const { cartSubtotal, cartTotal, refDiscountAmount } = useMemo(() => {
-    let sub = 0;
-    let refDisc = 0;
-    
-    const refCode = typeof window !== 'undefined' ? localStorage.getItem('sliniavskiy_ref') : null;
-    const activeRef = refCode ? referrals.find(r => r.code === refCode) : null;
-    
-    cart.forEach(item => {
-      const realProduct = activeProducts.find(p => p.id === item.id);
-      const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0 };
-      const itemTotal = pInfo.final * (Number(item.quantity) || 1);
-      sub += itemTotal;
+  const cartSubtotal = useMemo(() => cart.reduce((total, item) => {
+    const realProduct = activeProducts.find(p => p.id === item.id);
+    const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+    const qty = Number(item.quantity) || 1;
+    return total + (realPrice * qty);
+  }, 0), [cart, activeProducts]);
 
-      if (activeRef && activeRef.buyerDiscount > 0) {
-        if (activeRef.targetCategory === 'all' || (realProduct && realProduct.category === activeRef.targetCategory)) {
-          refDisc += itemTotal * (activeRef.buyerDiscount / 100);
-        }
-      }
-    });
-
-    return { 
-      cartSubtotal: Math.round(sub), 
-      refDiscountAmount: Math.round(refDisc), 
-      cartTotal: Math.round(sub - refDisc) 
-    };
-  }, [cart, activeProducts, referrals]);
+  const cartTotal = Number(cartSubtotal) || 0;
 
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
@@ -951,8 +916,7 @@ function MainApp() {
     
     const itemsToSave = cart.map(item => {
       const realProduct = activeProducts.find(p => p.id === item.id);
-      const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0 };
-      const realPrice = pInfo.final;
+      const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
       return { 
         id: String(item.id || ''),
         name: String(item.name || 'Товар'),
@@ -1072,17 +1036,15 @@ function MainApp() {
       const cleanColors = (editForm.colors || []).map(c => ({
          name: c.name || 'Color',
          label: c.label || 'Колір',
-       hex: c.hex || '#ffffff',
-       imageIndexes: Array.isArray(c.imageIndexes) ? c.imageIndexes : []
-    }));
+         hex: c.hex || '#ffffff',
+         imageIndexes: Array.isArray(c.imageIndexes) ? c.imageIndexes : []
+      }));
 
-    const productData = {
-      name: editForm.name || 'Новий товар',
-      price: Number(editForm.price) || 0,
-      discountPercent: Number(editForm.discountPercent) || 0,
-      discountEndsAt: editForm.discountEndsAt || '',
-      category: activeCategories.includes(editForm.category) ? editForm.category : (activeCategories[0] || 'Категорія'),
-      images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
+      const productData = {
+        name: editForm.name || 'Новий товар',
+        price: Number(editForm.price) || 0,
+        category: activeCategories.includes(editForm.category) ? editForm.category : (activeCategories[0] || 'Категорія'),
+        images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
         sizeGuide: editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
         isVisible: Boolean(editForm.isVisible !== false),
         inStock: Boolean(editForm.inStock !== false),
@@ -1232,14 +1194,10 @@ function MainApp() {
       const safeData = JSON.parse(JSON.stringify({
         name: newReferralName,
         code: finalCode,
-        buyerDiscount: Number(newRefDiscount) || 0,
-        targetCategory: newRefCategory || 'all',
         createdAt: new Date().toISOString()
       }));
       await addDoc(getReferralsRef(), safeData);
       setNewReferralName('');
-      setNewRefDiscount('');
-      setNewRefCategory('all');
       showToast('✅ Реферала успішно створено');
       setRefFilterPartner(finalCode); // auto select new partner
     } catch (err) {
@@ -1418,9 +1376,7 @@ function MainApp() {
                       <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">{t('view_all')}</button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 md:gap-10 lg:px-16 xl:px-32">
-                      {storefrontProducts.slice(0, 6).map((p, idx) => {
-                        const pInfo = getProductPrice(p);
-                        return (
+                      {storefrontProducts.slice(0, 6).map((p, idx) => (
                         <div 
                           key={p.id} 
                           className="group cursor-pointer animate-in fade-in zoom-in-95 slide-in-from-bottom-6 duration-1000 ease-out" 
@@ -1429,25 +1385,15 @@ function MainApp() {
                         >
                           <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3 md:mb-5 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
                             {p.inStock === false && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
-                            {pInfo.isDiscounted && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-white text-black text-[8px] md:text-[10px] font-black uppercase px-2 py-1 shadow-lg">-{pInfo.percent}%</div>}
                             <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={`md:w-4 md:h-4 ${isInWishlist(p.id) ? "text-white" : "text-white/50"}`} />
                             </button>
                           </div>
                           <h3 className="font-bold uppercase tracking-widest text-[9px] md:text-xs mb-1">{p.name}</h3>
-                          <p className="font-medium text-[10px] md:text-sm flex gap-2">
-                             {pInfo.isDiscounted ? (
-                               <>
-                                 <span className="line-through text-zinc-600">{pInfo.original} ₴</span>
-                                 <span className="text-[#d4af37] font-black">{pInfo.final} ₴</span>
-                               </>
-                             ) : (
-                               <span className="text-zinc-500">{pInfo.final} ₴</span>
-                             )}
-                          </p>
+                          <p className="text-zinc-500 font-medium text-[10px] md:text-sm">{p.price} ₴</p>
                         </div>
-                      )})}
+                      ))}
                     </div>
                     {storefrontProducts.length > 6 && (
                       <div className="mt-12 md:mt-16 flex justify-center w-full">
@@ -1549,40 +1495,29 @@ function MainApp() {
                         return (
                           <>
                             {displayedProducts.map((p, idx) => {
-                          // Рассчитываем задержку так, чтобы новые вещи выплывали "каскадом"
-                          const isNewlyRevealed = showAllProducts && idx >= limit;
-                          const animationDelay = isNewlyRevealed ? (idx - limit) * 120 : (idx % limit) * 80;
-                          const pInfo = getProductPrice(p);
+                              // Рассчитываем задержку так, чтобы новые вещи выплывали "каскадом"
+                              const isNewlyRevealed = showAllProducts && idx >= limit;
+                              const animationDelay = isNewlyRevealed ? (idx - limit) * 120 : (idx % limit) * 80;
 
-                          return (
-                          <div 
-                            key={p.id} 
-                            onClick={() => navigate('product', { id: p.id })} 
-                            className="cursor-pointer group animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-1000 ease-out"
-                            style={{ animationDelay: `${animationDelay}ms`, animationFillMode: 'both' }}
-                          >
-                            <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
-                              {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
-                              {pInfo.isDiscounted && <div className="absolute top-4 left-4 z-10 bg-white text-black text-[10px] font-black uppercase px-3 py-2 shadow-lg">-{pInfo.percent}%</div>}
-                              <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
-                              <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
-                                <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
-                              </button>
-                            </div>
-                            <h3 className="font-bold uppercase text-[11px] md:text-sm tracking-widest mb-1">{p.name}</h3>
-                            <p className="font-medium text-xs md:text-base flex gap-2">
-                               {pInfo.isDiscounted ? (
-                                 <>
-                                   <span className="line-through text-zinc-600">{pInfo.original} ₴</span>
-                                   <span className="text-[#d4af37] font-black">{pInfo.final} ₴</span>
-                                 </>
-                               ) : (
-                                 <span className="text-zinc-500">{pInfo.final} ₴</span>
-                               )}
-                            </p>
-                          </div>
-                        )})}
-                        {filteredProducts.length > limit && !showAllProducts && (
+                              return (
+                              <div 
+                                key={p.id} 
+                                onClick={() => navigate('product', { id: p.id })} 
+                                className="cursor-pointer group animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-1000 ease-out"
+                                style={{ animationDelay: `${animationDelay}ms`, animationFillMode: 'both' }}
+                              >
+                                <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
+                                  {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
+                                  <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
+                                  <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                                    <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
+                                  </button>
+                                </div>
+                                <h3 className="font-bold uppercase text-[11px] md:text-sm tracking-widest mb-1">{p.name}</h3>
+                                <p className="text-zinc-500 font-medium text-xs md:text-base">{p.price} ₴</p>
+                              </div>
+                            )})}
+                            {filteredProducts.length > limit && !showAllProducts && (
                               <div className="col-span-1 sm:col-span-2 md:col-span-3 mt-6 mb-4 flex justify-center w-full">
                                 <button onClick={() => setShowAllProducts(true)} className="px-10 py-5 bg-white text-black text-[11px] md:text-xs font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-xl">
                                   {t('view_all')} ({filteredProducts.length})
@@ -1866,26 +1801,11 @@ function MainApp() {
                           )}
                         </div>
                         <div className="flex flex-col pt-4 md:pt-10">
-                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
-                      
-                      <div className="flex justify-between items-center mb-8 md:mb-12">
-                        {(() => {
-                           const pInfo = getProductPrice(p);
-                           return (
-                             <p className="text-xl md:text-2xl font-bold flex gap-3 items-center">
-                               {pInfo.isDiscounted ? (
-                                 <>
-                                   <span className="line-through text-zinc-600 text-lg md:text-xl">{pInfo.original} ₴</span>
-                                   <span className="text-[#d4af37] font-black">{pInfo.final} ₴</span>
-                                   <span className="bg-white text-black text-[10px] md:text-xs font-black uppercase px-2 py-1 shadow-lg ml-2">-{pInfo.percent}%</span>
-                                 </>
-                               ) : (
-                                 <span className="text-zinc-400">{pInfo.final} ₴</span>
-                               )}
-                             </p>
-                           );
-                        })()}
-                        <button onClick={() => toggleWishlist(p)} className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
+                          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
+                          
+                          <div className="flex justify-between items-center mb-8 md:mb-12">
+                            <p className="text-xl md:text-2xl font-bold text-zinc-400">{p.price} ₴</p>
+                            <button onClick={() => toggleWishlist(p)} className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
                                <Heart size={18} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : ""} />
                                <span className="hidden sm:inline">{isInWishlist(p.id) ? t('in_wishlist') : t('add_to_wishlist')}</span>
                             </button>
@@ -2237,13 +2157,7 @@ function MainApp() {
                             // Фильтрация по выбранной вкладке
                             .filter(o => orderSubTab === 'all' ? true : o.status === orderSubTab)
                             // Фильтрация по поисковому запросу ID
-                            .filter(o => {
-                               if (!orderSearch.trim()) return true;
-                               const searchStr = orderSearch.replace(/#/g, '').toLowerCase().trim();
-                               const idStr = o.id?.toLowerCase() || '';
-                               const displayIdStr = o.displayId ? o.displayId.toLowerCase() : '';
-                               return idStr.includes(searchStr) || displayIdStr.includes(searchStr);
-                            })
+                            .filter(o => !orderSearch.trim() || o.id?.toLowerCase().includes(orderSearch.toLowerCase()))
                             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                             .map(order => (
                              <div key={order.id} className="border border-white/10 bg-zinc-900/40 shadow-xl overflow-hidden flex flex-col group transition-all hover:border-white/20 relative">
@@ -2543,18 +2457,17 @@ function MainApp() {
                     {adminTab === 'products' && (
                       <section>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
-                      <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">Каталог</h2>
-                      <button onClick={() => { 
-                        setEditingProduct({}); 
-                        setEditForm({ 
-                          name: '', price: '', category: activeCategories[0] || 'Категорія', 
-                          images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
-                          colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
-                          sizes: { ...DEFAULT_SIZES_AVAILABILITY },
-                          discountPercent: '', discountEndsAt: '' 
-                        }); 
-                      }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
-                        <Plus size={14}/> Додати товар
+                          <h2 className="text-lg md:text-xl font-black uppercase tracking-widest">Каталог</h2>
+                          <button onClick={() => { 
+                            setEditingProduct({}); 
+                            setEditForm({ 
+                              name: '', price: '', category: activeCategories[0] || 'Категорія', 
+                              images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
+                              colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
+                              sizes: { ...DEFAULT_SIZES_AVAILABILITY } 
+                            }); 
+                          }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                            <Plus size={14}/> Додати товар
                           </button>
                         </div>
 
@@ -2581,40 +2494,16 @@ function MainApp() {
                               </div>
                               <div className="flex flex-col justify-center gap-4 bg-black border border-white/10 p-4 w-full">
                                 <label className="flex items-center gap-3 cursor-pointer">
-                              <input type="checkbox" checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
-                              <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
-                            </label>
-                          </div>
+                                  <input type="checkbox" checked={editForm.isVisible} onChange={e => setEditForm({...editForm, isVisible: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Показувати на вітрині</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                  <input type="checkbox" checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
+                                </label>
+                              </div>
 
-                          {/* БЛОК СКИДКИ НА ТОВАР */}
-                          <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
-                             <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Акція / Знижка на товар</h4>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                   <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Відсоток знижки (%)</label>
-                                   <input 
-                                      type="number" 
-                                      min="0" max="100" 
-                                      value={editForm.discountPercent || ''} 
-                                      onChange={e => setEditForm({...editForm, discountPercent: e.target.value})} 
-                                      className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none" 
-                                      placeholder="Наприклад: 20 (Залиште 0, щоб вимкнути)" 
-                                   />
-                                </div>
-                                <div>
-                                   <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Діє до (опціонально)</label>
-                                   <input 
-                                      type="date" 
-                                      value={editForm.discountEndsAt || ''} 
-                                      onChange={e => setEditForm({...editForm, discountEndsAt: e.target.value})} 
-                                      className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white [color-scheme:dark]" 
-                                   />
-                                   <p className="text-[8px] mt-2 text-zinc-500 uppercase tracking-widest">Якщо дата не вказана, знижка діє безстроково.</p>
-                                </div>
-                             </div>
-                          </div>
-
-                          {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО (МНОЖЕСТВЕННАЯ) */}
+                              {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО (МНОЖЕСТВЕННАЯ) */}
                               <div className="md:col-span-2 border border-white/10 p-4 bg-black/50 space-y-4">
                                  <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Кольори товару</h4>
                                  <p className="text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-relaxed">
@@ -2796,15 +2685,15 @@ function MainApp() {
                                 <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
                                 <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                                 <div className="flex gap-2 w-full">
-                              <button onClick={() => { 
-                                const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
-                                  ...c,
-                                  imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
-                                }));
-                                setEditingProduct(p); 
-                                setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY }, discountPercent: p.discountPercent || '', discountEndsAt: p.discountEndsAt || '' }); 
-                              }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
-                              <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
+                                  <button onClick={() => { 
+                                    const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
+                                      ...c,
+                                      imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
+                                    }));
+                                    setEditingProduct(p); 
+                                    setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
+                                  }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
+                                  <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                                 </div>
                               </div>
                             ))}
@@ -2823,41 +2712,18 @@ function MainApp() {
                             <h3 className="font-black uppercase tracking-widest text-sm mb-4">Створити реферала</h3>
                             <form onSubmit={handleAddReferral} className="space-y-4">
                               <div>
-                            <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ім'я партнера</label>
-                            <input 
-                              type="text" 
-                              required 
-                              value={newReferralName} 
-                              onChange={e => setNewReferralName(e.target.value)}
-                              placeholder="Наприклад: Ivan"
-                              className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-2"
-                            />
-                            <p className="text-[8px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold mb-4">Система автоматично згенерує унікальне посилання.</p>
-                          </div>
-                          <div className="pt-4 border-t border-white/10">
-                             <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Бонус для клієнта (Промокод)</h4>
-                             
-                             <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Знижка клієнту по цьому коду (%)</label>
-                             <input 
-                                type="number" 
-                                min="0" max="100" 
-                                value={newRefDiscount} 
-                                onChange={e => setNewRefDiscount(e.target.value)} 
-                                className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-4" 
-                                placeholder="Наприклад: 10 (Залиште 0, щоб вимкнути)" 
-                             />
-                             
-                             <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Застосовується до категорії</label>
-                             <select 
-                                value={newRefCategory} 
-                                onChange={e => setNewRefCategory(e.target.value)} 
-                                className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-2"
-                             >
-                               <option value="all">Всі товари на сайті</option>
-                               {activeCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                             </select>
-                          </div>
-                          <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2 mt-2">
+                                <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ім'я партнера</label>
+                                <input 
+                                  type="text" 
+                                  required 
+                                  value={newReferralName} 
+                                  onChange={e => setNewReferralName(e.target.value)}
+                                  placeholder="Наприклад: Ivan"
+                                  className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-2"
+                                />
+                                <p className="text-[8px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold">Система автоматично згенерує унікальне посилання.</p>
+                              </div>
+                              <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2 mt-2">
                                 <LinkIcon size={14} /> Згенерувати посилання
                               </button>
                             </form>
@@ -3244,57 +3110,13 @@ function MainApp() {
                               </div>
 
                               <div>
-                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії (додаткові)</h4>
-                                 <div className="flex flex-wrap gap-2 mb-3">
-                                   {settingsCategories.split(',').map(c => c.trim()).filter(c => c && !['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка', 'Брюки', 'Джинсы', 'Штаны', 'Шорты', 'Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'].includes(c)).map(custom => (
-                                     <span key={custom} className="bg-white/10 border border-white/20 text-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 rounded-sm">
-                                       {custom} 
-                                       <button type="button" onClick={() => { 
-                                         let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean); 
-                                         current = current.filter(c => c !== custom); 
-                                         setSettingsCategories(current.join(', ')); 
-                                       }} className="hover:text-red-500 transition-colors"><X size={12}/></button>
-                                     </span>
-                                   ))}
-                                 </div>
-                                 <div className="flex gap-2">
-                                    <input 
-                                      type="text" 
-                                      value={customCatInput} 
-                                      onChange={e => setCustomCatInput(e.target.value)} 
-                                      onKeyDown={e => { 
-                                        if (e.key === 'Enter') { 
-                                          e.preventDefault(); 
-                                          if (customCatInput.trim()) { 
-                                            const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean); 
-                                            if (!current.includes(customCatInput.trim())) { 
-                                              current.push(customCatInput.trim()); 
-                                              setSettingsCategories(current.join(', ')); 
-                                            } 
-                                            setCustomCatInput(''); 
-                                          } 
-                                        } 
-                                      }} 
-                                      className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors" 
-                                      placeholder="Введіть категорію та натисніть Enter..." 
-                                    />
-                                    <button 
-                                      type="button" 
-                                      onClick={() => { 
-                                        if (customCatInput.trim()) { 
-                                          const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean); 
-                                          if (!current.includes(customCatInput.trim())) { 
-                                            current.push(customCatInput.trim()); 
-                                            setSettingsCategories(current.join(', ')); 
-                                          } 
-                                          setCustomCatInput(''); 
-                                        } 
-                                      }} 
-                                      className="px-6 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors"
-                                    >
-                                      Додати
-                                    </button>
-                                 </div>
+                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії (ручне введення через кому)</h4>
+                                 <textarea
+                                  value={settingsCategories}
+                                  onChange={e => setSettingsCategories(e.target.value)}
+                                  className="w-full bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors h-16"
+                                  placeholder="Інші категорії..."
+                                />
                               </div>
                             </div>
 
@@ -3555,26 +3377,20 @@ function MainApp() {
                         </div>
 
                         <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-4">
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <input required type="checkbox" className="mt-1 w-5 h-5 cursor-pointer shrink-0 appearance-none border-2 border-white/20 rounded-sm checked:bg-white checked:border-white relative flex items-center justify-center after:content-['✓'] after:text-black after:text-[14px] after:font-black after:hidden checked:after:block transition-colors" />
-                        <span className="text-[9px] md:text-[10px] text-zinc-400 font-medium leading-relaxed group-hover:text-white transition-colors pt-0.5">
-                          {t('agree_terms')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'terms'}); }} className="underline">{t('terms')}</button> {t('and')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'privacy'}); }} className="underline">{t('privacy')}</button> {t('mandatory')}
-                        </span>
-                      </label>
-                    </div>
-
-                    <div className="mt-auto pt-6 md:pt-8 space-y-3 md:space-y-4">
-                      {refDiscountAmount > 0 && (
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Знижка за промокодом</span>
-                          <span className="text-sm md:text-base font-black text-[#d4af37]">-{refDiscountAmount} ₴</span>
+                          <label className="flex items-start gap-3 cursor-pointer group">
+                            <input required type="checkbox" className="mt-1 w-5 h-5 cursor-pointer shrink-0 appearance-none border-2 border-white/20 rounded-sm checked:bg-white checked:border-white relative flex items-center justify-center after:content-['✓'] after:text-black after:text-[14px] after:font-black after:hidden checked:after:block transition-colors" />
+                            <span className="text-[9px] md:text-[10px] text-zinc-400 font-medium leading-relaxed group-hover:text-white transition-colors pt-0.5">
+                              {t('agree_terms')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'terms'}); }} className="underline">{t('terms')}</button> {t('and')} <button type="button" onClick={() => { setIsCartOpen(false); navigate('legal', {type: 'privacy'}); }} className="underline">{t('privacy')}</button> {t('mandatory')}
+                            </span>
+                          </label>
                         </div>
-                      )}
-                      <div className="flex justify-between items-center mb-2 md:mb-4">
-                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
-                        <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
-                      </div>
-                      <button type="submit" className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 active:scale-95">
+
+                        <div className="mt-auto pt-6 md:pt-8 space-y-3 md:space-y-4">
+                          <div className="flex justify-between items-center mb-2 md:mb-4">
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
+                            <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
+                          </div>
+                          <button type="submit" className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 active:scale-95">
                             <CreditCard size={16} /> {t('delivery_details')}
                           </button>
                           <button type="button" onClick={() => setIsCheckoutForm(false)} className="w-full py-3 md:py-4 text-zinc-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest hover:text-white transition-colors">{t('back_to_cart')}</button>
@@ -3634,26 +3450,26 @@ function MainApp() {
                                        <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-1 md:mb-2">{item.selectedSize} / {item.selectedColor}</p>
                                        <p className="text-xs md:text-sm font-black text-white">{realPrice * item.quantity} ₴</p>
                                      </div>
-                              </div>
-                           </div>
-                         )
-                       })
-                     }
-                  </div>
-                  {cart.length > 0 && (
-                     <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
-                        {refDiscountAmount > 0 && (
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Знижка за промокодом</span>
-                            <span className="text-sm font-black text-[#d4af37]">-{refDiscountAmount} ₴</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between items-center mb-6 md:mb-8"><span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span><span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span></div>
-                        <button onClick={() => setIsCheckoutForm(true)} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">{t('checkout')}</button>
-                     </div>
-                  )}
-               </>
-            )}
+                                     <div className="flex items-center gap-3 md:gap-4 mt-2">
+                                        <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
+                                        <span className="text-[9px] md:text-[10px] font-black text-white">{item.quantity}</span>
+                                        <button type="button" onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
+                                        <button type="button" onClick={() => removeItem(item.cartId)} className="ml-auto text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
+                                     </div>
+                                  </div>
+                               </div>
+                             )
+                           })
+                         }
+                      </div>
+                      {cart.length > 0 && (
+                         <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
+                            <div className="flex justify-between items-center mb-6 md:mb-8"><span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span><span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span></div>
+                            <button onClick={() => setIsCheckoutForm(true)} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">{t('checkout')}</button>
+                         </div>
+                      )}
+                   </>
+                )}
               </div>
             </div>
           )}
