@@ -461,6 +461,7 @@ function MainApp() {
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
   const [settingsCategories, setSettingsCategories] = useState('');
+  const [newCustomCategory, setNewCustomCategory] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [newReferralName, setNewReferralName] = useState('');
@@ -3141,13 +3142,79 @@ function MainApp() {
                               </div>
 
                               <div>
-                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії (ручне введення через кому)</h4>
-                                 <textarea
-                                  value={settingsCategories}
-                                  onChange={e => setSettingsCategories(e.target.value)}
-                                  className="w-full bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors h-16"
-                                  placeholder="Інші категорії..."
-                                />
+                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії</h4>
+                                 
+                                 {/* Вивід існуючих власних категорій (тегів) */}
+                                 {(() => {
+                                   const predefinedAll = ['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка', 'Брюки', 'Джинсы', 'Штаны', 'Шорты', 'Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'];
+                                   const currentArr = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                   const customArr = currentArr.filter(c => !predefinedAll.includes(c));
+                                   
+                                   return (
+                                     <div className="mb-4 min-h-[32px]">
+                                       {customArr.length > 0 ? (
+                                         <div className="flex flex-wrap gap-2">
+                                           {customArr.map((cat, idx) => (
+                                              <div key={idx} className="flex items-center gap-2 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm">
+                                                <span>{cat}</span>
+                                                <button 
+                                                  type="button" 
+                                                  onClick={() => {
+                                                    const updated = currentArr.filter(c => c !== cat);
+                                                    setSettingsCategories(updated.join(', '));
+                                                  }}
+                                                  className="hover:text-white transition-colors p-0.5"
+                                                >
+                                                  <X size={12} />
+                                                </button>
+                                              </div>
+                                           ))}
+                                         </div>
+                                       ) : (
+                                         <p className="text-[8px] text-zinc-500 uppercase tracking-widest py-1">Немає доданих власних категорій</p>
+                                       )}
+                                     </div>
+                                   );
+                                 })()}
+
+                                 {/* Введення нової категорії */}
+                                 <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Назва нової категорії..."
+                                      value={newCustomCategory}
+                                      onChange={e => setNewCustomCategory(e.target.value)}
+                                      onKeyDown={e => {
+                                         if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (newCustomCategory.trim()) {
+                                               const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                               if (!current.includes(newCustomCategory.trim())) {
+                                                  setSettingsCategories([...current, newCustomCategory.trim()].join(', '));
+                                               }
+                                               setNewCustomCategory('');
+                                            }
+                                         }
+                                      }}
+                                      className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs md:text-sm focus:border-white outline-none transition-colors"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                         if (newCustomCategory.trim()) {
+                                            const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                            if (!current.includes(newCustomCategory.trim())) {
+                                               setSettingsCategories([...current, newCustomCategory.trim()].join(', '));
+                                            }
+                                            setNewCustomCategory('');
+                                         }
+                                      }}
+                                      disabled={!newCustomCategory.trim()}
+                                      className="px-6 bg-white text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50 hover:bg-zinc-200 transition-colors"
+                                    >
+                                      Додати
+                                    </button>
+                                 </div>
                               </div>
                             </div>
 
