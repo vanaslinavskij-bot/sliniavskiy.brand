@@ -2752,7 +2752,7 @@ function MainApp() {
                                  onClick={() => {
                                     if (!refFilterPartner) return showToast('Оберіть партнера у фільтрі праворуч');
                                     
-                                    const targetOrders = orders.filter(o => {
+                                    const allTargetOrders = orders.filter(o => {
                                        if (o.status === 'pending_payment' || o.status === 'cancelled') return false;
                                        if (o.referralCode !== refFilterPartner) return false;
                                        const oDate = o.createdAt.slice(0, 10);
@@ -2761,11 +2761,14 @@ function MainApp() {
                                        return true;
                                     });
 
+                                    const completedOrders = allTargetOrders.filter(o => o.status === 'completed');
+                                    const otherOrders = allTargetOrders.filter(o => o.status !== 'completed');
+
                                     let totalSum = 0;
                                     let shareSum = 0;
                                     const percentValue = parseFloat(refPercent) || 0;
 
-                                    targetOrders.forEach(o => {
+                                    completedOrders.forEach(o => {
                                       o.items.forEach(item => {
                                         const itemTotal = item.price * item.quantity;
                                         const itemShare = itemTotal * (percentValue / 100);
@@ -2780,7 +2783,8 @@ function MainApp() {
                                        total: Math.round(totalSum),
                                        share: Math.round(shareSum),
                                        net: Math.round(netSum),
-                                       count: targetOrders.length
+                                       count: completedOrders.length,
+                                       otherOrders: otherOrders
                                     });
                                  }}
                                  className="w-full py-4 bg-white/10 text-white font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-black transition-all mb-4"
@@ -2791,7 +2795,7 @@ function MainApp() {
                                {refCalcResult && (
                                  <div className="bg-black/50 border border-[#d4af37]/30 p-4 space-y-3">
                                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                                       <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Загальна каса ({refCalcResult.count} зам.)</span>
+                                       <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Загальна каса ({refCalcResult.count} отриманих)</span>
                                        <span className="text-sm font-black text-white">{refCalcResult.total} ₴</span>
                                     </div>
                                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
@@ -2802,6 +2806,33 @@ function MainApp() {
                                        <span className="text-[9px] font-black uppercase tracking-widest text-[#d4af37]">Ваш чистий прибуток</span>
                                        <span className="text-base font-black text-green-400">{refCalcResult.net} ₴</span>
                                     </div>
+
+                                    {/* Інші замовлення в процесі (якщо обрано категорію "Всі товари") */}
+                                    {(() => {
+                                      const activeRef = referrals.find(r => r.code === refFilterPartner);
+                                      if (activeRef?.targetCategory === 'all' && refCalcResult.otherOrders?.length > 0) {
+                                        return (
+                                          <div className="mt-4 pt-4 border-t border-white/10">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-yellow-500 mb-3">Замовлення в процесі ({refCalcResult.otherOrders.length}):</p>
+                                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2 no-scrollbar">
+                                              {refCalcResult.otherOrders.map(o => (
+                                                <div key={o.id} className="flex justify-between items-center text-[10px] bg-white/5 p-2 border border-white/5 uppercase tracking-widest">
+                                                   <div>
+                                                      <span className="text-zinc-300 font-bold">#{o.id.slice(0,8)}</span>
+                                                      <span className="text-zinc-500 ml-2 block sm:inline mt-1 sm:mt-0">{new Date(o.createdAt).toLocaleDateString('uk-UA')}</span>
+                                                   </div>
+                                                   <div className="text-right">
+                                                      <span className="text-yellow-500 font-black block">{o.total} ₴</span>
+                                                      <span className="text-[8px] text-zinc-500">{STATUS_MAP[o.status]?.label || o.status}</span>
+                                                   </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                  </div>
                                )}
                             </div>
