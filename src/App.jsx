@@ -1707,14 +1707,30 @@ function MainApp() {
                       : (p.images || []);
 
                     const safeImageIndex = activeImageIndex < galleryImages.length ? activeImageIndex : 0;
-                    const currentMainImage = galleryImages[safeImageIndex] || 'https://via.placeholder.com/800';
 
                     return (
                       <>
                         <div className="w-full max-w-[300px] md:max-w-[420px] mx-auto space-y-4">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                             {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
-                            <img src={currentMainImage} className="w-full h-full object-cover transition-all duration-500" alt={p.name} />
+                            
+                            {/* Плавный Crossfade-переход между фото */}
+                            {galleryImages.length > 0 ? (
+                              galleryImages.map((img, idx) => (
+                                <img 
+                                  key={idx}
+                                  src={img} 
+                                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${safeImageIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`} 
+                                  alt={`${p.name} view ${idx + 1}`} 
+                                />
+                              ))
+                            ) : (
+                              <img 
+                                src="https://via.placeholder.com/800" 
+                                className="absolute inset-0 w-full h-full object-cover" 
+                                alt={p.name} 
+                              />
+                            )}
                           </div>
                           {galleryImages.length > 1 && (
                             <div className="flex justify-center gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 snap-x">
