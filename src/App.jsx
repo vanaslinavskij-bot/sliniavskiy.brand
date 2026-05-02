@@ -337,6 +337,7 @@ function MainApp() {
   
   // Lang switch animation state
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const [route, setRoute] = useState(() => sessionStorage.getItem('sliniavskiy_route') || 'home');
   const [routeParams, setRouteParams] = useState(() => {
@@ -660,27 +661,39 @@ function MainApp() {
   }, [searchQuery, storefrontProducts]);
 
   const navigate = (r, p = {}, isBack = false) => {
-    if (!isBack) {
-      const stack = JSON.parse(sessionStorage.getItem('sliniavskiy_history') || '[]');
-      stack.push({ route, params: routeParams });
-      sessionStorage.setItem('sliniavskiy_history', JSON.stringify(stack));
-    }
+    // Запускаем плавное исчезновение текущей страницы
+    setIsNavigating(true);
     
-    setRoute(r); 
-    setRouteParams(p);
-    sessionStorage.setItem('sliniavskiy_route', r);
-    sessionStorage.setItem('sliniavskiy_routeParams', JSON.stringify(p));
-    
-    setIsCartOpen(false); 
-    setIsSearchOpen(false); 
-    setIsWishlistOpen(false); 
-    setIsCatalogOpen(false);
-    setSearchQuery('');
-    setAuthError(''); 
-    setActiveImageIndex(0);
-    setSelectedColor(null);
-    
-    setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 50);
+    // Ждем 400мс, пока страница плавно растворится, и только потом меняем раздел
+    setTimeout(() => {
+      if (!isBack) {
+        const stack = JSON.parse(sessionStorage.getItem('sliniavskiy_history') || '[]');
+        stack.push({ route, params: routeParams });
+        sessionStorage.setItem('sliniavskiy_history', JSON.stringify(stack));
+      }
+      
+      setRoute(r); 
+      setRouteParams(p);
+      sessionStorage.setItem('sliniavskiy_route', r);
+      sessionStorage.setItem('sliniavskiy_routeParams', JSON.stringify(p));
+      
+      setIsCartOpen(false); 
+      setIsSearchOpen(false); 
+      setIsWishlistOpen(false); 
+      setIsCatalogOpen(false);
+      setSearchQuery('');
+      setAuthError(''); 
+      setActiveImageIndex(0);
+      setSelectedColor(null);
+      
+      // Мгновенно перебрасываем скролл наверх, пока экран затемнен
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      // Даем React миллисекунду на отрисовку и плавно проявляем новую страницу
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 50);
+    }, 400);
   };
 
   const goBack = () => {
@@ -1299,9 +1312,26 @@ function MainApp() {
               tCat={tCat}
             />
 
-            {/* CONTENT WITH BLUR EFFECT DURING TRANSLATION */}
-            <div className={`transition-all duration-300 ease-in-out ${isTranslating ? 'opacity-0 blur-sm' : 'opacity-100'}`}>
-              <main>
+            {/* CONTENT WITH BLUR EFFECT DURING TRANSLATION OR NAVIGATION */}
+            <div className={`transition-all duration-500 ease-in-out ${isTranslating || isNavigating ? 'opacity-0 blur-md scale-[0.98]' : 'opacity-100 blur-0 scale-100'}`}>
+              <style>{`
+                @keyframes premiumPageReveal {
+                  0% { 
+                    opacity: 0; 
+                    transform: translateY(15px);
+                    filter: blur(8px);
+                  }
+                  100% { 
+                    opacity: 1; 
+                    transform: translateY(0);
+                    filter: blur(0);
+                  }
+                }
+                .page-transition-wrapper {
+                  animation: premiumPageReveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+              `}</style>
+              <main key={route} className="page-transition-wrapper min-h-screen">
                 {/* HOME ROUTE */}
                 {route === 'home' && (
                   <div className="animate-in fade-in duration-1000">
