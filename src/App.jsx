@@ -3069,41 +3069,152 @@ function MainApp() {
                               <label className="block text-[10px] font-black uppercase mb-4 text-[#d4af37]">Керування категоріями товарів</label>
                               <p className="text-[8px] text-zinc-500 mb-6 uppercase tracking-widest">Натисніть на категорію, щоб додати або видалити її з сайту. Активні категорії світяться білим.</p>
 
-                              <div>
-                                {(() => {
-                                  // Об'єднуємо всі стандартні категорії в один масив
-                                  const predefinedAll = ['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка', 'Брюки', 'Джинсы', 'Штаны', 'Шорты', 'Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'];
-                                  const currentArr = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
-                                  
-                                  // Створюємо загальний список для відображення: всі стандартні + будь-які унікальні, які вже є в збережених
-                                  const allDisplayCategories = Array.from(new Set([...predefinedAll, ...currentArr]));
+                              <div className="mb-6">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Верхній одяг</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка'].map(cat => {
+                                    const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                                    return (
+                                      <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                          let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                          if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                          else current.push(cat);
+                                          setSettingsCategories(current.join(', '));
+                                        }}
+                                        className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                      >
+                                        {cat}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
 
-                                  return (
-                                    <div className="flex flex-wrap gap-2 mb-6">
-                                      {allDisplayCategories.map((cat, idx) => {
-                                        const isActive = currentArr.includes(cat);
-                                        return (
-                                          <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => {
-                                              if (isActive) {
-                                                // Вимикаємо категорію
-                                                setSettingsCategories(currentArr.filter(c => c !== cat).join(', '));
-                                              } else {
-                                                // Вмикаємо категорію
-                                                setSettingsCategories([...currentArr, cat].join(', '));
-                                              }
-                                            }}
-                                            className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-all ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
-                                          >
-                                            {cat}
-                                          </button>
-                                        )
-                                      })}
-                                    </div>
-                                  );
-                                })()}
+                              <div className="mb-6">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Одяг для ніг (Низ)</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {['Брюки', 'Джинсы', 'Штаны', 'Шорты'].map(cat => {
+                                    const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                                    return (
+                                      <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                          let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                          if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                          else current.push(cat);
+                                          setSettingsCategories(current.join(', '));
+                                        }}
+                                        className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                      >
+                                        {cat}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              <div className="mb-6">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Головні убори та аксесуари</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'].map(cat => {
+                                    const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
+                                    return (
+                                      <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                          let current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                          if (current.includes(cat)) current = current.filter(c => c !== cat);
+                                          else current.push(cat);
+                                          setSettingsCategories(current.join(', '));
+                                        }}
+                                        className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${isActive ? 'bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-white/20 text-zinc-500 hover:border-white/50'}`}
+                                      >
+                                        {cat}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              <div>
+                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Власні категорії</h4>
+                                 
+                                 {/* Вивід існуючих власних категорій (тегів) */}
+                                 {(() => {
+                                   const predefinedAll = ['Футболка', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка', 'Брюки', 'Джинсы', 'Штаны', 'Шорты', 'Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'];
+                                   const currentArr = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                   const customArr = currentArr.filter(c => !predefinedAll.includes(c));
+                                   
+                                   return (
+                                     <div className="mb-4 min-h-[32px]">
+                                       {customArr.length > 0 ? (
+                                         <div className="flex flex-wrap gap-2">
+                                           {customArr.map((cat, idx) => (
+                                              <div key={idx} className="flex items-center gap-2 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-sm">
+                                                <span>{cat}</span>
+                                                <button 
+                                                  type="button" 
+                                                  onClick={() => {
+                                                    const updated = currentArr.filter(c => c !== cat);
+                                                    setSettingsCategories(updated.join(', '));
+                                                  }}
+                                                  className="hover:text-white transition-colors p-0.5"
+                                                >
+                                                  <X size={12} />
+                                                </button>
+                                              </div>
+                                           ))}
+                                         </div>
+                                       ) : (
+                                         <p className="text-[8px] text-zinc-500 uppercase tracking-widest py-1">Немає доданих власних категорій</p>
+                                       )}
+                                     </div>
+                                   );
+                                 })()}
+
+                                 {/* Введення нової категорії */}
+                                 <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Назва нової категорії..."
+                                      value={newCustomCategory}
+                                      onChange={e => setNewCustomCategory(e.target.value)}
+                                      onKeyDown={e => {
+                                         if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (newCustomCategory.trim()) {
+                                               const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                               if (!current.includes(newCustomCategory.trim())) {
+                                                  setSettingsCategories([...current, newCustomCategory.trim()].join(', '));
+                                               }
+                                               setNewCustomCategory('');
+                                            }
+                                         }
+                                      }}
+                                      className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs md:text-sm focus:border-white outline-none transition-colors"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                         if (newCustomCategory.trim()) {
+                                            const current = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
+                                            if (!current.includes(newCustomCategory.trim())) {
+                                               setSettingsCategories([...current, newCustomCategory.trim()].join(', '));
+                                            }
+                                            setNewCustomCategory('');
+                                         }
+                                      }}
+                                      disabled={!newCustomCategory.trim()}
+                                      className="px-6 bg-white text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-50 hover:bg-zinc-200 transition-colors"
+                                    >
+                                      Додати
+                                    </button>
+                                 </div>
                               </div>
                             </div>
 
