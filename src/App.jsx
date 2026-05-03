@@ -569,34 +569,34 @@ function MainApp() {
   useEffect(() => {
     if (!user) return;
     
-    const unsubProducts = onSnapshot(getProductsRef(), 
-      (s) => {
-        setDbProducts(s.docs.map(d => ({ id: d.id, ...d.data() })));
-        setIsProductsLoaded(true);
-      },
-      (err) => { console.warn(err); setIsProductsLoaded(true); }
-    );
-
-    const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), 
-      (d) => {
-        if (d.exists()) {
-          const data = d.data();
-          setSiteSettings({
-            heroImage: data.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
-            heroImageMobile: data.heroImageMobile || '',
-            brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
-            categories: data.categories || DEFAULT_CATEGORIES
-          });
-          setSettingsFormUrl(data.heroImage || '');
-          setSettingsFormUrlMobile(data.heroImageMobile || '');
-          setSettingsBrandUrl(data.brandImage || '');
-          setSettingsCategories(data.categories?.join(', ') || DEFAULT_CATEGORIES.join(', '));
-        } else {
-          setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
-        }
-        setIsSettingsLoaded(true);
-      },
-      (err) => { console.warn(err); setIsSettingsLoaded(true); }
+    // Fetch Settings
+    const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        // Очищаем категории от мусорных значений (если они случайно попали в базу)
+        let rawCategories = data.categories || DEFAULT_CATEGORIES;
+        let cleanCategories = Array.isArray(rawCategories) ? rawCategories : String(rawCategories).split(',').map(c => c.trim());
+        cleanCategories = cleanCategories.filter(c => c && c.toLowerCase() !== 'hghghgh' && c.toLowerCase() !== 'другое' && c.toLowerCase() !== 'інше');
+        
+        setSiteSettings({
+          heroImage: data.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
+          heroImageMobile: data.heroImageMobile || '',
+          brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+          categories: cleanCategories.length > 0 ? cleanCategories : DEFAULT_CATEGORIES
+        });
+        
+        setSettingsFormUrl(data.heroImage || '');
+        setSettingsFormUrlMobile(data.heroImageMobile || '');
+        setSettingsBrandUrl(data.brandImage || '');
+        setSettingsCategories(cleanCategories.length > 0 ? cleanCategories.join(', ') : DEFAULT_CATEGORIES.join(', '));
+      } else {
+        setSiteSettings(prev => ({ ...prev, categories: DEFAULT_CATEGORIES }));
+        setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
+      }
+      setIsSettingsLoaded(true);
+    },
+    (err) => { console.warn(err); setIsSettingsLoaded(true); }
     );
 
     const unsubOrders = onSnapshot(getOrdersRef(), 
