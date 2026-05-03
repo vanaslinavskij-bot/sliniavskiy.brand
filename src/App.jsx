@@ -63,7 +63,7 @@ const DEFAULT_CATEGORIES = ['Футболки', 'Штани', 'Джинси', '�
 
 const GROUP_TOP = ['Футболка', 'Футболки', 'Рубашка', 'Свитшот', 'Худи', 'Толстовка', 'Джемпер', 'Жилет', 'Свитер', 'Пиджак', 'Куртка', 'Пальто', 'Ветровка'];
 const GROUP_BOTTOM = ['Брюки', 'Джинсы', 'Джинси', 'Штаны', 'Штани', 'Шорты', 'Шорти'];
-const GROUP_ACC = ['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень', 'Аксесуари'];
+const GROUP_ACC = ['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень', 'Аксесуари', 'Сумка', 'Рюкзак'];
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 const DEFAULT_COLORS = [
@@ -326,7 +326,7 @@ function MainApp() {
       'Футболка':'T-Shirt', 'Рубашка':'Shirt', 'Свитшот':'Sweatshirt', 'Худи':'Hoodie', 'Толстовка':'Hoodie',
       'Джемпер':'Jumper', 'Жилет':'Vest', 'Свитер':'Sweater', 'Пиджак':'Jacket', 'Куртка':'Jacket', 'Пальто':'Coat', 'Ветровка':'Windbreaker',
       'Джинсы':'Jeans', 'Штаны':'Pants', 'Шорты':'Shorts',
-      'Шапка':'Beanie', 'Кепка':'Cap', 'Шляпа':'Hat', 'Шарф':'Scarf', 'Перчатки':'Gloves', 'Ремень':'Belt', 'Аксесуари':'Accessories'
+      'Шапка':'Beanie', 'Кепка':'Cap', 'Шляпа':'Hat', 'Шарф':'Scarf', 'Перчатки':'Gloves', 'Ремень':'Belt', 'Аксесуари':'Accessories', 'Сумка':'Bag', 'Рюкзак':'Backpack'
     };
     return map[cat] || cat;
   }, [lang]);
@@ -3188,7 +3188,7 @@ function MainApp() {
                               <div className="mb-6">
                                 <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3">Головні убори та аксесуари</h4>
                                 <div className="flex flex-wrap gap-2">
-                                  {['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень'].map(cat => {
+                                  {['Шапка', 'Кепка', 'Шляпа', 'Шарф', 'Перчатки', 'Ремень', 'Сумка', 'Рюкзак'].map(cat => {
                                     const isActive = settingsCategories.split(',').map(c=>c.trim()).includes(cat);
                                     return (
                                       <button
