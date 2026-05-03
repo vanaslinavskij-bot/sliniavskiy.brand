@@ -2675,135 +2675,29 @@ function MainApp() {
                           </div>
                         )}
 
-                        {!editingProduct && (
-                          <div className="space-y-12">
-                            {activeCategories.map(cat => {
-                              const catProducts = dbProducts.filter(p => p.category === cat);
-                              return (
-                                <div key={cat} className="space-y-4">
-                                  <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                                    <h3 className="text-sm md:text-base font-black uppercase tracking-widest text-[#d4af37] flex items-center gap-2">
-                                       <LayoutGrid size={16}/> {cat} <span className="text-zinc-600 text-[10px]">({catProducts.length})</span>
-                                    </h3>
-                                    <button 
-                                      onClick={() => { 
-                                        setEditingProduct({}); 
-                                        setEditForm({ 
-                                          name: '', price: '', category: cat, 
-                                          images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
-                                          colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
-                                          sizes: { ...DEFAULT_SIZES_AVAILABILITY } 
-                                        }); 
-                                      }} 
-                                      className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
-                                    >
-                                      <Plus size={12}/> Додати сюди
-                                    </button>
-                                  </div>
-
-                                  {catProducts.length === 0 ? (
-                                    <div className="text-zinc-600 text-[9px] uppercase tracking-widest font-bold py-4">У цій категорії поки немає товарів</div>
-                                  ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                      {catProducts.map(p => (
-                                        <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                                          <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
-                                          <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
-                                          <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
-                                          <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
-                                          <div className="flex gap-2 w-full">
-                                            <button onClick={() => { 
-                                              const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
-                                                ...c,
-                                                imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
-                                              }));
-                                              setEditingProduct(p); 
-                                              setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
-                                            }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
-                                            <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
+                        {dbProducts.length === 0 && !editingProduct ? (
+                           <div className="text-center py-20 text-zinc-500 uppercase font-black tracking-widest text-xs border border-dashed border-white/20">Товарів ще немає. Додайте перший товар!</div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {dbProducts.map(p => (
+                              <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
+                                <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
+                                <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
+                                <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
+                                <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
+                                <div className="flex gap-2 w-full">
+                                  <button onClick={() => { 
+                                    const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
+                                      ...c,
+                                      imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
+                                    }));
+                                    setEditingProduct(p); 
+                                    setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
+                                  }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
+                                  <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                                 </div>
-                              );
-                            })}
-
-                            {/* Товари без категорії або з видаленою категорією */}
-                            {(() => {
-                              const uncategorized = dbProducts.filter(p => !activeCategories.includes(p.category));
-                              if (uncategorized.length === 0) return null;
-                              return (
-                                <div className="space-y-4 pt-8 border-t border-red-500/20">
-                                  <h3 className="text-sm md:text-base font-black uppercase tracking-widest text-red-400 flex items-center gap-2">
-                                     <Box size={16}/> Інші товари (Без категорії) <span className="text-zinc-600 text-[10px]">({uncategorized.length})</span>
-                                  </h3>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                      {uncategorized.map(p => (
-                                        <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                                          <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
-                                          <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
-                                          <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
-                                          <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
-                                          <div className="flex gap-2 w-full">
-                                            <button onClick={() => { 
-                                              const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
-                                                ...c,
-                                                imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
-                                              }));
-                                              setEditingProduct(p); 
-                                              setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
-                                            }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
-                                            <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* ШВИДКЕ ДОДАВАННЯ КАТЕГОРІЇ */}
-                            <div className="pt-8 border-t border-white/10 mt-8">
-                               <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Додати нову категорію</h4>
-                               <div className="flex gap-2 max-w-sm">
-                                  <input 
-                                    type="text" 
-                                    id="quickAddCatInput"
-                                    placeholder="Назва категорії..." 
-                                    className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors"
-                                    onKeyDown={async (e) => {
-                                      if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        const val = e.target.value.trim();
-                                        if (val && !activeCategories.includes(val)) {
-                                           const newCatList = [...activeCategories, val];
-                                           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), { categories: newCatList }, { merge: true });
-                                           e.target.value = '';
-                                           showToast('✅ Категорію додано!');
-                                        }
-                                      }
-                                    }}
-                                  />
-                                  <button 
-                                    onClick={async () => {
-                                      const input = document.getElementById('quickAddCatInput');
-                                      const val = input.value.trim();
-                                      if (val && !activeCategories.includes(val)) {
-                                         const newCatList = [...activeCategories, val];
-                                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), { categories: newCatList }, { merge: true });
-                                         input.value = '';
-                                         showToast('✅ Категорію додано!');
-                                      }
-                                    }}
-                                    className="px-6 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors"
-                                  >
-                                    Додати
-                                  </button>
-                               </div>
-                            </div>
-
+                              </div>
+                            ))}
                           </div>
                         )}
                       </section>
