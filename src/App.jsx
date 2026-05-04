@@ -626,10 +626,16 @@ function MainApp() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth); 
+        // Очікуємо, поки Firebase перевірить кеш і відновить збережену сесію
+        await auth.authStateReady();
+        
+        // Створюємо нову сесію ТІЛЬКИ якщо користувач ще не авторизований
+        if (!auth.currentUser) {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth); 
+          }
         }
       } catch (err) {
         console.warn("Auth init error", err);
