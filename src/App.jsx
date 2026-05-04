@@ -1706,7 +1706,7 @@ function MainApp() {
                               type="email" 
                               value={authEmail} 
                               onChange={e => setAuthEmail(e.target.value)} 
-                              className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors"
+                              className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors text-white"
                               required 
                             />
                           </div>
@@ -1716,7 +1716,7 @@ function MainApp() {
                               type="password" 
                               value={authPassword} 
                               onChange={e => setAuthPassword(e.target.value)} 
-                              className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors"
+                              className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none transition-colors text-white"
                               required 
                               minLength={6}
                             />
@@ -3594,8 +3594,8 @@ function MainApp() {
                    checkoutStep === 1 ? (
                      <form id="cart-scroll-container" onSubmit={handleOrderSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-4 text-left flex flex-col pb-32">
                         <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">{t('delivery_data')}</h3>
-                        <input required type="text" placeholder={t('full_name')} value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
-                        <input required type="tel" placeholder={t('phone')} value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" />
+                        <input required type="text" placeholder={t('full_name')} value={deliveryForm.name} onChange={e => setDeliveryForm({...deliveryForm, name: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors text-white" />
+                        <input required type="tel" placeholder={t('phone')} value={deliveryForm.phone} onChange={e => setDeliveryForm({...deliveryForm, phone: e.target.value})} className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors text-white" />
                         
                         <div className="relative">
                           <input 
@@ -3606,13 +3606,13 @@ function MainApp() {
                             onChange={e => fetchNpCities(e.target.value)} 
                             onFocus={() => { if(npCities.length > 0) setShowCities(true); else if (deliveryForm.city.length >= 2) fetchNpCities(deliveryForm.city); }}
                             onBlur={() => setTimeout(() => setShowCities(false), 200)}
-                            className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors" 
+                            className="w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors text-white" 
                           />
                           {isNpLoading && !showWarehouses && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
                           {showCities && npCities.length > 0 && (
                             <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl no-scrollbar">
                               {npCities.map(city => (
-                                <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors">
+                                <div key={city.Ref} onClick={() => selectNpCity(city)} className="px-4 py-3 text-xs md:text-sm hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors text-white">
                                   {city.Description} <span className="text-[10px] text-zinc-500">({city.AreaDescription})</span>
                                 </div>
                               ))}
@@ -3630,12 +3630,12 @@ function MainApp() {
                             onFocus={() => { if(npWarehouses.length > 0) setShowWarehouses(true); else if(deliveryForm.cityRef) fetchNpWarehouses(deliveryForm.branch || ''); }}
                             onBlur={() => setTimeout(() => setShowWarehouses(false), 200)}
                             disabled={!deliveryForm.cityRef}
-                            className={`w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors ${!deliveryForm.cityRef ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                            className={`w-full bg-black/50 border border-white/10 px-4 py-3 md:py-4 text-xs md:text-sm focus:border-white outline-none transition-colors text-white ${!deliveryForm.cityRef ? 'opacity-50 cursor-not-allowed' : ''}`} 
                           />
                           {showWarehouses && npWarehouses.length > 0 && (
                             <div className="absolute z-50 w-full mt-1 bg-[#111] border border-white/10 max-h-48 overflow-y-auto shadow-2xl no-scrollbar">
                               {npWarehouses.map(wh => (
-                                <div key={wh.Ref} onClick={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed">
+                                <div key={wh.Ref} onClick={() => selectNpWarehouse(wh)} className="px-4 py-3 text-[10px] md:text-xs hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors leading-relaxed text-white">
                                   {wh.Description}
                                 </div>
                               ))}
