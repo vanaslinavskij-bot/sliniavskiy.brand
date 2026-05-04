@@ -512,6 +512,7 @@ function MainApp() {
   const [settingsFormUrl, setSettingsFormUrl] = useState('');
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
+  const [settingsPromoUrl, setSettingsPromoUrl] = useState('');
   const [settingsCategories, setSettingsCategories] = useState('');
   const [newCustomCategory, setNewCustomCategory] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -695,11 +696,13 @@ function MainApp() {
             heroImage: data.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
             heroImageMobile: data.heroImageMobile || '',
             brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+            promoMediaUrl: data.promoMediaUrl || '',
             categories: cleanCats
           });
           setSettingsFormUrl(data.heroImage || '');
           setSettingsFormUrlMobile(data.heroImageMobile || '');
           setSettingsBrandUrl(data.brandImage || '');
+          setSettingsPromoUrl(data.promoMediaUrl || '');
           setSettingsCategories(cleanCats.join(', '));
         } else {
           setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
@@ -1221,7 +1224,8 @@ function MainApp() {
       if (type === 'desktop') setSettingsFormUrl(url);
       if (type === 'mobile') setSettingsFormUrlMobile(url);
       if (type === 'brand') setSettingsBrandUrl(url);
-      showToast('⚠️ Зображення завантажено! Натисніть "Зберегти налаштування"');
+      if (type === 'promo') setSettingsPromoUrl(url);
+      showToast('⚠️ Медіа завантажено! Натисніть "Зберегти налаштування"');
     } catch (error) {
       console.warn("Помилка завантаження зображення", error);
       showToast('❌ Помилка завантаження');
@@ -1247,6 +1251,7 @@ function MainApp() {
         heroImage: settingsFormUrl || siteSettings.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
         heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile || '',
         brandImage: settingsBrandUrl || siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+        promoMediaUrl: settingsPromoUrl || siteSettings.promoMediaUrl || '',
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -1548,6 +1553,20 @@ function MainApp() {
                       </div>
                     )}
                   </section>
+
+                  {/* ДОПОЛНИТЕЛЬНЫЙ ПРОМО-БЛОК (ВИДЕО/ФОТО) */}
+                  {siteSettings.promoMediaUrl && (
+                    <section className="relative w-full aspect-video md:aspect-[21/9] bg-zinc-900 border-t border-white/5 overflow-hidden group">
+                       <MediaElement src={siteSettings.promoMediaUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 md:group-hover:opacity-80 md:group-hover:scale-105 transition-all duration-1000" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                          <h2 className="text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-[0.2em] text-white mb-6 drop-shadow-2xl">Нова Колекція</h2>
+                          <button onClick={() => navigate('catalog')} className="px-8 py-4 bg-white text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:bg-zinc-200 transition-colors shadow-2xl active:scale-95">
+                            Дивитись зараз
+                          </button>
+                       </div>
+                    </section>
+                  )}
                 </div>
               )}
 
@@ -3337,49 +3356,109 @@ function MainApp() {
                             
                             {/* ЗАГРУЗКА ДЛЯ ПК */}
                             <div className="border border-white/10 p-4 bg-black/50">
-                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Головне фото (Hero) для комп'ютера</label>
-                              <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1920x1080</p>
+                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Головне медіа (Hero) для комп'ютера</label>
+                              <p className="text-[8px] text-zinc-500 mb-2">Вставте посилання на відео (.mp4) або завантажте файл (до 50МБ)</p>
+                              
+                              <input 
+                                type="url" 
+                                placeholder="https://..." 
+                                value={settingsFormUrl} 
+                                onChange={e => setSettingsFormUrl(e.target.value)}
+                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
+                              />
+
                               <input 
                                 type="file" 
-                                accept="image/*" 
+                                accept="image/*,video/mp4,video/webm" 
                                 onChange={(e) => handleImageSettingUpload(e, 'desktop')}
                                 disabled={isUploadingFile}
                                 className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
                               />
                               {settingsFormUrl || siteSettings.heroImage ? (
-                                <img src={settingsFormUrl || siteSettings.heroImage} alt="Preview PC" className="w-full h-48 md:h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                                <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
+                                   <MediaElement src={settingsFormUrl || siteSettings.heroImage} className="w-full h-full object-cover opacity-80" />
+                                </div>
                               ) : null}
                             </div>
                             
                             {/* ЗАГРУЗКА ДЛЯ ТЕЛЕФОНА */}
                             <div className="border border-white/10 p-4 bg-black/50">
-                              <label className="block text-[10px] font-black uppercase mt-2 mb-2 text-[#d4af37]">Головне фото (Hero) для телефону</label>
-                              <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1080x1920</p>
+                              <label className="block text-[10px] font-black uppercase mt-2 mb-2 text-[#d4af37]">Головне медіа (Hero) для телефону</label>
+                              <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1080x1920. Вставте посилання або завантажте файл</p>
+                              
+                              <input 
+                                type="url" 
+                                placeholder="https://..." 
+                                value={settingsFormUrlMobile} 
+                                onChange={e => setSettingsFormUrlMobile(e.target.value)}
+                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
+                              />
+
                               <input 
                                 type="file" 
-                                accept="image/*" 
+                                accept="image/*,video/mp4,video/webm" 
                                 onChange={(e) => handleImageSettingUpload(e, 'mobile')}
                                 disabled={isUploadingFile}
                                 className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
                               />
                               {settingsFormUrlMobile || siteSettings.heroImageMobile ? (
-                                <img src={settingsFormUrlMobile || siteSettings.heroImageMobile} alt="Preview Mobile" className="w-full max-w-[200px] h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                                <div className="mt-2 w-full max-w-[200px] h-64 border border-white/10 overflow-hidden bg-zinc-900">
+                                   <MediaElement src={settingsFormUrlMobile || siteSettings.heroImageMobile} className="w-full h-full object-cover opacity-80" />
+                                </div>
                               ) : null}
                             </div>
 
                             {/* ЗАГРУЗКА ДЛЯ РОЗДІЛУ БРЕНД */}
                             <div className="border border-white/10 p-4 bg-black/50 mt-2">
-                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Фото для розділу "Бренд"</label>
-                              <p className="text-[8px] text-zinc-500 mb-2">Картинка, яка відображається під текстом про компанію. Рекомендований розмір: 1920x1080 (або пропорція 16:9).</p>
+                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Медіа для розділу "Бренд"</label>
+                              <p className="text-[8px] text-zinc-500 mb-2">Вставте посилання або завантажте файл. Рекомендований розмір: 1920x1080 (або 16:9).</p>
+                              
+                              <input 
+                                type="url" 
+                                placeholder="https://..." 
+                                value={settingsBrandUrl} 
+                                onChange={e => setSettingsBrandUrl(e.target.value)}
+                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
+                              />
+
                               <input 
                                 type="file" 
-                                accept="image/*" 
+                                accept="image/*,video/mp4,video/webm" 
                                 onChange={(e) => handleImageSettingUpload(e, 'brand')}
                                 disabled={isUploadingFile}
                                 className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
                               />
                               {settingsBrandUrl || siteSettings.brandImage ? (
-                                <img src={settingsBrandUrl || siteSettings.brandImage} alt="Preview Brand" className="w-full h-48 md:h-64 object-cover border border-white/10 mt-2 opacity-80" />
+                                <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
+                                   <MediaElement src={settingsBrandUrl || siteSettings.brandImage} className="w-full h-full object-cover opacity-80" />
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {/* НОВИЙ БЛОК ДЛЯ ПРОМО-ВІДЕО НА ГОЛОВНІЙ */}
+                            <div className="border border-white/10 p-4 bg-black/50 mt-2">
+                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Промо-медіа (Додатковий блок на головній)</label>
+                              <p className="text-[8px] text-zinc-500 mb-2">З'явиться на головній сторінці під товарами. Вставте посилання на відео/фото або завантажте файл.</p>
+                              
+                              <input 
+                                type="url" 
+                                placeholder="https://..." 
+                                value={settingsPromoUrl} 
+                                onChange={e => setSettingsPromoUrl(e.target.value)}
+                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
+                              />
+
+                              <input 
+                                type="file" 
+                                accept="image/*,video/mp4,video/webm" 
+                                onChange={(e) => handleImageSettingUpload(e, 'promo')}
+                                disabled={isUploadingFile}
+                                className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
+                              />
+                              {settingsPromoUrl || siteSettings.promoMediaUrl ? (
+                                <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
+                                   <MediaElement src={settingsPromoUrl || siteSettings.promoMediaUrl} className="w-full h-full object-cover opacity-80" />
+                                </div>
                               ) : null}
                             </div>
 
