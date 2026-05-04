@@ -432,6 +432,10 @@ function MainApp() {
   const [orderSearch, setOrderSearch] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   
+  // Добавляем состояния для управления скидками
+  const [discountSearch, setDiscountSearch] = useState('');
+  const [discountEdits, setDiscountEdits] = useState({});
+
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -538,6 +542,23 @@ function MainApp() {
   useEffect(() => { localStorage.setItem('sliniavskiy_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
 
   useEffect(() => { setRefCalcResult(null); }, [refFilterPartner, refFilterDateFrom, refFilterDateTo, refPercent]);
+
+  // Глобальная функция расчета актуальной цены товара с учетом скидки
+  const getProductPrice = useCallback((p) => {
+    const original = Number(p.price) || 0;
+    let final = original;
+    let isDiscounted = false;
+    let percent = Number(p.discountPercent) || 0;
+
+    if (percent > 0 && percent <= 100) {
+      // Если дата не указана ИЛИ дата еще не наступила
+      if (!p.discountEndsAt || new Date(p.discountEndsAt).getTime() > new Date().getTime()) {
+        final = Math.round(original * (1 - percent / 100));
+        isDiscounted = true;
+      }
+    }
+    return { original, final, isDiscounted, percent };
+  }, []);
 
   useEffect(() => {
     if (!isUserDataLoaded || !user) return;
@@ -824,10 +845,10 @@ function MainApp() {
 
   const cartSubtotal = useMemo(() => cart.reduce((total, item) => {
     const realProduct = activeProducts.find(p => p.id === item.id);
-    const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+    const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0 };
     const qty = Number(item.quantity) || 1;
-    return total + (realPrice * qty);
-  }, 0), [cart, activeProducts]);
+    return total + (pInfo.final * qty);
+  }, 0), [cart, activeProducts, getProductPrice]);
 
   const cartTotal = Number(cartSubtotal) || 0;
 
@@ -949,14 +970,14 @@ function MainApp() {
     
     const itemsToSave = cart.map(item => {
       const realProduct = activeProducts.find(p => p.id === item.id);
-      const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+      const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0 };
       return { 
         id: String(item.id || ''),
         name: String(item.name || 'Товар'),
         selectedSize: String(item.selectedSize || 'OS'),
         selectedColor: String(item.selectedColor || ''),
         quantity: Number(item.quantity) || 1,
-        price: realPrice,
+        price: pInfo.final,
         image: String(item.image || 'https://via.placeholder.com/100')
       };
     }).filter(item => item.id && item.price >= 0); 
@@ -1087,7 +1108,9 @@ function MainApp() {
           M: Boolean(editForm.sizes?.M !== false),
           L: Boolean(editForm.sizes?.L !== false),
           XL: Boolean(editForm.sizes?.XL !== false)
-        }
+        },
+        discountPercent: editingProduct?.discountPercent || null,
+        discountEndsAt: editingProduct?.discountEndsAt || null
       };
 
       const safeData = JSON.parse(JSON.stringify(productData));
@@ -1273,6 +1296,19 @@ function MainApp() {
     }));
   };
 
+  const handleSaveDiscount = async (productId, percent, endsAt) => {
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productId), {
+        discountPercent: percent ? Number(percent) : null,
+        discountEndsAt: endsAt || null
+      });
+      showToast('✅ Знижку успішно збережено!');
+    } catch (e) {
+      console.warn(e);
+      showToast('❌ Помилка збереження знижки');
+    }
+  };
+
   const toggleColorImage = (colorIndex, imgIndex) => {
     const nc = [...editForm.colors];
     if (!nc[colorIndex].imageIndexes) {
@@ -1409,7 +1445,9 @@ function MainApp() {
                       <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">{t('view_all')}</button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 md:gap-10 lg:px-16 xl:px-32">
-                      {randomStorefrontProducts.slice(0, 6).map((p, idx) => (
+                      {randomStorefrontProducts.slice(0, 6).map((p, idx) => {
+                        const priceInfo = getProductPrice(p);
+                        return (
                         <div 
                           key={p.id} 
                           className="group cursor-pointer animate-in fade-in zoom-in-95 slide-in-from-bottom-6 duration-1000 ease-out" 
@@ -1417,16 +1455,26 @@ function MainApp() {
                           onClick={() => navigate('product', { id: p.id })}
                         >
                           <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3 md:mb-5 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
-                            {p.inStock === false && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
+                            {priceInfo.isDiscounted && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-[#d4af37] text-black text-[9px] md:text-[11px] font-black uppercase px-2 py-1 shadow-lg">-{priceInfo.percent}%</div>}
+                            {p.inStock === false && <div className={`absolute left-2 md:left-4 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10 ${priceInfo.isDiscounted ? 'top-8 md:top-12' : 'top-2 md:top-4'}`}>{t('sold_out')}</div>}
                             <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={`md:w-4 md:h-4 ${isInWishlist(p.id) ? "text-white" : "text-white/50"}`} />
                             </button>
                           </div>
                           <h3 className="font-bold uppercase tracking-widest text-[9px] md:text-xs mb-1">{p.name}</h3>
-                          <p className="text-zinc-500 font-medium text-[10px] md:text-sm">{p.price} ₴</p>
+                          <p className="font-medium text-[10px] md:text-sm flex gap-2">
+                             {priceInfo.isDiscounted ? (
+                               <>
+                                 <span className="line-through text-zinc-600">{priceInfo.original} ₴</span>
+                                 <span className="text-[#d4af37] font-black">{priceInfo.final} ₴</span>
+                               </>
+                             ) : (
+                               <span className="text-zinc-500">{priceInfo.final} ₴</span>
+                             )}
+                          </p>
                         </div>
-                      ))}
+                      )})}
                     </div>
                     {randomStorefrontProducts.length > 6 && (
                       <div className="mt-12 md:mt-16 flex justify-center w-full">
@@ -1527,8 +1575,8 @@ function MainApp() {
                         return (
                           <>
                             {filteredProducts.map((p, idx) => {
-                              // Обмежуємо максимальну затримку анімації, щоб останні товари не доводилось довго чекати
                               const animationDelay = Math.min(idx * 80, 800);
+                              const priceInfo = getProductPrice(p);
 
                               return (
                               <div 
@@ -1538,14 +1586,24 @@ function MainApp() {
                                 style={{ animationDelay: `${animationDelay}ms`, animationFillMode: 'both' }}
                               >
                                 <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
-                                  {p.inStock === false && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
+                                  {priceInfo.isDiscounted && <div className="absolute top-4 left-4 z-10 bg-[#d4af37] text-black text-[10px] md:text-[11px] font-black uppercase px-3 py-1 shadow-lg">-{priceInfo.percent}%</div>}
+                                  {p.inStock === false && <div className={`absolute left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10 ${priceInfo.isDiscounted ? 'top-12' : 'top-4'}`}>{t('sold_out')}</div>}
                                   <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
                                   <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                                     <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                                   </button>
                                 </div>
                                 <h3 className="font-bold uppercase text-[11px] md:text-sm tracking-widest mb-1">{p.name}</h3>
-                                <p className="text-zinc-500 font-medium text-xs md:text-base">{p.price} ₴</p>
+                                <p className="font-medium text-xs md:text-base flex gap-2">
+                                   {priceInfo.isDiscounted ? (
+                                     <>
+                                       <span className="line-through text-zinc-600">{priceInfo.original} ₴</span>
+                                       <span className="text-[#d4af37] font-black">{priceInfo.final} ₴</span>
+                                     </>
+                                   ) : (
+                                     <span className="text-zinc-500">{priceInfo.final} ₴</span>
+                                   )}
+                                </p>
                               </div>
                             )})}
                           </>
@@ -1779,6 +1837,7 @@ function MainApp() {
                     const colorLabel = lang === 'uk' ? activeColor.label : activeColor.name;
                     const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
                     const inStockGlobal = p.inStock !== false;
+                    const priceInfo = getProductPrice(p);
 
                     const galleryImages = (activeColor.imageIndexes && activeColor.imageIndexes.length > 0 && p.images) 
                       ? activeColor.imageIndexes.filter(i => i < p.images.length).map(i => p.images[i]) 
@@ -2125,6 +2184,7 @@ function MainApp() {
                       { id: 'orders', label: 'Замовлення', icon: <Package size={16} /> },
                       { id: 'analytics', label: 'Аналітика', icon: <BarChart size={16} /> },
                       { id: 'products', label: 'Товари', icon: <Box size={16} /> },
+                      { id: 'discounts', label: 'Знижки', icon: <Percent size={16} /> },
                       { id: 'referrals', label: 'Реферали', icon: <Users size={16} /> },
                       { id: 'settings', label: 'Налаштування', icon: <Settings size={16} /> }
                     ].map(tab => (
@@ -2794,6 +2854,87 @@ function MainApp() {
                       </section>
                     )}
 
+                    {/* --- DISCOUNTS TAB --- */}
+                    {adminTab === 'discounts' && (
+                      <section className="space-y-6 animate-in fade-in">
+                        <div className="bg-zinc-900/40 border border-white/10 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                           <div>
+                              <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-[#d4af37] mb-2">Управління знижками</h2>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Налаштовуйте акції для товарів швидко та зручно</p>
+                           </div>
+                           <div className="relative w-full md:w-auto">
+                             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                             <input
+                               type="text"
+                               placeholder="Пошук товару..."
+                               value={discountSearch}
+                               onChange={(e) => setDiscountSearch(e.target.value)}
+                               className="w-full md:w-64 bg-black/50 border border-white/10 pl-12 pr-4 py-3 md:py-4 text-xs focus:border-white outline-none text-white transition-colors"
+                             />
+                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                           {dbProducts.filter(p => p.name.toLowerCase().includes(discountSearch.toLowerCase())).map(p => {
+                              const currentEdit = discountEdits[p.id] || { percent: p.discountPercent || '', endsAt: p.discountEndsAt || '' };
+                              const priceInfo = getProductPrice(p);
+                              
+                              return (
+                                <div key={p.id} className={`border p-4 flex flex-col gap-5 transition-colors ${priceInfo.isDiscounted ? 'border-[#d4af37]/50 bg-[#d4af37]/5' : 'border-white/10 bg-black/50 hover:border-white/30'}`}>
+                                   <div className="flex gap-4 items-center">
+                                      <img src={p.images?.[0] || 'https://via.placeholder.com/100'} className="w-16 h-20 object-cover bg-zinc-900 border border-white/5 shrink-0" alt="" />
+                                      <div className="flex-1 min-w-0">
+                                         <p className="text-xs font-bold uppercase truncate text-white mb-1" title={p.name}>{p.name}</p>
+                                         <p className="text-[10px] text-zinc-500 font-bold">{p.price} ₴</p>
+                                         {priceInfo.isDiscounted && (
+                                            <p className="text-[10px] text-[#d4af37] font-black mt-2">
+                                              Активна: -{priceInfo.percent}% <br/><span className="text-white mt-1 inline-block">Нова ціна: {priceInfo.final} ₴</span>
+                                            </p>
+                                         )}
+                                      </div>
+                                   </div>
+                                   
+                                   <div className="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-white/5">
+                                      <div>
+                                         <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Знижка (%)</label>
+                                         <input
+                                            type="number"
+                                            min="0" max="100"
+                                            value={currentEdit.percent}
+                                            onChange={e => setDiscountEdits({...discountEdits, [p.id]: {...currentEdit, percent: e.target.value}})}
+                                            placeholder="Вимкнено"
+                                            className="w-full bg-black border border-white/10 px-3 py-3 text-xs outline-none focus:border-white transition-colors"
+                                         />
+                                      </div>
+                                      <div>
+                                         <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Діє до (Необов'язково)</label>
+                                         <input
+                                            type="date"
+                                            value={currentEdit.endsAt}
+                                            onChange={e => setDiscountEdits({...discountEdits, [p.id]: {...currentEdit, endsAt: e.target.value}})}
+                                            className="w-full bg-black border border-white/10 px-3 py-3 text-xs outline-none focus:border-white transition-colors text-white [color-scheme:dark]"
+                                         />
+                                      </div>
+                                   </div>
+                                   
+                                   <button
+                                      onClick={() => handleSaveDiscount(p.id, currentEdit.percent, currentEdit.endsAt)}
+                                      className="w-full py-3 bg-white/10 hover:bg-white hover:text-black text-[9px] font-black uppercase tracking-widest transition-colors mt-2"
+                                   >
+                                      Зберегти акцію
+                                   </button>
+                                </div>
+                              )
+                           })}
+                        </div>
+                        {dbProducts.filter(p => p.name.toLowerCase().includes(discountSearch.toLowerCase())).length === 0 && (
+                          <div className="text-center py-20 text-zinc-500 uppercase font-black tracking-widest text-xs border border-dashed border-white/20">
+                            Товарів не знайдено
+                          </div>
+                        )}
+                      </section>
+                    )}
+
                     {/* --- REFERRALS TAB --- */}
                     {adminTab === 'referrals' && (
                       <section className="space-y-8 md:space-y-12">
@@ -3375,18 +3516,30 @@ function MainApp() {
                   <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('search_placeholder')} className="w-full bg-transparent border-b-2 border-white/10 py-4 md:py-8 text-2xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter outline-none focus:border-white transition-colors text-white" />
                   {searchResults.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-12 mt-8 md:mt-10">
-                      {searchResults.map(p => (
+                      {searchResults.map(p => {
+                        const priceInfo = getProductPrice(p);
+                        return (
                         <div key={p.id} onClick={() => navigate('product', {id: p.id})} className="cursor-pointer group text-left relative">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden mb-3 md:mb-6 border border-white/5 relative">
+                            {priceInfo.isDiscounted && <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 bg-[#d4af37] text-black text-[9px] md:text-[10px] font-black uppercase px-2 py-1 shadow-lg">-{priceInfo.percent}%</div>}
                             <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover md:group-hover:scale-105 transition-all duration-700 opacity-80" alt={p.name} />
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-3 md:right-3 z-20 p-2 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                             </button>
                           </div>
                           <h5 className="font-black uppercase tracking-widest text-[9px] md:text-[10px] mb-1 md:mb-2 truncate text-white">{p.name}</h5>
-                          <p className="text-white font-bold text-[9px] md:text-[10px]">{p.price} ₴</p>
+                          <p className="font-bold text-[9px] md:text-[10px] flex gap-2">
+                             {priceInfo.isDiscounted ? (
+                               <>
+                                 <span className="line-through text-zinc-600">{priceInfo.original} ₴</span>
+                                 <span className="text-[#d4af37] font-black">{priceInfo.final} ₴</span>
+                               </>
+                             ) : (
+                               <span className="text-white">{priceInfo.final} ₴</span>
+                             )}
+                          </p>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                </div>
