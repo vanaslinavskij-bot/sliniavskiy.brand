@@ -1887,7 +1887,19 @@ function MainApp() {
                           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
                           
                           <div className="flex justify-between items-center mb-8 md:mb-12">
-                            <p className="text-xl md:text-2xl font-bold text-zinc-400">{p.price} ₴</p>
+                            <div className="flex items-center gap-3">
+                              {priceInfo.isDiscounted ? (
+                                <>
+                                  <p className="text-xl md:text-2xl font-black text-[#d4af37]">{priceInfo.final} ₴</p>
+                                  <p className="text-sm md:text-base font-bold text-zinc-600 line-through">{priceInfo.original} ₴</p>
+                                  <span className="text-[10px] md:text-xs bg-[#d4af37] text-black px-2 py-1 font-black uppercase tracking-widest shadow-lg">
+                                    -{priceInfo.percent}%
+                                  </span>
+                                </>
+                              ) : (
+                                <p className="text-xl md:text-2xl font-bold text-zinc-400">{priceInfo.final} ₴</p>
+                              )}
+                            </div>
                             <button onClick={() => toggleWishlist(p)} className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
                                <Heart size={18} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : ""} />
                                <span className="hidden sm:inline">{isInWishlist(p.id) ? t('in_wishlist') : t('add_to_wishlist')}</span>
@@ -3566,7 +3578,22 @@ function MainApp() {
                              <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2 text-white">{item.name}</h4>
                              <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-2 md:mb-3">{tCat(item.category)}</p>
                              <div className="flex items-center justify-between mt-auto">
-                                <p className="text-xs md:text-sm font-black text-white">{item.price} ₴</p>
+                                <div className="flex flex-col items-start">
+                                   {(() => {
+                                      const pInfo = getProductPrice(item);
+                                      return pInfo.isDiscounted ? (
+                                        <div className="flex flex-col gap-0.5">
+                                          <p className="text-xs md:text-sm font-black text-[#d4af37]">{pInfo.final} ₴</p>
+                                          <div className="flex items-center gap-2">
+                                            <p className="text-[9px] text-zinc-600 line-through font-bold">{pInfo.original} ₴</p>
+                                            <span className="text-[7px] bg-[#d4af37] text-black px-1 py-0.5 font-black uppercase tracking-widest rounded-sm">-{pInfo.percent}%</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs md:text-sm font-black text-white">{pInfo.final} ₴</p>
+                                      );
+                                   })()}
+                                </div>
                                 <button onClick={(e) => toggleWishlist(item, e)} className="text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
                              </div>
                           </div>
@@ -3707,7 +3734,7 @@ function MainApp() {
                          {cart.length === 0 ? <div className="text-center py-20 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('empty_cart')}</div> :
                            cart.map((item, idx) => {
                              const realProduct = activeProducts.find(p => p.id === item.id);
-                             const realPrice = realProduct ? Number(realProduct.price) : (Number(item.price) || 0);
+                             const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0, original: Number(item.price) || 0, isDiscounted: false, percent: 0 };
                              return (
                                <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5">
                                   <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
@@ -3715,7 +3742,18 @@ function MainApp() {
                                      <div>
                                        <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2 text-white">{item.name}</h4>
                                        <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-1 md:mb-2">{item.selectedSize} / {item.selectedColor}</p>
-                                       <p className="text-xs md:text-sm font-black text-white">{realPrice * item.quantity} ₴</p>
+                                       
+                                       <div className="flex flex-col items-start gap-1">
+                                          <p className="text-xs md:text-sm font-black text-white">{pInfo.final * item.quantity} ₴</p>
+                                          {pInfo.isDiscounted && (
+                                            <div className="flex items-center gap-2">
+                                              <p className="text-[10px] text-zinc-600 line-through font-bold">{pInfo.original * item.quantity} ₴</p>
+                                              <span className="text-[8px] bg-[#d4af37] text-black px-1 py-0.5 font-black uppercase tracking-widest rounded-sm">
+                                                -{pInfo.percent}%
+                                              </span>
+                                            </div>
+                                          )}
+                                       </div>
                                      </div>
                                      <div className="flex items-center gap-3 md:gap-4 mt-2">
                                         <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
