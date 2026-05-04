@@ -387,7 +387,11 @@ function MainApp() {
   useEffect(() => { localStorage.setItem('sliniavskiy_local_orders', JSON.stringify(localOrders)); }, [localOrders]);
   
   const activeProducts = dbProducts;
-  const storefrontProducts = activeProducts.filter(p => p.isVisible !== false);
+  const storefrontProducts = useMemo(() => activeProducts.filter(p => p.isVisible !== false), [activeProducts]);
+  
+  const randomStorefrontProducts = useMemo(() => {
+    return [...storefrontProducts].sort(() => 0.5 - Math.random());
+  }, [storefrontProducts]);
   
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('sliniavskiy_cookie_consent_v2'));
   const [cookiePrefs, setCookiePrefs] = useState(() => {
@@ -1405,7 +1409,7 @@ function MainApp() {
                       <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">{t('view_all')}</button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 md:gap-10 lg:px-16 xl:px-32">
-                      {storefrontProducts.slice(0, 6).map((p, idx) => (
+                      {randomStorefrontProducts.slice(0, 6).map((p, idx) => (
                         <div 
                           key={p.id} 
                           className="group cursor-pointer animate-in fade-in zoom-in-95 slide-in-from-bottom-6 duration-1000 ease-out" 
@@ -1424,7 +1428,7 @@ function MainApp() {
                         </div>
                       ))}
                     </div>
-                    {storefrontProducts.length > 6 && (
+                    {randomStorefrontProducts.length > 6 && (
                       <div className="mt-12 md:mt-16 flex justify-center w-full">
                         <button onClick={() => navigate('catalog')} className="group flex flex-col items-center gap-3 pb-2">
                           <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-zinc-500 group-hover:text-white transition-colors">
@@ -1513,9 +1517,8 @@ function MainApp() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
                       {(() => {
-                        const filteredProducts = storefrontProducts.filter(p => !routeParams.category || p.category === routeParams.category);
-                        const limit = isMobileView ? 5 : 10;
-                        const displayedProducts = showAllProducts ? filteredProducts : filteredProducts.slice(0, limit);
+                        const baseProducts = routeParams.category ? storefrontProducts : randomStorefrontProducts;
+                        const filteredProducts = baseProducts.filter(p => !routeParams.category || p.category === routeParams.category);
                         
                         if (filteredProducts.length === 0) {
                            return <div className="col-span-3 py-20 text-center text-zinc-500 uppercase font-black tracking-widest text-xs">{t('empty_cat')}</div>;
@@ -1523,10 +1526,9 @@ function MainApp() {
 
                         return (
                           <>
-                            {displayedProducts.map((p, idx) => {
-                              // Рассчитываем задержку так, чтобы новые вещи выплывали "каскадом"
-                              const isNewlyRevealed = showAllProducts && idx >= limit;
-                              const animationDelay = isNewlyRevealed ? (idx - limit) * 120 : (idx % limit) * 80;
+                            {filteredProducts.map((p, idx) => {
+                              // Обмежуємо максимальну затримку анімації, щоб останні товари не доводилось довго чекати
+                              const animationDelay = Math.min(idx * 80, 800);
 
                               return (
                               <div 
@@ -1546,13 +1548,6 @@ function MainApp() {
                                 <p className="text-zinc-500 font-medium text-xs md:text-base">{p.price} ₴</p>
                               </div>
                             )})}
-                            {filteredProducts.length > limit && !showAllProducts && (
-                              <div className="col-span-1 sm:col-span-2 md:col-span-3 mt-6 mb-4 flex justify-center w-full">
-                                <button onClick={() => setShowAllProducts(true)} className="px-10 py-5 bg-white text-black text-[11px] md:text-xs font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 shadow-xl">
-                                  {t('view_all')} ({filteredProducts.length})
-                                </button>
-                              </div>
-                            )}
                           </>
                         );
                       })()}
