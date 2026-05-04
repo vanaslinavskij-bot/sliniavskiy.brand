@@ -7,7 +7,8 @@ import {
   Plus, Edit, Trash2, Image as ImageIcon, Settings, ArrowRight, ArrowLeft, ChevronRight,
   Target, Award, Fingerprint, Shirt, Scissors, Sparkles, Box, Wind, 
   Layers, Gem, Feather, Shield, Activity,
-  Infinity as InfinityIcon, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle, MapPin, TrendingUp, TrendingDown, Eye
+  Infinity as InfinityIcon, Zap, LayoutGrid, Heart, History, Info, Users, Link as LinkIcon, BarChart, Calendar, Copy, Percent, MessageCircle, MapPin, TrendingUp, TrendingDown, Eye,
+  Lock, Unlock, AlertTriangle
 } from 'lucide-react';
 
 // --- INITIALIZE FIREBASE ---
@@ -134,6 +135,25 @@ const MediaElement = ({ src, className, alt, autoPlay = true, ...props }) => {
   }
   return <img src={src} alt={alt} className={className} {...props} />;
 };
+
+const MaintenanceScreen = ({ onSecretClick }) => (
+  <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center font-sans">
+    <div className="mb-12 cursor-pointer group" onClick={onSecretClick}>
+      <h1 className="text-4xl md:text-6xl font-black uppercase tracking-[0.3em] hover:text-[#d4af37] transition-colors">
+        SLINIAVSKIY
+      </h1>
+    </div>
+    <div className="relative mb-8">
+      <div className="w-20 h-20 border-2 border-white/10 border-t-[#d4af37] rounded-full animate-spin"></div>
+      <Lock className="absolute inset-0 m-auto text-[#d4af37]" size={24} />
+    </div>
+    <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-4">Технічні роботи</h2>
+    <p className="text-zinc-500 text-[10px] md:text-xs max-w-sm font-bold uppercase tracking-widest leading-relaxed">
+      Ми оновлюємо асортимент та покращуємо сервіс. <br />
+      Завітайте до нас трохи пізніше.
+    </p>
+  </div>
+);
 
 // --- TRANSLATION DICTIONARY ---
 const DICT = {
@@ -337,6 +357,7 @@ function MainApp() {
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
   const [minLoadTimePassed, setMinLoadTimePassed] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(false);
   
   const [lang, setLang] = useState(() => localStorage.getItem('sliniavskiy_lang') || 'uk');
   useEffect(() => localStorage.setItem('sliniavskiy_lang', lang), [lang]);
@@ -517,6 +538,17 @@ function MainApp() {
     setToast(msg); 
     setTimeout(() => setToast(null), 4000); 
   }, []);
+
+  const toggleMaintenance = async () => {
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general'), 
+        { isMaintenance: !isMaintenance }, { merge: true });
+      showToast(!isMaintenance ? '🛑 Магазин закрито на технічні роботи' : '✅ Магазин відкрито для покупців');
+    } catch (err) {
+      console.warn(err);
+      showToast('❌ Помилка зміни статусу');
+    }
+  };
   
   const handleLangChange = (newLang) => {
     if (lang === newLang) return;
@@ -641,6 +673,7 @@ function MainApp() {
       (d) => {
         if (d.exists()) {
           const data = d.data();
+          setIsMaintenance(data.isMaintenance || false);
           
           // ЖОРСТКА ФІЛЬТРАЦІЯ ТА АВТО-ПЕРЕКЛАД
           let rawCats = data.categories || DEFAULT_CATEGORIES;
@@ -1378,8 +1411,12 @@ function MainApp() {
         </div>
       )}
 
+      {isReady && isMaintenance && user?.email !== ADMIN_EMAIL && route !== 'account' && (
+        <MaintenanceScreen onSecretClick={() => navigate('account')} />
+      )}
+
       {/* MAIN APP CONTENT */}
-      {isReady && (
+      {isReady && (!isMaintenance || user?.email === ADMIN_EMAIL || route === 'account') && (
         <>
           {/* THE SCROLLABLE PAGE BASE */}
           <div className="min-h-screen bg-[#050505] font-sans text-white selection:bg-white selection:text-black antialiased overflow-x-hidden">
@@ -2213,7 +2250,22 @@ function MainApp() {
               {/* ADMIN ROUTE */}
               {route === 'admin' && user?.email === ADMIN_EMAIL && (
                 <div className="pt-32 md:pt-48 pb-20 md:pb-32 max-w-[1920px] w-full mx-auto px-4 md:px-10">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest mb-8 md:mb-12 text-[#d4af37]">Панель Адміністратора</h1>
+                  
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-12">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest text-[#d4af37]">Панель Адміністратора</h1>
+                    
+                    <button
+                      onClick={toggleMaintenance}
+                      className={`flex items-center justify-center gap-2 px-6 py-4 md:py-3 text-[10px] font-black uppercase tracking-widest transition-all w-full md:w-auto ${
+                        isMaintenance
+                        ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]'
+                        : 'bg-zinc-900 text-zinc-400 border border-white/10 hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      {isMaintenance ? <Lock size={14} /> : <Unlock size={14} />}
+                      {isMaintenance ? 'Відкрити магазин' : 'Закрити на тех. роботи'}
+                    </button>
+                  </div>
                   
                   <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 mb-8 md:mb-12 border-b border-white/10 snap-x">
                     {[
