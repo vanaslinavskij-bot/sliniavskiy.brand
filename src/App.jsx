@@ -111,6 +111,30 @@ const TelegramIcon = ({ size = 24, className = "" }) => (
   </svg>
 );
 
+// Універсальний компонент для відображення фото або відео
+const isVideo = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return url.match(/\.(mp4|webm|mov)(\?.*)?$/i) || url.includes('video%2F') || url.includes('video/');
+};
+
+const MediaElement = ({ src, className, alt, autoPlay = true, ...props }) => {
+  if (!src) return null;
+  if (isVideo(src)) {
+    return (
+      <video 
+        src={src} 
+        className={className} 
+        autoPlay={autoPlay}
+        loop 
+        muted 
+        playsInline 
+        {...props} 
+      />
+    );
+  }
+  return <img src={src} alt={alt} className={className} {...props} />;
+};
+
 // --- TRANSLATION DICTIONARY ---
 const DICT = {
   uk: {
@@ -1457,7 +1481,7 @@ function MainApp() {
                           <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-3 md:mb-5 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all border border-white/5">
                             {priceInfo.isDiscounted && <div className="absolute top-2 left-2 md:top-4 md:left-4 z-10 bg-[#d4af37] text-black text-[9px] md:text-[11px] font-black uppercase px-2 py-1 shadow-lg">-{priceInfo.percent}%</div>}
                             {p.inStock === false && <div className={`absolute left-2 md:left-4 z-10 bg-black/80 text-white text-[8px] md:text-[10px] font-black uppercase px-2 py-1 border border-white/10 ${priceInfo.isDiscounted ? 'top-8 md:top-12' : 'top-2 md:top-4'}`}>{t('sold_out')}</div>}
-                            <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
+                            <MediaElement src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 md:group-hover:scale-105" alt="" />
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={`md:w-4 md:h-4 ${isInWishlist(p.id) ? "text-white" : "text-white/50"}`} />
                             </button>
@@ -1588,7 +1612,7 @@ function MainApp() {
                                 <div className="relative aspect-[3/4] bg-zinc-900 mb-4 md:mb-6 overflow-hidden border border-white/5">
                                   {priceInfo.isDiscounted && <div className="absolute top-4 left-4 z-10 bg-[#d4af37] text-black text-[10px] md:text-[11px] font-black uppercase px-3 py-1 shadow-lg">-{priceInfo.percent}%</div>}
                                   {p.inStock === false && <div className={`absolute left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10 ${priceInfo.isDiscounted ? 'top-12' : 'top-4'}`}>{t('sold_out')}</div>}
-                                  <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
+                                  <MediaElement src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/800'} className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={p.name}/>
                                   <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                                     <Heart size={16} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
                                   </button>
@@ -1851,10 +1875,10 @@ function MainApp() {
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden border border-white/5 relative group">
                             {!inStockGlobal && <div className="absolute top-4 left-4 z-10 bg-black/80 text-white text-[10px] font-black uppercase px-3 py-2 border border-white/10">{t('sold_out')}</div>}
                             
-                            {/* Плавный Crossfade-переход между фото */}
+                            {/* Плавный Crossfade-переход между фото/відео */}
                             {galleryImages.length > 0 ? (
                               galleryImages.map((img, idx) => (
-                                <img 
+                                <MediaElement 
                                   key={idx}
                                   src={img} 
                                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${safeImageIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`} 
@@ -1862,7 +1886,7 @@ function MainApp() {
                                 />
                               ))
                             ) : (
-                              <img 
+                              <MediaElement 
                                 src="https://via.placeholder.com/800" 
                                 className="absolute inset-0 w-full h-full object-cover" 
                                 alt={p.name} 
@@ -1877,7 +1901,7 @@ function MainApp() {
                                   onClick={() => setActiveImageIndex(idx)} 
                                   className={`snap-start w-16 h-20 md:w-20 md:h-24 shrink-0 bg-zinc-900 overflow-hidden border-2 transition-all ${safeImageIndex === idx ? 'border-white opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
                                 >
-                                  <img src={img} className="w-full h-full object-cover" alt={`${p.name} view ${idx + 1}`} />
+                                  <MediaElement src={img} autoPlay={false} className="w-full h-full object-cover" alt={`${p.name} view ${idx + 1}`} />
                                 </button>
                               ))}
                             </div>
@@ -2625,7 +2649,7 @@ function MainApp() {
                                          Оберіть фотографії для галереї цього кольору (обрано: {selectedIndexes.length}):
                                        </span>
                                        {parsedImagesForColors.length === 0 ? (
-                                         <span className="text-[8px] text-red-400 mt-1">Спочатку додайте/завантажте фото товару нижче 👇</span>
+                                         <span className="text-[8px] text-red-400 mt-1">Спочатку додайте/завантажте медіа товару нижче 👇</span>
                                        ) : (
                                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">
                                            {parsedImagesForColors.map((imgUrl, imgIdx) => {
@@ -2637,7 +2661,7 @@ function MainApp() {
                                                onClick={(e) => { e.preventDefault(); toggleColorImage(idx, imgIdx); }}
                                                className={`w-12 h-16 shrink-0 border-2 transition-all overflow-hidden relative ${isSelected ? 'border-[#d4af37] opacity-100 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'border-transparent opacity-40 hover:opacity-100'}`}
                                              >
-                                               <img src={imgUrl} className="w-full h-full object-cover" alt="Color thumbnail" />
+                                               <MediaElement src={imgUrl} autoPlay={false} className="w-full h-full object-cover" alt="Color thumbnail" />
                                                {isSelected && (
                                                   <div className="absolute top-0 right-0 bg-[#d4af37] text-black w-4 h-4 flex items-center justify-center">
                                                    <Check size={12} strokeWidth={4} />
@@ -2670,18 +2694,18 @@ function MainApp() {
                               {/* Image Upload Section */}
                               <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
                                 <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4 mb-6 rounded-sm">
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">📸 Вимоги до фотографій</h4>
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">📸 Вимоги до медіафайлів</h4>
                                   <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-300 leading-relaxed">
-                                    Для ідеального вигляду карток товару завантажуйте строго <strong>вертикальні фото (пропорція 3:4)</strong>.<br/>
-                                    Ідеальний розмір: <span className="text-white">800x1067 px</span> або <span className="text-white">1200x1600 px</span>.
+                                    Для ідеального вигляду карток товару завантажуйте строго <strong>вертикальні фото або відео (пропорція 3:4)</strong>.<br/>
+                                    Ідеальний розмір: <span className="text-white">800x1067 px</span> або <span className="text-white">1200x1600 px</span>. Для відео підтримуються стандартні формати (mp4, webm).
                                   </p>
                                 </div>
                                 
-                                <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Завантажити фото з пристрою</label>
+                                <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Завантажити фото/відео з пристрою</label>
                                 <input 
                                   type="file" 
                                   multiple 
-                                  accept="image/*" 
+                                  accept="image/*,video/*" 
                                   onChange={handleImageUpload} 
                                   disabled={isUploadingFile}
                                   className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
@@ -2690,7 +2714,7 @@ function MainApp() {
                                 
                                 {/* NEW INTERACTIVE LINK SECTION */}
                                 <div className="mt-6 pt-6 border-t border-white/10">
-                                   <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Управління фотографіями товару</label>
+                                   <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Управління медіа товару</label>
                                    
                                    {(() => {
                                       const currentImages = editForm.images ? editForm.images.split('\n').map(i=>i.trim()).filter(Boolean) : [];
@@ -2699,7 +2723,7 @@ function MainApp() {
                                           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-6">
                                             {currentImages.map((imgUrl, idx) => (
                                               <div key={idx} className="relative group aspect-[3/4] bg-zinc-900 border border-white/10 overflow-hidden">
-                                                <img src={imgUrl} alt={`Preview ${idx}`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                <MediaElement src={imgUrl} alt={`Preview ${idx}`} autoPlay={false} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                   <button
                                                     type="button"
