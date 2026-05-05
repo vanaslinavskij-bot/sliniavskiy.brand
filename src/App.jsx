@@ -3187,15 +3187,24 @@ function MainApp() {
                                                    }} className="px-3 py-1.5 border border-white/20 hover:bg-white hover:text-black font-black uppercase text-[8px] tracking-widest transition-colors">
                                                       Зберегти
                                                    </button>
-                                                   <button onClick={async () => {
-                                                      if(window.confirm('Остаточно видалити цього реферала/промокод?')) {
-                                                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id));
-                                                         if (refFilterPartner === r.code) setRefFilterPartner('');
-                                                         showToast('✅ Видалено');
-                                                      }
-                                                   }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors">
-                                                      Видалити
-                                                   </button>
+
+                                                   {/* Кнопка удаления ТОЛЬКО скидки */}
+                                                   {r.discountPercent > 0 && (
+                                                     <button onClick={async () => {
+                                                        if(window.confirm('Видалити знижку для цього партнера?')) {
+                                                           try {
+                                                              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id), {
+                                                                 discountPercent: 0,
+                                                                 usageLimit: null
+                                                              });
+                                                              setRefDiscountEdits({...refDiscountEdits, [r.id]: { percent: '', limit: '' }});
+                                                              showToast('✅ Знижку видалено');
+                                                           } catch(e) { showToast('❌ Помилка'); }
+                                                        }
+                                                     }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors">
+                                                        Видалити знижку
+                                                     </button>
+                                                   )}
                                                  </div>
                                                </td>
                                             </tr>
