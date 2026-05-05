@@ -481,6 +481,10 @@ function MainApp() {
   const [discountSearch, setDiscountSearch] = useState('');
   const [discountEdits, setDiscountEdits] = useState({});
 
+  const [discountSubTab, setDiscountSubTab] = useState('products');
+  const [refDiscountEdits, setRefDiscountEdits] = useState({});
+  const [promoInput, setPromoInput] = useState(() => localStorage.getItem('sliniavskiy_ref') || '');
+
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -912,6 +916,18 @@ function MainApp() {
     }
   };
 
+  const appliedRefCodeStr = localStorage.getItem('sliniavskiy_ref');
+  const activePromo = useMemo(() => referrals.find(r => r.code === appliedRefCodeStr), [referrals, appliedRefCodeStr, isCartOpen]);
+
+  const promoDiscountPercent = useMemo(() => {
+    if (activePromo && activePromo.discountPercent > 0) {
+       if (!activePromo.usageLimit || (activePromo.usageCount || 0) < activePromo.usageLimit) {
+           return activePromo.discountPercent;
+       }
+    }
+    return 0;
+  }, [activePromo]);
+
   const cartSubtotal = useMemo(() => cart.reduce((total, item) => {
     const realProduct = activeProducts.find(p => p.id === item.id);
     const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0 };
@@ -919,7 +935,33 @@ function MainApp() {
     return total + (pInfo.final * qty);
   }, 0), [cart, activeProducts, getProductPrice]);
 
-  const cartTotal = Number(cartSubtotal) || 0;
+  const promoDiscountAmount = Math.round(cartSubtotal * (promoDiscountPercent / 100));
+  const cartTotal = Math.max(0, Math.round(cartSubtotal) - promoDiscountAmount);
+
+  const handleApplyPromo = () => {
+    if (!promoInput.trim()) {
+        localStorage.removeItem('sliniavskiy_ref');
+        showToast('Промокод видалено');
+        return;
+    }
+    const code = promoInput.trim().toUpperCase();
+    const found = referrals.find(r => r.code.toUpperCase() === code || (r.name && r.name.toUpperCase() === code));
+    if (found) {
+        if (found.usageLimit && (found.usageCount || 0) >= found.usageLimit) {
+            showToast('❌ Ліміт використання цього промокоду вичерпано');
+        } else {
+            localStorage.setItem('sliniavskiy_ref', found.code);
+            setPromoInput(found.code);
+            if (found.discountPercent > 0) {
+              showToast(`✅ Знижка ${found.discountPercent}% успішно застосована!`);
+            } else {
+              showToast(`✅ Реферальний код успішно підключено!`);
+            }
+        }
+    } else {
+        showToast('❌ Промокод не знайдено');
+    }
+  };
 
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
@@ -1114,13 +1156,31 @@ function MainApp() {
       setLocalOrders(prev => [newOrderRef.id, ...prev]);
 
       const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
+      
+      // Оновлюємо лічильник використань промокоду
+      if (appliedRef) {
+         const foundRef = referrals.find(r => r.code === appliedRef);
+         if (foundRef && foundRef.discountPercent > 0) {
+             try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', foundRef.id), {
+                   usageCount: increment(1)
+                });
+             } catch(e) { console.warn("Не вдалося оновити ліміт", e); }
+         }
+      }
+
       let text = `🔥 <b>Нове ОПЛАЧЕНЕ замовлення!</b>\n\n`;
       text += `👤 <b>ПІБ:</b> ${deliveryForm.name}\n`;
       text += `📞 <b>Телефон:</b> ${deliveryForm.phone}\n`;
       text += `📍 <b>Місто:</b> ${deliveryForm.city}\n`;
       text += `🏢 <b>Відділення:</b> ${deliveryForm.branch}\n`;
       if (appliedRef) {
-        text += `🤝 <b>Реферал:</b> ${appliedRef}\n`;
+        const promoForTelegram = referrals.find(r => r.code === appliedRef);
+        if (promoForTelegram && promoForTelegram.discountPercent > 0) {
+          text += `🎁 <b>Промокод:</b> ${appliedRef} (-${promoForTelegram.discountPercent}%)\n`;
+        } else {
+          text += `🤝 <b>Реферал:</b> ${appliedRef}\n`;
+        }
       }
       text += `\n🛒 <b>Товари:</b>\n`;
       cart.forEach(item => {
@@ -2978,22 +3038,29 @@ function MainApp() {
                     {/* --- DISCOUNTS TAB --- */}
                     {adminTab === 'discounts' && (
                       <section className="space-y-6 animate-in fade-in">
-                        <div className="bg-zinc-900/40 border border-white/10 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                           <div>
-                              <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-[#d4af37] mb-2">Управління знижками</h2>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Налаштовуйте акції для товарів швидко та зручно</p>
-                           </div>
-                           <div className="relative w-full md:w-auto">
-                             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                             <input
-                               type="text"
-                               placeholder="Пошук товару..."
-                               value={discountSearch}
-                               onChange={(e) => setDiscountSearch(e.target.value)}
-                               className="w-full md:w-64 bg-black/50 border border-white/10 pl-12 pr-4 py-3 md:py-4 text-xs focus:border-white outline-none text-white transition-colors"
-                             />
-                           </div>
+                        <div className="flex gap-2 w-full overflow-x-auto no-scrollbar pb-2 mb-2 border-b border-white/10">
+                           <button onClick={() => setDiscountSubTab('products')} className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${discountSubTab === 'products' ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 text-zinc-500 hover:border-white/50 hover:text-white bg-black/50'}`}>Знижки на товари</button>
+                           <button onClick={() => setDiscountSubTab('promocodes')} className={`px-4 py-3 text-[9px] md:text-[10px] uppercase font-black tracking-widest border transition-all whitespace-nowrap flex-1 sm:flex-none ${discountSubTab === 'promocodes' ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'border-white/10 text-zinc-500 hover:border-white/50 hover:text-white bg-black/50'}`}>Знижки рефералів</button>
                         </div>
+
+                        {discountSubTab === 'products' && (
+                          <>
+                            <div className="bg-zinc-900/40 border border-white/10 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                               <div>
+                                  <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-[#d4af37] mb-2">Управління знижками</h2>
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Налаштовуйте акції для товарів швидко та зручно</p>
+                               </div>
+                               <div className="relative w-full md:w-auto">
+                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                 <input 
+                                   type="text" 
+                                   placeholder="Пошук товару..." 
+                                   value={discountSearch}
+                                   onChange={(e) => setDiscountSearch(e.target.value)}
+                                   className="w-full md:w-64 bg-black/50 border border-white/10 pl-12 pr-4 py-3 md:py-4 text-xs focus:border-white outline-none text-white transition-colors"
+                                 />
+                               </div>
+                            </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                            {dbProducts.filter(p => p.name.toLowerCase().includes(discountSearch.toLowerCase())).map(p => {
@@ -3051,6 +3118,94 @@ function MainApp() {
                         {dbProducts.filter(p => p.name.toLowerCase().includes(discountSearch.toLowerCase())).length === 0 && (
                           <div className="text-center py-20 text-zinc-500 uppercase font-black tracking-widest text-xs border border-dashed border-white/20">
                             Товарів не знайдено
+                          </div>
+                        )}
+                          </>
+                        )}
+
+                        {discountSubTab === 'promocodes' && (
+                          <div className="border border-white/10 p-4 md:p-6 bg-zinc-900/20 overflow-hidden">
+                             <h3 className="font-black uppercase tracking-widest text-sm mb-4 flex items-center gap-2">
+                               <Percent size={18} className="text-[#d4af37]" /> Управління знижками рефералів
+                             </h3>
+                             <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-6">Тут ви можете додати знижку для існуючих партнерів або видалити їх повністю.</p>
+                             
+                             <div className="overflow-x-auto no-scrollbar border border-white/5 w-full">
+                                <table className="w-full text-left text-xs min-w-[600px]">
+                                   <thead className="bg-white/5 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                                      <tr>
+                                         <th className="p-4">Код / Ім'я</th>
+                                         <th className="p-4 text-center">Знижка (%)</th>
+                                         <th className="p-4 text-center">Ліміт (шт)</th>
+                                         <th className="p-4 text-center">Використано</th>
+                                         <th className="p-4 text-right">Дія</th>
+                                      </tr>
+                                   </thead>
+                                   <tbody>
+                                      {referrals.length === 0 ? (
+                                         <tr><td colSpan="5" className="p-4 text-center text-zinc-500 uppercase font-bold tracking-widest text-[9px]">Немає жодного реферала</td></tr>
+                                      ) : (
+                                         referrals.sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map(r => {
+                                            const isLimitReached = r.usageLimit && (r.usageCount || 0) >= r.usageLimit;
+                                            const currentEdit = refDiscountEdits[r.id] || { percent: r.discountPercent || '', limit: r.usageLimit || '' };
+                                            return (
+                                            <tr key={r.id} className={`border-t border-white/5 transition-colors ${isLimitReached ? 'opacity-50' : 'hover:bg-white/5'}`}>
+                                               <td className="p-4">
+                                                 <p className="font-black tracking-widest text-[#d4af37] text-sm">{r.code}</p>
+                                                 <p className="text-[8px] text-zinc-500 uppercase mt-1">{r.name}</p>
+                                               </td>
+                                               <td className="p-4 text-center">
+                                                 <input 
+                                                   type="number" 
+                                                   placeholder="0" 
+                                                   value={currentEdit.percent}
+                                                   onChange={e => setRefDiscountEdits({...refDiscountEdits, [r.id]: {...currentEdit, percent: e.target.value}})}
+                                                   className="w-16 bg-black border border-white/20 px-2 py-1.5 text-center text-xs outline-none focus:border-white text-white"
+                                                 />
+                                               </td>
+                                               <td className="p-4 text-center">
+                                                 <input 
+                                                   type="number" 
+                                                   placeholder="∞" 
+                                                   value={currentEdit.limit}
+                                                   onChange={e => setRefDiscountEdits({...refDiscountEdits, [r.id]: {...currentEdit, limit: e.target.value}})}
+                                                   className="w-16 bg-black border border-white/20 px-2 py-1.5 text-center text-xs outline-none focus:border-white text-white"
+                                                 />
+                                               </td>
+                                               <td className="p-4 text-center font-bold text-white">
+                                                  {r.usageCount || 0}
+                                                  {isLimitReached && <span className="block text-[8px] text-red-500 uppercase mt-1">Ліміт вичерпано</span>}
+                                               </td>
+                                               <td className="p-4 text-right">
+                                                 <div className="flex justify-end gap-2">
+                                                   <button onClick={async () => {
+                                                      try {
+                                                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id), {
+                                                            discountPercent: currentEdit.percent ? Number(currentEdit.percent) : 0,
+                                                            usageLimit: currentEdit.limit ? Number(currentEdit.limit) : null
+                                                         });
+                                                         showToast('✅ Збережено!');
+                                                      } catch(e) { showToast('❌ Помилка'); }
+                                                   }} className="px-3 py-1.5 border border-white/20 hover:bg-white hover:text-black font-black uppercase text-[8px] tracking-widest transition-colors">
+                                                      Зберегти
+                                                   </button>
+                                                   <button onClick={async () => {
+                                                      if(window.confirm('Остаточно видалити цього реферала/промокод?')) {
+                                                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id));
+                                                         if (refFilterPartner === r.code) setRefFilterPartner('');
+                                                         showToast('✅ Видалено');
+                                                      }
+                                                   }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors">
+                                                      Видалити
+                                                   </button>
+                                                 </div>
+                                               </td>
+                                            </tr>
+                                         )})
+                                      )}
+                                   </tbody>
+                                </table>
+                             </div>
                           </div>
                         )}
                       </section>
@@ -3955,37 +4110,61 @@ function MainApp() {
                                        <p className="text-[8px] md:text-[9px] text-white font-bold uppercase tracking-widest mb-1 md:mb-2">{item.selectedSize} / {item.selectedColor}</p>
                                        
                                        <div className="flex flex-col items-start gap-1">
-                                          <p className="text-xs md:text-sm font-black text-white">{pInfo.final * item.quantity} ₴</p>
-                                          {pInfo.isDiscounted && (
-                                            <div className="flex items-center gap-2">
-                                              <p className="text-[10px] text-zinc-600 line-through font-bold">{pInfo.original * item.quantity} ₴</p>
-                                              <span className="text-[8px] bg-[#d4af37] text-black px-1 py-0.5 font-black uppercase tracking-widest rounded-sm">
-                                                -{pInfo.percent}%
-                                              </span>
-                                            </div>
-                                          )}
-                                       </div>
-                                     </div>
-                                     <div className="flex items-center gap-3 md:gap-4 mt-2">
-                                        <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
-                                        <span className="text-[9px] md:text-[10px] font-black text-white">{item.quantity}</span>
-                                        <button type="button" onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
-                                        <button type="button" onClick={() => removeItem(item.cartId)} className="ml-auto text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
-                                     </div>
-                                  </div>
-                               </div>
-                             )
-                           })
-                         }
-                      </div>
-                      {cart.length > 0 && (
-                         <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
-                            <div className="flex justify-between items-center mb-6 md:mb-8"><span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span><span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span></div>
-                            <button onClick={() => setIsCheckoutForm(true)} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">{t('checkout')}</button>
-                         </div>
-                      )}
-                   </>
-                )}
+                                         <p className="text-xs md:text-sm font-black text-white">{pInfo.final * item.quantity} ₴</p>
+                                         {pInfo.isDiscounted && (
+                                           <div className="flex items-center gap-2">
+                                             <p className="text-[10px] text-zinc-600 line-through font-bold">{pInfo.original * item.quantity} ₴</p>
+                                             <span className="text-[8px] bg-[#d4af37] text-black px-1 py-0.5 font-black uppercase tracking-widest rounded-sm">
+                                               -{pInfo.percent}%
+                                             </span>
+                                           </div>
+                                         )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 md:gap-4 mt-2">
+                                       <button type="button" onClick={() => updateQuantity(item.cartId, -1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">-</button>
+                                       <span className="text-[9px] md:text-[10px] font-black text-white">{item.quantity}</span>
+                                       <button type="button" onClick={() => updateQuantity(item.cartId, 1)} className="text-lg md:text-[14px] font-black text-white hover:text-zinc-300 transition-colors p-1 md:p-0 w-6 h-6 flex items-center justify-center">+</button>
+                                       <button type="button" onClick={() => removeItem(item.cartId)} className="ml-auto text-white hover:text-red-500 transition-colors p-2 -mr-2"><Trash2 size={16}/></button>
+                                    </div>
+                                 </div>
+                              </div>
+                            )
+                          })
+                        }
+                     </div>
+                     {cart.length > 0 && (
+                        <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
+                           <div className="flex gap-2 mb-4 md:mb-6">
+                              <input 
+                                type="text" 
+                                value={promoInput} 
+                                onChange={e => setPromoInput(e.target.value.toUpperCase())} 
+                                placeholder="ПРОМОКОД АБО РЕФЕРАЛ" 
+                                className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors text-white uppercase font-bold tracking-widest"
+                              />
+                              <button 
+                                onClick={handleApplyPromo} 
+                                className="px-6 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+                              >
+                                Застосувати
+                              </button>
+                           </div>
+                           {promoDiscountAmount > 0 && (
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Знижка (-{promoDiscountPercent}%)</span>
+                                <span className="text-sm font-black text-[#d4af37]">- {promoDiscountAmount} ₴</span>
+                             </div>
+                           )}
+                           <div className="flex justify-between items-center mb-6 md:mb-8">
+                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
+                              <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
+                           </div>
+                           <button onClick={() => setIsCheckoutForm(true)} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">{t('checkout')}</button>
+                        </div>
+                     )}
+                  </>
+               )}
               </div>
             </div>
           )}
