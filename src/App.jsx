@@ -489,6 +489,7 @@ function MainApp() {
   const [inventorySearch, setInventorySearch] = useState('');
   const [inventoryFilter, setInventoryFilter] = useState('all'); 
   const [inventoryCategory, setInventoryCategory] = useState('all');
+  const [inventoryEdits, setInventoryEdits] = useState({});
 
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
@@ -1471,23 +1472,49 @@ function MainApp() {
     }
   };
 
-  const updateStockQuantity = async (productId, size, delta) => {
+  const handleLocalStockChange = (productId, size, value) => {
+    setInventoryEdits(prev => ({
+      ...prev,
+      [productId]: {
+        ...(prev[productId] || {}),
+        [size]: value
+      }
+    }));
+  };
+
+  const saveInventoryEdits = async (productId) => {
     const product = dbProducts.find(p => p.id === productId);
     if (!product) return;
 
     const currentStock = product.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
-    const newQty = Math.max(0, (Number(currentStock[size]) || 0) + delta);
-    
-    const newStock = { ...currentStock, [size]: newQty };
-    
+    const edits = inventoryEdits[productId] || {};
+    const newStock = { ...currentStock };
+    let hasChanges = false;
+
+    SIZES.forEach(s => {
+      if (edits[s] !== undefined) {
+        const newQty = edits[s] === '' ? 0 : Math.max(0, parseInt(edits[s], 10) || 0);
+        if (newStock[s] !== newQty) {
+          newStock[s] = newQty;
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (!hasChanges) {
+      setInventoryEdits(prev => { const next = {...prev}; delete next[productId]; return next; });
+      return;
+    }
+
     const totalQty = Object.values(newStock).reduce((a, b) => a + b, 0);
-    const newInStock = totalQty > 0;
 
     try {
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productId), {
         stockCounts: newStock,
-        inStock: newInStock
+        inStock: totalQty > 0
       });
+      showToast('✅ Склад успішно оновлено!');
+      setInventoryEdits(prev => { const next = {...prev}; delete next[productId]; return next; });
     } catch (e) {
       showToast('❌ Помилка оновлення складу');
     }
@@ -2885,6 +2912,9 @@ function MainApp() {
                                                   {SIZES.map(s => {
                                                      const qty = Number(stock[s]) || 0;
                                                      const isAvailable = p.sizes?.[s] !== false;
+                                                     const editValue = inventoryEdits[p.id]?.[s];
+                                                     const displayValue = editValue !== undefined ? editValue : (qty === 0 ? '' : qty);
+                                                     
                                                      return (
                                                         <td key={s} className="p-4">
                                                            <div className={`flex flex-col items-center gap-2 ${!isAvailable ? 'opacity-20 pointer-events-none' : ''}`}>
@@ -2892,8 +2922,8 @@ function MainApp() {
                                                                 type="number"
                                                                 min="0"
                                                                 placeholder="0"
-                                                                value={qty === 0 ? '' : qty}
-                                                                onChange={(e) => handleStockChange(p.id, s, e.target.value)}
+                                                                value={displayValue}
+                                                                onChange={(e) => handleLocalStockChange(p.id, s, e.target.value)}
                                                                 className={`w-16 h-10 bg-black border border-white/20 text-center font-black text-sm outline-none focus:border-white transition-colors placeholder:text-zinc-700 ${qty <= 3 && qty > 0 ? 'text-[#d4af37]' : qty === 0 ? 'text-zinc-600' : 'text-white'}`}
                                                               />
                                                            </div>
@@ -2901,9 +2931,18 @@ function MainApp() {
                                                      )
                                                   })}
                                                   <td className="p-4 text-center">
-                                                     <span className={`px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest ${total === 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                        {total} шт.
-                                                     </span>
+                                                     {inventoryEdits[p.id] && Object.keys(inventoryEdits[p.id]).length > 0 ? (
+                                                        <button 
+                                                          onClick={() => saveInventoryEdits(p.id)}
+                                                          className="px-4 py-2 bg-[#d4af37] text-black font-black uppercase tracking-widest text-[9px] hover:bg-white transition-colors shadow-lg animate-in zoom-in"
+                                                        >
+                                                          Зберегти
+                                                        </button>
+                                                     ) : (
+                                                        <span className={`px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest ${total === 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                                           {total} шт.
+                                                        </span>
+                                                     )}
                                                   </td>
                                                   <td className="p-4 text-right font-black text-[#d4af37]">
                                                      {p.price} ₴
