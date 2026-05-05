@@ -518,6 +518,9 @@ function MainApp() {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [newReferralName, setNewReferralName] = useState('');
+  // ДОБАВЛЯЕМ НОВЫЕ СТЕЙТЫ ДЛЯ СКИДОК И ЛИМИТОВ РЕФЕРАЛОВ
+  const [newRefDiscount, setNewRefDiscount] = useState('');
+  const [newRefLimit, setNewRefLimit] = useState('');
   
   const [refFilterPartner, setRefFilterPartner] = useState('');
   const [refFilterDateFrom, setRefFilterDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); });
@@ -1304,7 +1307,7 @@ function MainApp() {
     e.preventDefault();
     if (!newReferralName.trim()) return;
     
-    // Auto-generate clean code from name (only 1 field needed now)
+    // Auto-generate clean code from name
     let baseCode = translitCyrillicToLatin(newReferralName).replace(/[^a-z0-9-]/g, '');
     if (!baseCode) baseCode = 'partner';
     
@@ -1318,10 +1321,15 @@ function MainApp() {
       const safeData = JSON.parse(JSON.stringify({
         name: newReferralName,
         code: finalCode,
+        discountPercent: Number(newRefDiscount) || 0,
+        usageLimit: newRefLimit ? Number(newRefLimit) : null,
+        usageCount: 0,
         createdAt: new Date().toISOString()
       }));
       await addDoc(getReferralsRef(), safeData);
       setNewReferralName('');
+      setNewRefDiscount('');
+      setNewRefLimit('');
       showToast('✅ Реферала успішно створено');
       setRefFilterPartner(finalCode); // auto select new partner
     } catch (err) {
@@ -3069,6 +3077,32 @@ function MainApp() {
                                 />
                                 <p className="text-[8px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold">Система автоматично згенерує унікальне посилання.</p>
                               </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Знижка за лінком (%)</label>
+                                  <input
+                                    type="number"
+                                    min="0" max="100"
+                                    value={newRefDiscount}
+                                    onChange={e => setNewRefDiscount(e.target.value)}
+                                    placeholder="Напр. 10 (Опціонально)"
+                                    className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ліміт знижок (шт)</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={newRefLimit}
+                                    onChange={e => setNewRefLimit(e.target.value)}
+                                    placeholder="Безліміт"
+                                    className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
+                                  />
+                                </div>
+                              </div>
+
                               <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2 mt-2">
                                 <LinkIcon size={14} /> Згенерувати посилання
                               </button>
@@ -3291,14 +3325,30 @@ function MainApp() {
                                   return (
                                     <div className="space-y-6">
                                       {selectedRef && (
-                                        <div className="bg-black/50 border border-white/10 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-                                          <div className="overflow-hidden w-full">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Унікальне посилання партнера</p>
-                                            <input readOnly value={refLink} className="w-full bg-transparent text-[10px] md:text-xs text-[#d4af37] font-mono outline-none truncate" />
+                                        <div className="bg-black/50 border border-white/10 p-4 flex flex-col gap-4 w-full">
+                                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+                                            <div className="overflow-hidden w-full">
+                                              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Унікальне посилання партнера</p>
+                                              <input readOnly value={refLink} className="w-full bg-transparent text-[10px] md:text-xs text-[#d4af37] font-mono outline-none truncate" />
+                                            </div>
+                                            <button onClick={() => copyToClipboard(refLink)} className="px-4 py-3 sm:py-2 border border-white/20 hover:bg-white hover:text-black transition-colors text-[9px] font-black uppercase tracking-widest flex justify-center items-center gap-2 shrink-0 w-full sm:w-auto">
+                                              <Copy size={12}/> Копіювати
+                                            </button>
                                           </div>
-                                          <button onClick={() => copyToClipboard(refLink)} className="px-4 py-3 sm:py-2 border border-white/20 hover:bg-white hover:text-black transition-colors text-[9px] font-black uppercase tracking-widest flex justify-center items-center gap-2 shrink-0 w-full sm:w-auto">
-                                            <Copy size={12}/> Копіювати
-                                          </button>
+                                          
+                                          {selectedRef.discountPercent > 0 && (
+                                            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/5">
+                                               <div className="px-3 py-1.5 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[9px] font-black uppercase tracking-widest rounded-sm">
+                                                 Знижка за лінком: -{selectedRef.discountPercent}%
+                                               </div>
+                                               <div className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                                                 Використано: <span className="text-white">{selectedRef.usageCount || 0}</span> / {selectedRef.usageLimit ? selectedRef.usageLimit : 'Безліміт'}
+                                                 {selectedRef.usageLimit && (selectedRef.usageCount || 0) >= selectedRef.usageLimit && (
+                                                   <span className="text-red-500 ml-2">(Ліміт вичерпано)</span>
+                                                 )}
+                                               </div>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
 
