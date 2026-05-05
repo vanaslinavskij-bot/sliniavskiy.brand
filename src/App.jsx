@@ -2888,17 +2888,14 @@ function MainApp() {
                                                      return (
                                                         <td key={s} className="p-4">
                                                            <div className={`flex flex-col items-center gap-2 ${!isAvailable ? 'opacity-20 pointer-events-none' : ''}`}>
-                                                              <div className="flex items-center border border-white/10 bg-black rounded-sm overflow-hidden">
-                                                                 <button 
-                                                                   onClick={() => updateStockQuantity(p.id, s, -1)}
-                                                                   className="w-8 h-8 flex items-center justify-center hover:bg-red-500 transition-colors"
-                                                                 >-</button>
-                                                                 <span className={`w-10 text-center font-black text-sm ${qty <= 3 && qty > 0 ? 'text-[#d4af37]' : qty === 0 ? 'text-zinc-600' : 'text-white'}`}>{qty}</span>
-                                                                 <button 
-                                                                   onClick={() => updateStockQuantity(p.id, s, 1)}
-                                                                   className="w-8 h-8 flex items-center justify-center hover:bg-green-500 transition-colors"
-                                                                 >+</button>
-                                                              </div>
+                                                              <input 
+                                                                type="number"
+                                                                min="0"
+                                                                placeholder="0"
+                                                                value={qty === 0 ? '' : qty}
+                                                                onChange={(e) => handleStockChange(p.id, s, e.target.value)}
+                                                                className={`w-16 h-10 bg-black border border-white/20 text-center font-black text-sm outline-none focus:border-white transition-colors placeholder:text-zinc-700 ${qty <= 3 && qty > 0 ? 'text-[#d4af37]' : qty === 0 ? 'text-zinc-600' : 'text-white'}`}
+                                                              />
                                                            </div>
                                                         </td>
                                                      )
