@@ -485,6 +485,11 @@ function MainApp() {
   const [refDiscountEdits, setRefDiscountEdits] = useState({});
   const [promoInput, setPromoInput] = useState(() => localStorage.getItem('sliniavskiy_ref') || '');
 
+  // НОВІ СТАНИ ДЛЯ СКЛАДУ
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventoryFilter, setInventoryFilter] = useState('all'); 
+  const [inventoryCategory, setInventoryCategory] = useState('all');
+
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -1447,6 +1452,28 @@ function MainApp() {
     }
   };
 
+  const updateStockQuantity = async (productId, size, delta) => {
+    const product = dbProducts.find(p => p.id === productId);
+    if (!product) return;
+
+    const currentStock = product.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+    const newQty = Math.max(0, (Number(currentStock[size]) || 0) + delta);
+    
+    const newStock = { ...currentStock, [size]: newQty };
+    
+    const totalQty = Object.values(newStock).reduce((a, b) => a + b, 0);
+    const newInStock = totalQty > 0;
+
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productId), {
+        stockCounts: newStock,
+        inStock: newInStock
+      });
+    } catch (e) {
+      showToast('❌ Помилка оновлення складу');
+    }
+  };
+
   const toggleColorImage = (colorIndex, imgIndex) => {
     const nc = [...editForm.colors];
     if (!nc[colorIndex].imageIndexes) {
@@ -2375,6 +2402,7 @@ function MainApp() {
                     {[
                       { id: 'orders', label: 'Замовлення', icon: <Package size={16} /> },
                       { id: 'analytics', label: 'Аналітика', icon: <BarChart size={16} /> },
+                      { id: 'inventory', label: 'Склад', icon: <Database size={16} /> },
                       { id: 'products', label: 'Товари', icon: <Box size={16} /> },
                       { id: 'discounts', label: 'Знижки', icon: <Percent size={16} /> },
                       { id: 'referrals', label: 'Реферали', icon: <Users size={16} /> },
@@ -2725,6 +2753,146 @@ function MainApp() {
                                  </div>
                              </div>
 
+                          </section>
+                       );
+                    })()}
+
+                    {/* --- INVENTORY TAB (СКЛАД) --- */}
+                    {adminTab === 'inventory' && (() => {
+                       const items = dbProducts.filter(p => {
+                          const matchesSearch = p.name.toLowerCase().includes(inventorySearch.toLowerCase());
+                          const matchesCat = inventoryCategory === 'all' || p.category === inventoryCategory;
+                          
+                          const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+                          const total = Object.values(stock).reduce((a,b) => a+b, 0);
+                          
+                          let matchesFilter = true;
+                          if (inventoryFilter === 'low') matchesFilter = total > 0 && total <= 3;
+                          if (inventoryFilter === 'out') matchesFilter = total === 0;
+                          
+                          return matchesSearch && matchesCat && matchesFilter;
+                       });
+
+                       const totalStockQty = dbProducts.reduce((sum, p) => sum + Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0), 0);
+                       const totalStockValue = dbProducts.reduce((sum, p) => sum + (Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0) * (p.price || 0)), 0);
+                       const lowStockCount = dbProducts.filter(p => {
+                          const total = Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0);
+                          return total > 0 && total <= 3;
+                       }).length;
+
+                       return (
+                          <section className="space-y-8 animate-in fade-in">
+                             {/* Stats Grid */}
+                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div className="bg-zinc-900/40 border border-white/10 p-6">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Капіталізація складу</p>
+                                   <p className="text-2xl font-black text-[#d4af37]">{totalStockValue.toLocaleString()} ₴</p>
+                                   <p className="text-[9px] text-zinc-600 mt-1 uppercase font-bold">Собівартість залишків</p>
+                                </div>
+                                <div className="bg-zinc-900/40 border border-white/10 p-6">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Всього одиниць</p>
+                                   <p className="text-2xl font-black text-white">{totalStockQty} шт.</p>
+                                   <p className="text-[9px] text-zinc-600 mt-1 uppercase font-bold">Загальна кількість речей</p>
+                                </div>
+                                <div className={`bg-zinc-900/40 border p-6 transition-colors ${lowStockCount > 0 ? 'border-red-500/30' : 'border-white/10'}`}>
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Критичний залишок</p>
+                                   <p className={`text-2xl font-black ${lowStockCount > 0 ? 'text-red-500 animate-pulse' : 'text-green-500'}`}>{lowStockCount} тов.</p>
+                                   <p className="text-[9px] text-zinc-600 mt-1 uppercase font-bold">Закінчуються (&le;3)</p>
+                                </div>
+                             </div>
+
+                             {/* Filters Bar */}
+                             <div className="bg-black/40 border border-white/10 p-4 flex flex-col md:flex-row gap-4">
+                                <div className="relative flex-1">
+                                   <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                   <input 
+                                     type="text" 
+                                     placeholder="Пошук у базі складу..." 
+                                     value={inventorySearch}
+                                     onChange={e => setInventorySearch(e.target.value)}
+                                     className="w-full bg-black border border-white/10 pl-12 pr-4 py-3 text-xs focus:border-white outline-none"
+                                   />
+                                </div>
+                                <select 
+                                  value={inventoryCategory} 
+                                  onChange={e => setInventoryCategory(e.target.value)}
+                                  className="bg-black border border-white/10 px-4 py-3 text-xs outline-none focus:border-white"
+                                >
+                                   <option value="all">Усі категорії</option>
+                                   {activeCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <div className="flex bg-black border border-white/10 p-1">
+                                   <button onClick={() => setInventoryFilter('all')} className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${inventoryFilter === 'all' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}>Всі</button>
+                                   <button onClick={() => setInventoryFilter('low')} className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${inventoryFilter === 'low' ? 'bg-red-500 text-white' : 'text-zinc-500 hover:text-red-500'}`}>Дефіцит</button>
+                                   <button onClick={() => setInventoryFilter('out')} className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${inventoryFilter === 'out' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'}`}>Немає</button>
+                                </div>
+                             </div>
+
+                             {/* Inventory Table */}
+                             <div className="overflow-x-auto no-scrollbar border border-white/10 shadow-2xl">
+                                <table className="w-full text-left text-xs min-w-[800px] border-collapse">
+                                   <thead className="bg-zinc-900/80 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                                      <tr>
+                                         <th className="p-4 sticky left-0 bg-zinc-900 z-10 border-r border-white/5">Товар / Категорія</th>
+                                         {SIZES.map(s => <th key={s} className="p-4 text-center">Розмір {s}</th>)}
+                                         <th className="p-4 text-center">Разом</th>
+                                         <th className="p-4 text-right">Ціна</th>
+                                      </tr>
+                                   </thead>
+                                   <tbody>
+                                      {items.length === 0 ? (
+                                         <tr><td colSpan="7" className="p-10 text-center text-zinc-600 uppercase font-black tracking-widest">База порожня за цими фільтрами</td></tr>
+                                      ) : (
+                                         items.map(p => {
+                                            const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+                                            const total = Object.values(stock).reduce((a,b)=>a+b,0);
+                                            return (
+                                               <tr key={p.id} className="border-t border-white/5 hover:bg-white/[0.02] transition-colors group">
+                                                  <td className="p-4 sticky left-0 bg-[#0a0a0a] z-10 border-r border-white/5 group-hover:bg-zinc-900 transition-colors">
+                                                     <div className="flex items-center gap-3">
+                                                        <MediaElement src={p.images?.[0]} className="w-10 h-12 object-cover bg-zinc-800 border border-white/10" alt=""/>
+                                                        <div className="min-w-0">
+                                                           <p className="font-bold text-white uppercase tracking-wider truncate max-w-[150px]">{p.name}</p>
+                                                           <p className="text-[9px] text-zinc-500 uppercase font-black mt-1">{p.category}</p>
+                                                        </div>
+                                                     </div>
+                                                  </td>
+                                                  {SIZES.map(s => {
+                                                     const qty = Number(stock[s]) || 0;
+                                                     const isAvailable = p.sizes?.[s] !== false;
+                                                     return (
+                                                        <td key={s} className="p-4">
+                                                           <div className={`flex flex-col items-center gap-2 ${!isAvailable ? 'opacity-20 pointer-events-none' : ''}`}>
+                                                              <div className="flex items-center border border-white/10 bg-black rounded-sm overflow-hidden">
+                                                                 <button 
+                                                                   onClick={() => updateStockQuantity(p.id, s, -1)}
+                                                                   className="w-8 h-8 flex items-center justify-center hover:bg-red-500 transition-colors"
+                                                                 >-</button>
+                                                                 <span className={`w-10 text-center font-black text-sm ${qty <= 3 && qty > 0 ? 'text-[#d4af37]' : qty === 0 ? 'text-zinc-600' : 'text-white'}`}>{qty}</span>
+                                                                 <button 
+                                                                   onClick={() => updateStockQuantity(p.id, s, 1)}
+                                                                   className="w-8 h-8 flex items-center justify-center hover:bg-green-500 transition-colors"
+                                                                 >+</button>
+                                                              </div>
+                                                           </div>
+                                                        </td>
+                                                     )
+                                                  })}
+                                                  <td className="p-4 text-center">
+                                                     <span className={`px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest ${total === 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                                        {total} шт.
+                                                     </span>
+                                                  </td>
+                                                  <td className="p-4 text-right font-black text-[#d4af37]">
+                                                     {p.price} ₴
+                                                  </td>
+                                               </tr>
+                                            )
+                                         })
+                                      )}
+                                   </tbody>
+                                </table>
+                             </div>
                           </section>
                        );
                     })()}
