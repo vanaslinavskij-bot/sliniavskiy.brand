@@ -931,6 +931,9 @@ function MainApp() {
 
   const promoDiscountPercent = useMemo(() => {
     if (activePromo && activePromo.discountPercent > 0) {
+       // Проверка: не истекло ли время действия скидки
+       if (activePromo.expiresAt && new Date(activePromo.expiresAt).getTime() < new Date().getTime()) return 0;
+       
        if (!activePromo.usageLimit || (activePromo.usageCount || 0) < activePromo.usageLimit) {
            return activePromo.discountPercent;
        }
@@ -957,7 +960,9 @@ function MainApp() {
     const code = promoInput.trim().toUpperCase();
     const found = referrals.find(r => r.code.toUpperCase() === code || (r.name && r.name.toUpperCase() === code));
     if (found) {
-        if (found.usageLimit && (found.usageCount || 0) >= found.usageLimit) {
+        if (found.expiresAt && new Date(found.expiresAt).getTime() < new Date().getTime()) {
+            showToast('❌ Термін дії цього промокоду минув');
+        } else if (found.usageLimit && (found.usageCount || 0) >= found.usageLimit) {
             showToast('❌ Ліміт використання цього промокоду вичерпано');
         } else {
             localStorage.setItem('sliniavskiy_ref', found.code);
@@ -3413,19 +3418,21 @@ function MainApp() {
                                          <th className="p-4">Код / Ім'я</th>
                                          <th className="p-4 text-center">Знижка (%)</th>
                                          <th className="p-4 text-center">Ліміт (шт)</th>
+                                         <th className="p-4 text-center">Діє до (Час)</th>
                                          <th className="p-4 text-center">Використано</th>
                                          <th className="p-4 text-right">Дія</th>
                                       </tr>
                                    </thead>
                                    <tbody>
                                       {referrals.length === 0 ? (
-                                         <tr><td colSpan="5" className="p-4 text-center text-zinc-500 uppercase font-bold tracking-widest text-[9px]">Немає жодного реферала</td></tr>
+                                         <tr><td colSpan="6" className="p-4 text-center text-zinc-500 uppercase font-bold tracking-widest text-[9px]">Немає жодного реферала</td></tr>
                                       ) : (
                                          referrals.sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map(r => {
                                             const isLimitReached = r.usageLimit && (r.usageCount || 0) >= r.usageLimit;
-                                            const currentEdit = refDiscountEdits[r.id] || { percent: r.discountPercent || '', limit: r.usageLimit || '' };
+                                            const isExpired = r.expiresAt && new Date(r.expiresAt).getTime() < new Date().getTime();
+                                            const currentEdit = refDiscountEdits[r.id] || { percent: r.discountPercent || '', limit: r.usageLimit || '', expiresAt: r.expiresAt || '' };
                                             return (
-                                            <tr key={r.id} className={`border-t border-white/5 transition-colors ${isLimitReached ? 'opacity-50' : 'hover:bg-white/5'}`}>
+                                            <tr key={r.id} className={`border-t border-white/5 transition-colors ${(isLimitReached || isExpired) ? 'opacity-50' : 'hover:bg-white/5'}`}>
                                                <td className="p-4">
                                                  <p className="font-black tracking-widest text-[#d4af37] text-sm">{r.code}</p>
                                                  <p className="text-[8px] text-zinc-500 uppercase mt-1">{r.name}</p>
@@ -3448,21 +3455,31 @@ function MainApp() {
                                                    className="w-16 bg-black border border-white/20 px-2 py-1.5 text-center text-xs outline-none focus:border-white text-white"
                                                  />
                                                </td>
+                                               <td className="p-4 text-center">
+                                                 <input 
+                                                   type="datetime-local" 
+                                                   value={currentEdit.expiresAt}
+                                                   onChange={e => setRefDiscountEdits({...refDiscountEdits, [r.id]: {...currentEdit, expiresAt: e.target.value}})}
+                                                   className="bg-black border border-white/20 px-2 py-1.5 text-center text-[10px] outline-none focus:border-white text-white [color-scheme:dark] w-36"
+                                                 />
+                                               </td>
                                                <td className="p-4 text-center font-bold text-white">
                                                   {r.usageCount || 0}
                                                   {isLimitReached && <span className="block text-[8px] text-red-500 uppercase mt-1">Ліміт вичерпано</span>}
+                                                  {isExpired && <span className="block text-[8px] text-red-500 uppercase mt-1">Час вийшов</span>}
                                                </td>
                                                <td className="p-4 text-right">
-                                                 <div className="flex justify-end gap-2">
+                                                 <div className="flex justify-end gap-2 flex-wrap min-w-[90px]">
                                                    <button onClick={async () => {
                                                       try {
                                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id), {
                                                             discountPercent: currentEdit.percent ? Number(currentEdit.percent) : 0,
-                                                            usageLimit: currentEdit.limit ? Number(currentEdit.limit) : null
+                                                            usageLimit: currentEdit.limit ? Number(currentEdit.limit) : null,
+                                                            expiresAt: currentEdit.expiresAt || null
                                                          });
                                                          showToast('✅ Збережено!');
                                                       } catch(e) { showToast('❌ Помилка'); }
-                                                   }} className="px-3 py-1.5 border border-white/20 hover:bg-white hover:text-black font-black uppercase text-[8px] tracking-widest transition-colors">
+                                                   }} className="px-3 py-1.5 border border-white/20 hover:bg-white hover:text-black font-black uppercase text-[8px] tracking-widest transition-colors w-full">
                                                       Зберегти
                                                    </button>
 
@@ -3473,13 +3490,14 @@ function MainApp() {
                                                            try {
                                                               await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'referrals', r.id), {
                                                                  discountPercent: 0,
-                                                                 usageLimit: null
+                                                                 usageLimit: null,
+                                                                 expiresAt: null
                                                               });
-                                                              setRefDiscountEdits({...refDiscountEdits, [r.id]: { percent: '', limit: '' }});
+                                                              setRefDiscountEdits({...refDiscountEdits, [r.id]: { percent: '', limit: '', expiresAt: '' }});
                                                               showToast('✅ Знижку видалено');
                                                            } catch(e) { showToast('❌ Помилка'); }
                                                         }
-                                                     }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors">
+                                                     }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors w-full mt-1">
                                                         Видалити знижку
                                                      </button>
                                                    )}
@@ -4342,7 +4360,7 @@ function MainApp() {
                           
                           <div className="bg-black border border-white/10 p-6 mb-8 text-center">
                             <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
-                            <p className="text-3xl md:text-4xl font-black text-white">{cartTotal} ₴</p>
+                            <p className="text-3xl md:text-4xl font-black">{cartTotal} ₴</p>
                           </div>
 
                           <div className="space-y-4">
