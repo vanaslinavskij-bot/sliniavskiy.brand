@@ -1381,15 +1381,13 @@ function MainApp() {
       const safeData = JSON.parse(JSON.stringify({
         name: newReferralName,
         code: finalCode,
-        discountPercent: Number(newRefDiscount) || 0,
-        usageLimit: newRefLimit ? Number(newRefLimit) : null,
+        discountPercent: 0,
+        usageLimit: null,
         usageCount: 0,
         createdAt: new Date().toISOString()
       }));
       await addDoc(getReferralsRef(), safeData);
       setNewReferralName('');
-      setNewRefDiscount('');
-      setNewRefLimit('');
       showToast('✅ Реферала успішно створено');
       setRefFilterPartner(finalCode); // auto select new partner
     } catch (err) {
@@ -3231,31 +3229,6 @@ function MainApp() {
                                   className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none mb-2"
                                 />
                                 <p className="text-[8px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold">Система автоматично згенерує унікальне посилання.</p>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Знижка за лінком (%)</label>
-                                  <input
-                                    type="number"
-                                    min="0" max="100"
-                                    value={newRefDiscount}
-                                    onChange={e => setNewRefDiscount(e.target.value)}
-                                    placeholder="Напр. 10 (Опціонально)"
-                                    className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ліміт знижок (шт)</label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={newRefLimit}
-                                    onChange={e => setNewRefLimit(e.target.value)}
-                                    placeholder="Безліміт"
-                                    className="w-full bg-black/50 border border-white/10 px-4 py-3 text-sm focus:border-white outline-none"
-                                  />
-                                </div>
                               </div>
 
                               <button type="submit" className="w-full py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center gap-2 mt-2">
