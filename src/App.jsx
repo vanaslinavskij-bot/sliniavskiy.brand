@@ -2846,13 +2846,14 @@ function MainApp() {
                                          items.map(p => {
                                             const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
                                             const total = Object.values(stock).reduce((a,b)=>a+b,0);
+                                            const isDeficit = total > 0 && total <= 3;
                                             return (
-                                               <tr key={p.id} className="border-t border-white/5 hover:bg-white/[0.02] transition-colors group">
-                                                  <td className="p-4 sticky left-0 bg-[#0a0a0a] z-10 border-r border-white/5 group-hover:bg-zinc-900 transition-colors">
+                                               <tr key={p.id} className={`border-t border-white/5 transition-colors group ${isDeficit ? 'bg-[#d4af37]/5 hover:bg-[#d4af37]/10' : 'hover:bg-white/[0.02]'}`}>
+                                                  <td className={`p-4 sticky left-0 z-10 border-r border-white/5 transition-colors ${isDeficit ? 'bg-[#0f0c05] group-hover:bg-[#1a1505]' : 'bg-[#0a0a0a] group-hover:bg-zinc-900'}`}>
                                                      <div className="flex items-center gap-3">
                                                         <MediaElement src={p.images?.[0]} className="w-10 h-12 object-cover bg-zinc-800 border border-white/10" alt=""/>
                                                         <div className="min-w-0">
-                                                           <p className="font-bold text-white uppercase tracking-wider truncate max-w-[150px]">{p.name}</p>
+                                                           <p className={`font-bold uppercase tracking-wider truncate max-w-[150px] ${isDeficit ? 'text-[#d4af37]' : 'text-white'}`}>{p.name}</p>
                                                            <p className="text-[9px] text-zinc-500 uppercase font-black mt-1">{p.category}</p>
                                                         </div>
                                                      </div>
