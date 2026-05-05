@@ -4342,7 +4342,7 @@ function MainApp() {
                           
                           <div className="bg-black border border-white/10 p-6 mb-8 text-center">
                             <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
-                            <p className="text-3xl md:text-4xl font-black">{cartTotal} ₴</p>
+                            <p className="text-3xl md:text-4xl font-black text-white">{cartTotal} ₴</p>
                           </div>
 
                           <div className="space-y-4">
