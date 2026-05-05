@@ -1176,6 +1176,21 @@ function MainApp() {
 
     setIsProcessingPayment(true);
 
+    // 1. ФІНАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ (Щоб не продати те, чого вже немає)
+    for (const item of pendingOrderData.items) {
+       const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', item.id));
+       if (snap.exists()) {
+         const p = snap.data();
+         const currentStock = p.stockCounts?.[item.selectedSize] || 0;
+         if (currentStock < item.quantity) {
+            showToast(`❌ Помилка: "${item.name}" (Розмір ${item.selectedSize}) залишилось лише ${currentStock} шт. Оновіть кошик.`);
+            setIsProcessingPayment(false);
+            setCheckoutStep(1);
+            return;
+         }
+       }
+    }
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -1183,6 +1198,27 @@ function MainApp() {
       const newOrderRef = await addDoc(getOrdersRef(), finalOrderData);
 
       setLocalOrders(prev => [newOrderRef.id, ...prev]);
+
+      // 2. АВТОМАТИЧНЕ СПИСАННЯ ЗІ СКЛАДУ ПІСЛЯ ПОКУПКИ
+      // Групуємо товари, щоб правильно відняти, якщо купили різні розміри однієї речі
+      const updates = {};
+      for (const item of finalOrderData.items) {
+         if (!updates[item.id]) {
+           const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', item.id));
+           updates[item.id] = snap.data()?.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+         }
+         const current = Number(updates[item.id][item.selectedSize]) || 0;
+         updates[item.id][item.selectedSize] = Math.max(0, current - item.quantity);
+      }
+
+      // Зберігаємо нові залишки в базу даних
+      for (const [prodId, newStock] of Object.entries(updates)) {
+         const totalQty = Object.values(newStock).reduce((a, b) => a + b, 0);
+         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', prodId), {
+           stockCounts: newStock,
+           inStock: totalQty > 0
+         });
+      }
 
       const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
       
