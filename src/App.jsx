@@ -1317,10 +1317,9 @@ function MainApp() {
       const parsedCategories = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
       
       const dataToSave = { 
-        heroImage: settingsFormUrl || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
+        heroImage: settingsFormUrl || '',
         heroImageMobile: settingsFormUrlMobile || '',
-        brandImage: settingsBrandUrl || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
-        promoMediaUrl: settingsPromoUrl || '',
+        brandImage: settingsBrandUrl || '',
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -3560,22 +3559,29 @@ function MainApp() {
                                 className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
                               />
 
-                              <input 
-                                type="file" 
-                                accept="image/*,video/mp4,video/webm" 
-                                onChange={(e) => handleImageSettingUpload(e, 'desktop')}
-                                disabled={isUploadingFile}
-                                className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
-                              />
-                              {settingsFormUrl || siteSettings.heroImage ? (
+                              <div className="flex gap-2 mb-2">
+                                <input 
+                                  type="file" 
+                                  accept="image/*,video/mp4,video/webm" 
+                                  onChange={(e) => handleImageSettingUpload(e, 'desktop')}
+                                  disabled={isUploadingFile}
+                                  className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer transition-colors"
+                                />
+                                {settingsFormUrl && (
+                                  <button type="button" onClick={() => setSettingsFormUrl('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
+                                    Видалити
+                                  </button>
+                                )}
+                              </div>
+                              {settingsFormUrl ? (
                                 <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsFormUrl || siteSettings.heroImage} className="w-full h-full object-cover opacity-80" />
+                                   <MediaElement src={settingsFormUrl} className="w-full h-full object-cover opacity-80" />
                                 </div>
                               ) : null}
                             </div>
                             
                             {/* ЗАГРУЗКА ДЛЯ ТЕЛЕФОНА */}
-                            <div className="border border-white/10 p-4 bg-black/50">
+                            <div className="border border-white/10 p-4 bg-black/50 mt-2">
                               <label className="block text-[10px] font-black uppercase mt-2 mb-2 text-[#d4af37]">Головне медіа (Hero) для телефону</label>
                               <p className="text-[8px] text-zinc-500 mb-2">Точний розмір: 1080x1920. Вставте посилання або завантажте файл</p>
                               
@@ -3621,51 +3627,23 @@ function MainApp() {
                                 className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
                               />
 
-                              <input 
-                                type="file" 
-                                accept="image/*,video/mp4,video/webm" 
-                                onChange={(e) => handleImageSettingUpload(e, 'brand')}
-                                disabled={isUploadingFile}
-                                className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
-                              />
-                              {settingsBrandUrl || siteSettings.brandImage ? (
-                                <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsBrandUrl || siteSettings.brandImage} className="w-full h-full object-cover opacity-80" />
-                                </div>
-                              ) : null}
-                            </div>
-
-                            {/* НОВИЙ БЛОК ДЛЯ ПРОМО-ВІДЕО НА ГОЛОВНІЙ */}
-                            <div className="border border-white/10 p-4 bg-black/50 mt-2">
-                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Промо-медіа (Додатковий блок на головній)</label>
-                              <p className="text-[8px] text-zinc-500 mb-2">З'явиться на головній сторінці під товарами. Вставте посилання на відео/фото або завантажте файл.</p>
-                              
-                              <input 
-                                type="url" 
-                                placeholder="https://..." 
-                                value={settingsPromoUrl} 
-                                onChange={e => setSettingsPromoUrl(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
-                              />
-
                               <div className="flex gap-2 mb-2">
                                 <input 
                                   type="file" 
                                   accept="image/*,video/mp4,video/webm" 
-                                  onChange={(e) => handleImageSettingUpload(e, 'promo')}
+                                  onChange={(e) => handleImageSettingUpload(e, 'brand')}
                                   disabled={isUploadingFile}
                                   className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer transition-colors"
                                 />
-                                {settingsPromoUrl && (
-                                  <button type="button" onClick={() => setSettingsPromoUrl('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
+                                {settingsBrandUrl && (
+                                  <button type="button" onClick={() => setSettingsBrandUrl('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
                                     Видалити
                                   </button>
                                 )}
                               </div>
-                              
-                              {settingsPromoUrl ? (
+                              {settingsBrandUrl ? (
                                 <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsPromoUrl} className="w-full h-full object-cover opacity-80" />
+                                   <MediaElement src={settingsBrandUrl} className="w-full h-full object-cover opacity-80" />
                                 </div>
                               ) : null}
                             </div>
