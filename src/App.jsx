@@ -1317,10 +1317,10 @@ function MainApp() {
       const parsedCategories = settingsCategories.split(',').map(c => c.trim()).filter(Boolean);
       
       const dataToSave = { 
-        heroImage: settingsFormUrl || siteSettings.heroImage || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
-        heroImageMobile: settingsFormUrlMobile || siteSettings.heroImageMobile || '',
-        brandImage: settingsBrandUrl || siteSettings.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
-        promoMediaUrl: settingsPromoUrl || siteSettings.promoMediaUrl || '',
+        heroImage: settingsFormUrl || 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80',
+        heroImageMobile: settingsFormUrlMobile || '',
+        brandImage: settingsBrandUrl || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+        promoMediaUrl: settingsPromoUrl || '',
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -3587,16 +3587,23 @@ function MainApp() {
                                 className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
                               />
 
-                              <input 
-                                type="file" 
-                                accept="image/*,video/mp4,video/webm" 
-                                onChange={(e) => handleImageSettingUpload(e, 'mobile')}
-                                disabled={isUploadingFile}
-                                className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
-                              />
-                              {settingsFormUrlMobile || siteSettings.heroImageMobile ? (
+                              <div className="flex gap-2 mb-2">
+                                <input 
+                                  type="file" 
+                                  accept="image/*,video/mp4,video/webm" 
+                                  onChange={(e) => handleImageSettingUpload(e, 'mobile')}
+                                  disabled={isUploadingFile}
+                                  className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer transition-colors"
+                                />
+                                {settingsFormUrlMobile && (
+                                  <button type="button" onClick={() => setSettingsFormUrlMobile('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
+                                    Видалити
+                                  </button>
+                                )}
+                              </div>
+                              {settingsFormUrlMobile ? (
                                 <div className="mt-2 w-full max-w-[200px] h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsFormUrlMobile || siteSettings.heroImageMobile} className="w-full h-full object-cover opacity-80" />
+                                   <MediaElement src={settingsFormUrlMobile} className="w-full h-full object-cover opacity-80" />
                                 </div>
                               ) : null}
                             </div>
@@ -3641,16 +3648,24 @@ function MainApp() {
                                 className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
                               />
 
-                              <input 
-                                type="file" 
-                                accept="image/*,video/mp4,video/webm" 
-                                onChange={(e) => handleImageSettingUpload(e, 'promo')}
-                                disabled={isUploadingFile}
-                                className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer mb-2 transition-colors"
-                              />
-                              {settingsPromoUrl || siteSettings.promoMediaUrl ? (
+                              <div className="flex gap-2 mb-2">
+                                <input 
+                                  type="file" 
+                                  accept="image/*,video/mp4,video/webm" 
+                                  onChange={(e) => handleImageSettingUpload(e, 'promo')}
+                                  disabled={isUploadingFile}
+                                  className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer transition-colors"
+                                />
+                                {settingsPromoUrl && (
+                                  <button type="button" onClick={() => setSettingsPromoUrl('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
+                                    Видалити
+                                  </button>
+                                )}
+                              </div>
+                              
+                              {settingsPromoUrl ? (
                                 <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsPromoUrl || siteSettings.promoMediaUrl} className="w-full h-full object-cover opacity-80" />
+                                   <MediaElement src={settingsPromoUrl} className="w-full h-full object-cover opacity-80" />
                                 </div>
                               ) : null}
                             </div>
