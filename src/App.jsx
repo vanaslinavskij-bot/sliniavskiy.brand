@@ -489,6 +489,7 @@ function MainApp() {
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
     brandImage: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
+    heroAnimation: true,
     categories: DEFAULT_CATEGORIES 
   });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
@@ -517,6 +518,7 @@ function MainApp() {
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
   const [settingsPromoUrl, setSettingsPromoUrl] = useState('');
+  const [settingsHeroAnimation, setSettingsHeroAnimation] = useState(true);
   const [settingsCategories, setSettingsCategories] = useState('');
   const [newCustomCategory, setNewCustomCategory] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -710,12 +712,14 @@ function MainApp() {
             heroImageMobile: data.heroImageMobile || '',
             brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
             promoMediaUrl: data.promoMediaUrl || '',
+            heroAnimation: data.heroAnimation !== false,
             categories: cleanCats
           });
           setSettingsFormUrl(data.heroImage || '');
           setSettingsFormUrlMobile(data.heroImageMobile || '');
           setSettingsBrandUrl(data.brandImage || '');
           setSettingsPromoUrl(data.promoMediaUrl || '');
+          setSettingsHeroAnimation(data.heroAnimation !== false);
           setSettingsCategories(cleanCats.join(', '));
         } else {
           setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
@@ -1320,6 +1324,7 @@ function MainApp() {
         heroImage: settingsFormUrl || '',
         heroImageMobile: settingsFormUrlMobile || '',
         brandImage: settingsBrandUrl || '',
+        heroAnimation: settingsHeroAnimation,
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -1549,8 +1554,17 @@ function MainApp() {
                         0% { opacity: 0; }
                         100% { opacity: 0.5; }
                       }
+                      @keyframes ytmBreathe {
+                        0% { transform: scale(1); }
+                        50% { transform: scale(1.08); }
+                        100% { transform: scale(1); }
+                      }
                       .hero-image-smooth {
                         animation: smoothReveal 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                      }
+                      .hero-image-breathe {
+                        animation: smoothReveal 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards, ytmBreathe 20s ease-in-out infinite alternate;
+                        will-change: transform, opacity;
                       }
                       @keyframes smoothTextReveal {
                         0% { opacity: 0; transform: translateY(20px); }
@@ -1563,9 +1577,9 @@ function MainApp() {
                     `}</style>
                     
                     <section className="relative h-[100svh] flex flex-col items-center justify-center overflow-hidden">
-                      {/* Картинки теперь используют класс hero-image-smooth */}
-                      <img src={siteSettings.heroImage} className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-0 hero-image-smooth" alt="Hero Desktop" />
-                      <img src={siteSettings.heroImageMobile || siteSettings.heroImage} className="md:hidden absolute inset-0 w-full h-full object-cover opacity-0 hero-image-smooth" alt="Hero Mobile" />
+                      {/* Картинки теперь используют класс hero-image-smooth или hero-image-breathe и поддерживают видео */}
+                      <MediaElement src={siteSettings.heroImage} className={`hidden md:block absolute inset-0 w-full h-full object-cover opacity-0 ${siteSettings.heroAnimation ? 'hero-image-breathe' : 'hero-image-smooth'}`} alt="Hero Desktop" />
+                      <MediaElement src={siteSettings.heroImageMobile || siteSettings.heroImage} className={`md:hidden absolute inset-0 w-full h-full object-cover opacity-0 ${siteSettings.heroAnimation ? 'hero-image-breathe' : 'hero-image-smooth'}`} alt="Hero Mobile" />
                       
                       <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-transparent to-[#1c1c1c]/40" />
                       
@@ -3646,6 +3660,22 @@ function MainApp() {
                                    <MediaElement src={settingsBrandUrl} className="w-full h-full object-cover opacity-80" />
                                 </div>
                               ) : null}
+                            </div>
+
+                            {/* АНІМАЦІЯ НА ГОЛОВНІЙ */}
+                            <div className="border border-white/10 p-4 bg-black/50 mt-2 mb-4">
+                              <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settingsHeroAnimation}
+                                  onChange={(e) => setSettingsHeroAnimation(e.target.checked)}
+                                  className="w-4 h-4 accent-[#d4af37] bg-black border-white/10 cursor-pointer shrink-0"
+                                />
+                                <div>
+                                  <span className="block text-[10px] font-black uppercase text-[#d4af37]">Плавна анімація фото/відео на головній</span>
+                                  <span className="text-[8px] text-zinc-500 block mt-1">Вмикає ефект повільного наближення та віддалення (як в YouTube Music).</span>
+                                </div>
+                              </label>
                             </div>
 
                             {isUploadingFile && <p className="text-[10px] font-bold text-yellow-500 animate-pulse mt-2">Завантаження файлу в базу...</p>}
