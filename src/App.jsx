@@ -976,6 +976,9 @@ function MainApp() {
     if (p.inStock === false) return showToast(t('sold_out'));
     if (p.sizes && p.sizes[selectedSize] === false) return showToast(`${t('no_size')} ${selectedSize}`);
     
+    const availableStock = p.stockCounts?.[selectedSize] || 0;
+    if (availableStock <= 0) return showToast(`Розмір ${selectedSize} закінчився на складі`);
+
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
     const colorName = lang === 'uk' ? activeColor.label : activeColor.name;
@@ -995,20 +998,36 @@ function MainApp() {
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
+      const currentQty = idx > -1 ? (Number(prev[idx].quantity) || 0) : 0;
+      
+      if (currentQty >= availableStock) {
+        showToast(`На складі доступно лише ${availableStock} шт. цього розміру`);
+        return prev;
+      }
+
       if (idx > -1) {
         const next = [...prev];
-        next[idx].quantity = (Number(next[idx].quantity) || 0) + 1;
+        next[idx].quantity = currentQty + 1;
+        showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
         return next;
       }
+      showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
       return [...prev, { ...productToAdd, quantity: 1, image: String(imgUrl) }];
     });
-    showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
   };
 
   const updateQuantity = (cartId, delta) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
+        const realProduct = activeProducts.find(p => p.id === item.id);
+        const availableStock = realProduct?.stockCounts?.[item.selectedSize] || 0;
         const newQ = (Number(item.quantity) || 0) + delta;
+        
+        if (delta > 0 && newQ > availableStock) {
+           showToast(`На складі всього ${availableStock} шт.`);
+           return item;
+        }
+
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
@@ -2767,8 +2786,12 @@ function MainApp() {
                           const total = Object.values(stock).reduce((a,b) => a+b, 0);
                           
                           let matchesFilter = true;
-                          if (inventoryFilter === 'low') matchesFilter = total > 0 && total <= 3;
-                          if (inventoryFilter === 'out') matchesFilter = total === 0;
+                          if (inventoryFilter === 'low') {
+                             matchesFilter = SIZES.some(s => p.sizes?.[s] !== false && (Number(stock[s]) || 0) <= 3 && (Number(stock[s]) || 0) > 0);
+                          }
+                          if (inventoryFilter === 'out') {
+                             matchesFilter = total === 0 || SIZES.some(s => p.sizes?.[s] !== false && (Number(stock[s]) || 0) === 0);
+                          }
                           
                           return matchesSearch && matchesCat && matchesFilter;
                        });
@@ -2776,8 +2799,8 @@ function MainApp() {
                        const totalStockQty = dbProducts.reduce((sum, p) => sum + Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0), 0);
                        const totalStockValue = dbProducts.reduce((sum, p) => sum + (Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0) * (p.price || 0)), 0);
                        const lowStockCount = dbProducts.filter(p => {
-                          const total = Object.values(p.stockCounts || {}).reduce((a,b)=>a+b, 0);
-                          return total > 0 && total <= 3;
+                          const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+                          return SIZES.some(s => p.sizes?.[s] !== false && (Number(stock[s]) || 0) <= 3 && (Number(stock[s]) || 0) > 0);
                        }).length;
 
                        return (
@@ -2846,7 +2869,8 @@ function MainApp() {
                                          items.map(p => {
                                             const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
                                             const total = Object.values(stock).reduce((a,b)=>a+b,0);
-                                            const isDeficit = total > 0 && total <= 3;
+                                            const isDeficit = SIZES.some(s => p.sizes?.[s] !== false && (Number(stock[s]) || 0) <= 3 && (Number(stock[s]) || 0) > 0);
+                                            
                                             return (
                                                <tr key={p.id} className={`border-t border-white/5 transition-colors group ${isDeficit ? 'bg-[#d4af37]/5 hover:bg-[#d4af37]/10' : 'hover:bg-white/[0.02]'}`}>
                                                   <td className={`p-4 sticky left-0 z-10 border-r border-white/5 transition-colors ${isDeficit ? 'bg-[#0f0c05] group-hover:bg-[#1a1505]' : 'bg-[#0a0a0a] group-hover:bg-zinc-900'}`}>
