@@ -4188,7 +4188,6 @@ function MainApp() {
                         <div key={p.id} onClick={() => navigate('product', {id: p.id})} className="cursor-pointer group text-left relative">
                           <div className="aspect-[3/4] bg-zinc-900 overflow-hidden mb-3 md:mb-6 border border-white/5 relative">
                             {priceInfo.isDiscounted && <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 bg-[#d4af37] text-black text-[9px] md:text-[10px] font-black uppercase px-2 py-1 shadow-lg">-{priceInfo.percent}%</div>}
-                            {p.inStock === false && <div className={`absolute left-2 md:left-3 z-10 bg-black/80 text-white text-[8px] md:text-[9px] font-black uppercase px-2 py-1 border border-white/10 ${priceInfo.isDiscounted ? 'top-8 md:top-10' : 'top-2 md:top-3'}`}>{t('sold_out')}</div>}
                             <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover md:group-hover:scale-105 transition-all duration-700 opacity-80" alt={p.name} />
                             <button onClick={(e) => toggleWishlist(p, e)} className="absolute top-2 right-2 md:top-3 md:right-3 z-20 p-2 bg-black/50 rounded-full hover:bg-white hover:text-black transition-colors backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100">
                               <Heart size={14} fill={isInWishlist(p.id) ? "currentColor" : "none"} className={isInWishlist(p.id) ? "text-white" : "text-white/50"} />
@@ -4224,12 +4223,9 @@ function MainApp() {
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 md:space-y-8">
                    {wishlist.length === 0 ? <div className="text-center py-20 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest">{t('wishlist_empty')}</div> :
-                     wishlist.map((item, idx) => {
-                       const realProduct = activeProducts.find(p => p.id === item.id) || item;
-                       return (
+                     wishlist.map((item, idx) => (
                        <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5 cursor-pointer group" onClick={() => { setIsWishlistOpen(false); navigate('product', { id: item.id }); }}>
-                          <div className="relative w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
-                            {realProduct.inStock === false && <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10"><span className="text-[6px] md:text-[8px] font-black uppercase text-white bg-black/90 px-1 py-0.5 border border-white/10 text-center">{t('sold_out')}</span></div>}
+                          <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
                             <img src={item.images && item.images[0] ? item.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={item.name} />
                           </div>
                           <div className="flex-1 text-left flex flex-col justify-center">
@@ -4256,8 +4252,7 @@ function MainApp() {
                              </div>
                           </div>
                        </div>
-                     );
-                   })
+                     ))
                    }
                 </div>
               </div>
@@ -4364,7 +4359,7 @@ function MainApp() {
                           <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">{t('test_desc')}</p>
                           
                           <div className="bg-black border border-white/10 p-6 mb-8 text-center">
-                            <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
+                            <p className="text-white text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
                             <p className="text-3xl md:text-4xl font-black text-white">{cartTotal} ₴</p>
                           </div>
 
@@ -4396,10 +4391,7 @@ function MainApp() {
                              const pInfo = realProduct ? getProductPrice(realProduct) : { final: Number(item.price) || 0, original: Number(item.price) || 0, isDiscounted: false, percent: 0 };
                              return (
                                <div key={idx} className="flex gap-4 md:gap-6 pb-4 md:pb-6 border-b border-white/5">
-                                  <div className="relative w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0">
-                                    {realProduct?.inStock === false && <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10"><span className="text-[6px] md:text-[8px] font-black uppercase text-white bg-black/90 px-1 py-0.5 border border-white/10 text-center">{t('sold_out')}</span></div>}
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                  </div>
+                                  <div className="w-16 h-20 md:w-20 md:h-24 bg-zinc-900 overflow-hidden border border-white/5 shrink-0"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>
                                   <div className="flex-1 text-left flex flex-col justify-between">
                                      <div>
                                        <h4 className="text-[9px] md:text-[10px] font-black uppercase mb-1 tracking-widest line-clamp-2 text-white">{item.name}</h4>
