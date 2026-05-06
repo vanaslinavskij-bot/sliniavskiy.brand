@@ -981,9 +981,6 @@ function MainApp() {
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
     if (p.sizes && p.sizes[selectedSize] === false) return showToast(`${t('no_size')} ${selectedSize}`);
-    
-    const availableStock = p.stockCounts?.[selectedSize] || 0;
-    if (availableStock <= 0) return showToast(`Розмір ${selectedSize} закінчився на складі`);
 
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
@@ -1004,16 +1001,10 @@ function MainApp() {
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
-      const currentQty = idx > -1 ? (Number(prev[idx].quantity) || 0) : 0;
       
-      if (currentQty >= availableStock) {
-        showToast(`На складі доступно лише ${availableStock} шт. цього розміру`);
-        return prev;
-      }
-
       if (idx > -1) {
         const next = [...prev];
-        next[idx].quantity = currentQty + 1;
+        next[idx].quantity = (Number(next[idx].quantity) || 0) + 1;
         showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
         return next;
       }
@@ -1025,15 +1016,7 @@ function MainApp() {
   const updateQuantity = (cartId, delta) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
-        const realProduct = activeProducts.find(p => p.id === item.id);
-        const availableStock = realProduct?.stockCounts?.[item.selectedSize] || 0;
         const newQ = (Number(item.quantity) || 0) + delta;
-        
-        if (delta > 0 && newQ > availableStock) {
-           showToast(`На складі всього ${availableStock} шт.`);
-           return item;
-        }
-
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
