@@ -686,12 +686,10 @@ function MainApp() {
            if (ukrMap[data.category]) data.category = ukrMap[data.category];
            
            // --- ГЛОБАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ ---
-           // Якщо склад ведеться і загальна кількість 0, жорстко ставимо "Немає в наявності"
-           if (data.stockCounts) {
+           // Якщо для товару введено склад, він ПОВНІСТЮ керує статусом "В наявності"
+           if (data.stockCounts !== undefined && data.stockCounts !== null) {
               const totalStock = Object.values(data.stockCounts).reduce((acc, val) => acc + (Number(val) || 0), 0);
-              if (totalStock <= 0) {
-                 data.inStock = false;
-              }
+              data.inStock = totalStock > 0;
            }
 
            return { id: d.id, ...data };
