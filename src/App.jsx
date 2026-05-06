@@ -2936,14 +2936,14 @@ function MainApp() {
                              </div>
 
                              {/* Inventory Table */}
-                             <div className="overflow-x-auto no-scrollbar border border-white/10 shadow-2xl">
+                             <div className="overflow-x-auto no-scrollbar border border-white/10 shadow-2xl mb-24">
                                 <table className="w-full text-left text-xs min-w-[800px] border-collapse">
                                    <thead className="bg-zinc-900/80 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                                       <tr>
                                          <th className="p-4 sticky left-0 bg-zinc-900 z-10 border-r border-white/5">Товар / Категорія</th>
-                                         {SIZES.map(s => <th key={s} className="p-4 text-center">Розмір {s}</th>)}
-                                         <th className="p-4 text-center">Разом</th>
-                                         <th className="p-4 text-right">Ціна</th>
+                                         {SIZES.map(s => <th key={s} className="p-4 text-center w-20">Розмір {s}</th>)}
+                                         <th className="p-4 text-center w-24">Разом</th>
+                                         <th className="p-4 text-right w-24">Ціна</th>
                                       </tr>
                                    </thead>
                                    <tbody>
@@ -2951,57 +2951,62 @@ function MainApp() {
                                          <tr><td colSpan="7" className="p-10 text-center text-zinc-600 uppercase font-black tracking-widest">База порожня за цими фільтрами</td></tr>
                                       ) : (
                                          items.map(p => {
-                                            const stock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
-                                            const total = Object.values(stock).reduce((a,b)=>a+b,0);
-                                            const isDeficit = SIZES.some(s => p.sizes?.[s] !== false && (Number(stock[s]) || 0) <= 3 && (Number(stock[s]) || 0) > 0);
-                                            
+                                            const currentStock = p.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
+                                            const edits = inventoryEdits[p.id] || {};
+                                            const displayStock = { ...currentStock };
+                                            SIZES.forEach(s => {
+                                              if (edits[s] !== undefined) {
+                                                displayStock[s] = edits[s] === '' ? 0 : Math.max(0, parseInt(edits[s], 10) || 0);
+                                              }
+                                            });
+                                            const totalQty = Object.values(displayStock).reduce((a, b) => a + b, 0);
+                                            const isDeficit = totalQty > 0 && totalQty <= 3;
+
                                             return (
-                                               <tr key={p.id} className={`border-t border-white/5 transition-colors group ${isDeficit ? 'bg-[#d4af37]/5 hover:bg-[#d4af37]/10' : 'hover:bg-white/[0.02]'}`}>
-                                                  <td className={`p-4 sticky left-0 z-10 border-r border-white/5 transition-colors ${isDeficit ? 'bg-[#0f0c05] group-hover:bg-[#1a1505]' : 'bg-[#0a0a0a] group-hover:bg-zinc-900'}`}>
+                                               <tr key={p.id} className={`border-t border-white/5 transition-colors group ${totalQty === 0 ? 'bg-red-950/10' : isDeficit ? 'bg-[#d4af37]/5' : 'hover:bg-white/[0.02]'}`}>
+                                                  <td className={`p-4 sticky left-0 z-10 border-r border-white/5 transition-colors ${totalQty === 0 ? 'bg-[#0f0a0a]' : isDeficit ? 'bg-[#0f0c05]' : 'bg-[#0a0a0a]'}`}>
                                                      <div className="flex items-center gap-3">
-                                                        <MediaElement src={p.images?.[0]} className="w-10 h-12 object-cover bg-zinc-800 border border-white/10" alt=""/>
-                                                        <div className="min-w-0">
-                                                           <p className={`font-bold uppercase tracking-wider truncate max-w-[150px] ${isDeficit ? 'text-[#d4af37]' : 'text-white'}`}>{p.name}</p>
+                                                        <div className={`w-10 h-12 overflow-hidden relative border ${totalQty === 0 ? 'border-red-900/50 grayscale opacity-40' : 'border-white/10 bg-zinc-800'}`}>
+                                                          {p.images && p.images[0] && <img src={p.images[0]} alt="" className="w-full h-full object-cover" />}
+                                                        </div>
+                                                        <div className={`min-w-0 ${totalQty === 0 ? 'opacity-50' : ''}`}>
+                                                           <p className={`font-bold uppercase tracking-wider truncate max-w-[150px] ${totalQty === 0 ? 'text-red-500' : isDeficit ? 'text-[#d4af37]' : 'text-white'}`}>{p.name}</p>
                                                            <p className="text-[9px] text-zinc-500 uppercase font-black mt-1">{p.category}</p>
                                                         </div>
                                                      </div>
                                                   </td>
                                                   {SIZES.map(s => {
-                                                     const qty = Number(stock[s]) || 0;
+                                                     const currentVal = Number(currentStock[s]) || 0;
+                                                     const editVal = edits[s];
+                                                     const hasEdit = editVal !== undefined && editVal !== currentVal;
                                                      const isAvailable = p.sizes?.[s] !== false;
-                                                     const editValue = inventoryEdits[p.id]?.[s];
-                                                     const displayValue = editValue !== undefined ? editValue : (qty === 0 ? '' : qty);
                                                      
                                                      return (
-                                                        <td key={s} className="p-4">
+                                                        <td key={s} className="p-4 text-center">
                                                            <div className={`flex flex-col items-center gap-2 ${!isAvailable ? 'opacity-20 pointer-events-none' : ''}`}>
                                                               <input 
                                                                 type="number"
                                                                 min="0"
                                                                 placeholder="0"
-                                                                value={displayValue}
+                                                                value={editVal !== undefined ? editVal : (currentVal === 0 ? '' : currentVal)}
                                                                 onChange={(e) => handleLocalStockChange(p.id, s, e.target.value)}
-                                                                className={`w-16 h-10 bg-black border border-white/20 text-center font-black text-sm outline-none focus:border-white transition-colors placeholder:text-zinc-700 ${qty <= 3 && qty > 0 ? 'text-[#d4af37]' : qty === 0 ? 'text-zinc-600' : 'text-white'}`}
+                                                                className={`w-14 h-10 bg-black border ${hasEdit ? 'border-[#d4af37] text-[#d4af37] shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'border-white/20 text-white'} text-center font-black text-sm outline-none focus:border-white transition-colors placeholder:text-zinc-700 ${totalQty === 0 && !hasEdit ? 'opacity-50' : ''}`}
                                                               />
                                                            </div>
                                                         </td>
                                                      )
                                                   })}
                                                   <td className="p-4 text-center">
-                                                     {inventoryEdits[p.id] && Object.keys(inventoryEdits[p.id]).length > 0 ? (
-                                                        <button 
-                                                          onClick={() => saveInventoryEdits(p.id)}
-                                                          className="px-4 py-2 bg-[#d4af37] text-black font-black uppercase tracking-widest text-[9px] hover:bg-white transition-colors shadow-lg animate-in zoom-in"
-                                                        >
-                                                          Зберегти
-                                                        </button>
-                                                     ) : (
-                                                        <span className={`px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest ${total === 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                           {total} шт.
-                                                        </span>
-                                                     )}
+                                                     <div className="flex flex-col items-center gap-1.5">
+                                                        <span className={`font-black text-sm ${totalQty === 0 ? 'text-red-500' : 'text-white'}`}>{totalQty}</span>
+                                                        {totalQty === 0 ? (
+                                                           <span className="text-red-500 text-[7px] font-black uppercase tracking-widest bg-red-500/10 px-2 py-1 rounded-sm border border-red-500/20">Немає</span>
+                                                        ) : (
+                                                           <span className="text-green-500 text-[7px] font-black uppercase tracking-widest bg-green-500/10 px-2 py-1 rounded-sm border border-green-500/20">В наявності</span>
+                                                        )}
+                                                     </div>
                                                   </td>
-                                                  <td className="p-4 text-right font-black text-[#d4af37]">
+                                                  <td className={`p-4 text-right font-black ${totalQty === 0 ? 'text-zinc-600' : 'text-[#d4af37]'}`}>
                                                      {p.price} ₴
                                                   </td>
                                                </tr>
@@ -3010,6 +3015,19 @@ function MainApp() {
                                       )}
                                    </tbody>
                                 </table>
+                             </div>
+
+                             {/* ЄДИНА КНОПКА МАСОВОГО ЗБЕРЕЖЕННЯ (Плаваюча панель знизу) */}
+                             <div className={`fixed bottom-0 left-0 right-0 p-4 md:p-5 bg-[#0a0a0a]/95 backdrop-blur-md border-t border-[#333] flex justify-center items-center gap-4 z-[100] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${Object.keys(inventoryEdits).length > 0 ? 'translate-y-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]' : 'translate-y-full'}`}>
+                               <div className="text-[10px] text-[#888] font-black uppercase tracking-widest hidden sm:block">
+                                  У вас є незбережені зміни
+                               </div>
+                               <button 
+                                 onClick={saveAllInventoryEdits}
+                                 className="px-8 md:px-12 py-3.5 md:py-4 bg-[#d4af37] text-black font-black uppercase tracking-[0.2em] text-[10px] md:text-xs hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]"
+                               >
+                                 Зберегти весь склад ({Object.keys(inventoryEdits).length})
+                               </button>
                              </div>
                           </section>
                        );
