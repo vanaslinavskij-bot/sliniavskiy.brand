@@ -682,16 +682,14 @@ function MainApp() {
       (s) => {
         setDbProducts(s.docs.map(d => {
            const data = d.data();
-           // Авто-переклад категорій у існуючих товарів
            if (ukrMap[data.category]) data.category = ukrMap[data.category];
            
-           // --- ГЛОБАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ ---
-           // Якщо склад ведеться і загальна кількість 0, жорстко ставимо "Немає в наявності"
-           if (data.stockCounts) {
+           // --- АБСОЛЮТНО ЖОРСТКА СИНХРОНІЗАЦІЯ ---
+           // Якщо для товару введено склад, він ПОВНІСТЮ керує галочкою
+           if (data.stockCounts !== undefined && data.stockCounts !== null) {
               const totalStock = Object.values(data.stockCounts).reduce((acc, val) => acc + (Number(val) || 0), 0);
-              if (totalStock <= 0) {
-                 data.inStock = false;
-              }
+              // Якщо сума 0 - галочка знімається (inStock стає false). Якщо більше 0 - ставиться.
+              data.inStock = totalStock > 0;
            }
 
            return { id: d.id, ...data };
