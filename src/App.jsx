@@ -686,10 +686,12 @@ function MainApp() {
            if (ukrMap[data.category]) data.category = ukrMap[data.category];
            
            // --- ГЛОБАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ ---
-           // Якщо для товару введено склад, він ПОВНІСТЮ керує статусом "В наявності"
-           if (data.stockCounts !== undefined && data.stockCounts !== null) {
+           // Якщо склад ведеться і загальна кількість 0, жорстко ставимо "Немає в наявності"
+           if (data.stockCounts) {
               const totalStock = Object.values(data.stockCounts).reduce((acc, val) => acc + (Number(val) || 0), 0);
-              data.inStock = totalStock > 0;
+              if (totalStock <= 0) {
+                 data.inStock = false;
+              }
            }
 
            return { id: d.id, ...data };
@@ -2173,14 +2175,6 @@ function MainApp() {
                         <div className="flex flex-col pt-4 md:pt-10">
                           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
                           
-                          {/* ВЕЛИКА ТАБЛИЧКА, ЯКЩО ТОВАРУ НЕМАЄ В НАЯВНОСТІ */}
-                          {!inStockGlobal && (
-                            <div className="w-full bg-red-500/10 border-l-4 border-red-600 text-red-500 font-black uppercase tracking-widest text-[11px] md:text-xs p-4 my-4 mb-6 flex items-center gap-3">
-                              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                              Цей товар повністю розпродано (немає на складі)
-                            </div>
-                          )}
-
                           <div className="flex justify-between items-center mb-8 md:mb-12">
                             <div className="flex items-center gap-3">
                               {priceInfo.isDiscounted ? (
@@ -3059,21 +3053,10 @@ function MainApp() {
                                   <input type="checkbox" checked={editForm.isVisible} onChange={e => setEditForm({...editForm, isVisible: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
                                   <span className="text-[10px] font-black uppercase tracking-widest">Показувати на вітрині</span>
                                 </label>
-                                {(() => {
-                                   const isInvEnabled = siteSettings.isInventoryEnabled !== false;
-                                   const isAutoManaged = isInvEnabled && editingProduct?.stockCounts !== undefined;
-                                   return (
-                                     <label className={`flex items-start gap-3 ${isAutoManaged ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                                       <input type="checkbox" disabled={isAutoManaged} checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 mt-0.5 cursor-pointer disabled:cursor-not-allowed" />
-                                       <div className="flex flex-col">
-                                          <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
-                                          {isAutoManaged && (
-                                             <span className="text-[8px] text-[#d4af37] font-bold uppercase tracking-widest mt-1">Керується автоматично через Склад</span>
-                                          )}
-                                       </div>
-                                     </label>
-                                   );
-                                })()}
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                  <input type="checkbox" checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
+                                </label>
                               </div>
 
                               {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО (МНОЖЕСТВЕННАЯ) */}
