@@ -682,14 +682,16 @@ function MainApp() {
       (s) => {
         setDbProducts(s.docs.map(d => {
            const data = d.data();
+           // Авто-переклад категорій у існуючих товарів
            if (ukrMap[data.category]) data.category = ukrMap[data.category];
            
-           // --- АБСОЛЮТНО ЖОРСТКА СИНХРОНІЗАЦІЯ ---
-           // Якщо для товару введено склад, він ПОВНІСТЮ керує галочкою
-           if (data.stockCounts !== undefined && data.stockCounts !== null) {
+           // --- ГЛОБАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ ---
+           // Якщо склад ведеться і загальна кількість 0, жорстко ставимо "Немає в наявності"
+           if (data.stockCounts) {
               const totalStock = Object.values(data.stockCounts).reduce((acc, val) => acc + (Number(val) || 0), 0);
-              // Якщо сума 0 - галочка знімається (inStock стає false). Якщо більше 0 - ставиться.
-              data.inStock = totalStock > 0;
+              if (totalStock <= 0) {
+                 data.inStock = false;
+              }
            }
 
            return { id: d.id, ...data };
@@ -2173,6 +2175,14 @@ function MainApp() {
                         <div className="flex flex-col pt-4 md:pt-10">
                           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-widest mb-3 md:mb-4 leading-none">{p.name}</h1>
                           
+                          {/* ВЕЛИКА ТАБЛИЧКА, ЯКЩО ТОВАРУ НЕМАЄ В НАЯВНОСТІ */}
+                          {!inStockGlobal && (
+                            <div className="w-full bg-red-500/10 border-l-4 border-red-600 text-red-500 font-black uppercase tracking-widest text-[11px] md:text-xs p-4 my-4 mb-6 flex items-center gap-3">
+                              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                              Цей товар повністю розпродано (немає на складі)
+                            </div>
+                          )}
+
                           <div className="flex justify-between items-center mb-8 md:mb-12">
                             <div className="flex items-center gap-3">
                               {priceInfo.isDiscounted ? (
