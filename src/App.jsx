@@ -3011,6 +3011,19 @@ function MainApp() {
                                    </tbody>
                                 </table>
                              </div>
+
+                             {/* МАСОВЕ ЗБЕРЕЖЕННЯ */}
+                             {Object.keys(inventoryEdits).length > 0 && (
+                               <div className="flex justify-end mt-6">
+                                 <button 
+                                   onClick={saveAllInventoryEdits}
+                                   className="px-8 py-4 bg-[#d4af37] text-black font-black uppercase tracking-[0.2em] text-[10px] md:text-xs hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] animate-in slide-in-from-bottom-4"
+                                 >
+                                   Зберегти всі зміни ({Object.keys(inventoryEdits).length} тов.)
+                                 </button>
+                               </div>
+                             )}
+
                           </section>
                        );
                     })()}
