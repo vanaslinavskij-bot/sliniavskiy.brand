@@ -3059,10 +3059,21 @@ function MainApp() {
                                   <input type="checkbox" checked={editForm.isVisible} onChange={e => setEditForm({...editForm, isVisible: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
                                   <span className="text-[10px] font-black uppercase tracking-widest">Показувати на вітрині</span>
                                 </label>
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                  <input type="checkbox" checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
-                                </label>
+                                {(() => {
+                                   const isInvEnabled = siteSettings.isInventoryEnabled !== false;
+                                   const isAutoManaged = isInvEnabled && editingProduct?.stockCounts !== undefined;
+                                   return (
+                                     <label className={`flex items-start gap-3 ${isAutoManaged ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                                       <input type="checkbox" disabled={isAutoManaged} checked={editForm.inStock} onChange={e => setEditForm({...editForm, inStock: e.target.checked})} className="accent-white w-4 h-4 mt-0.5 cursor-pointer disabled:cursor-not-allowed" />
+                                       <div className="flex flex-col">
+                                          <span className="text-[10px] font-black uppercase tracking-widest">В наявності (Загалом)</span>
+                                          {isAutoManaged && (
+                                             <span className="text-[8px] text-[#d4af37] font-bold uppercase tracking-widest mt-1">Керується автоматично через Склад</span>
+                                          )}
+                                       </div>
+                                     </label>
+                                   );
+                                })()}
                               </div>
 
                               {/* Colors Settings - ВИЗУАЛЬНАЯ ПРИВЯЗКА ФОТО (МНОЖЕСТВЕННАЯ) */}
