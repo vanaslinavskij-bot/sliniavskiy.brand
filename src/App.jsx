@@ -684,6 +684,16 @@ function MainApp() {
            const data = d.data();
            // Авто-переклад категорій у існуючих товарів
            if (ukrMap[data.category]) data.category = ukrMap[data.category];
+           
+           // --- ГЛОБАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ ---
+           // Якщо склад ведеться і загальна кількість 0, жорстко ставимо "Немає в наявності"
+           if (data.stockCounts) {
+              const totalStock = Object.values(data.stockCounts).reduce((acc, val) => acc + (Number(val) || 0), 0);
+              if (totalStock <= 0) {
+                 data.inStock = false;
+              }
+           }
+
            return { id: d.id, ...data };
         }));
         setIsProductsLoaded(true);
@@ -2114,11 +2124,7 @@ function MainApp() {
                     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
                     const activeColor = selectedColor || colors[0];
                     const colorLabel = lang === 'uk' ? activeColor.label : activeColor.name;
-                    
-                    const isStockTracked = p.stockCounts !== undefined;
-                    const currentSizeStock = isStockTracked ? (Number(p.stockCounts[selectedSize]) || 0) : null;
-                    const isSizeAvailable = (p.sizes ? p.sizes[selectedSize] !== false : true) && (!isStockTracked || currentSizeStock > 0);
-                    
+                    const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
                     const inStockGlobal = p.inStock !== false;
                     const priceInfo = getProductPrice(p);
 
@@ -2215,24 +2221,9 @@ function MainApp() {
                             </div>
                             <div className="grid grid-cols-4 gap-3 md:gap-4">
                               {SIZES.map(size => {
-                                const sizeGlobalActive = p.sizes ? p.sizes[size] !== false : true;
-                                const sizeStock = isStockTracked ? (Number(p.stockCounts[size]) || 0) : null;
-                                const avail = sizeGlobalActive && (!isStockTracked || sizeStock > 0);
-
+                                const avail = p.sizes ? p.sizes[size] !== false : true;
                                 return (
-                                  <button 
-                                    key={size} 
-                                    disabled={!inStockGlobal || !avail} 
-                                    onClick={() => setSelectedSize(size)} 
-                                    className={`relative py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5 bg-zinc-900/50 text-zinc-600' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}
-                                  >
-                                    {size}
-                                    {avail && isStockTracked && sizeStock <= 3 && sizeStock > 0 && (
-                                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm animate-pulse shadow-lg">
-                                         {sizeStock} шт
-                                       </span>
-                                    )}
-                                  </button>
+                                  <button key={size} disabled={!inStockGlobal || !avail} onClick={() => setSelectedSize(size)} className={`py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}>{size}</button>
                                 );
                               })}
                             </div>
@@ -3269,10 +3260,13 @@ function MainApp() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                                       {catProducts.map(p => (
                                         <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                                          <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
+                                          <div className="aspect-[3/4] overflow-hidden mb-4 relative">
+                                            {p.inStock === false && <div className="absolute top-2 left-2 z-10 bg-black/80 text-white text-[8px] md:text-[9px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
+                                            <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} />
+                                          </div>
                                           <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
                                           <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
-                                          <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
+                                          <p className={`text-[9px] mb-4 uppercase tracking-widest font-black ${p.inStock === false ? 'text-red-500' : 'text-green-500'}`}>{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                                           <div className="flex gap-2 w-full">
                                             <button onClick={() => { 
                                               const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
@@ -3304,10 +3298,13 @@ function MainApp() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                                       {uncategorized.map(p => (
                                         <div key={p.id} className={`border border-white/5 bg-zinc-900/20 p-4 relative group ${p.isVisible === false ? 'opacity-50' : ''}`}>
-                                          <div className="aspect-[3/4] overflow-hidden mb-4"><img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} /></div>
+                                          <div className="aspect-[3/4] overflow-hidden mb-4 relative">
+                                            {p.inStock === false && <div className="absolute top-2 left-2 z-10 bg-black/80 text-white text-[8px] md:text-[9px] font-black uppercase px-2 py-1 border border-white/10">{t('sold_out')}</div>}
+                                            <img src={p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/400'} className="w-full h-full object-cover opacity-70" alt={p.name} />
+                                          </div>
                                           <h4 className="font-bold uppercase tracking-widest text-[10px] md:text-[11px] mb-1 truncate">{p.name}</h4>
                                           <p className="text-zinc-500 text-[10px] mb-2">{p.price} ₴ | {p.category}</p>
-                                          <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
+                                          <p className={`text-[9px] mb-4 uppercase tracking-widest font-black ${p.inStock === false ? 'text-red-500' : 'text-green-500'}`}>{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                                           <div className="flex gap-2 w-full">
                                             <button onClick={() => { 
                                               const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
