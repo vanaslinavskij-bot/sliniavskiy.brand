@@ -2114,7 +2114,11 @@ function MainApp() {
                     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
                     const activeColor = selectedColor || colors[0];
                     const colorLabel = lang === 'uk' ? activeColor.label : activeColor.name;
-                    const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
+                    
+                    const isStockTracked = p.stockCounts !== undefined;
+                    const currentSizeStock = isStockTracked ? (Number(p.stockCounts[selectedSize]) || 0) : null;
+                    const isSizeAvailable = (p.sizes ? p.sizes[selectedSize] !== false : true) && (!isStockTracked || currentSizeStock > 0);
+                    
                     const inStockGlobal = p.inStock !== false;
                     const priceInfo = getProductPrice(p);
 
@@ -2211,9 +2215,24 @@ function MainApp() {
                             </div>
                             <div className="grid grid-cols-4 gap-3 md:gap-4">
                               {SIZES.map(size => {
-                                const avail = p.sizes ? p.sizes[size] !== false : true;
+                                const sizeGlobalActive = p.sizes ? p.sizes[size] !== false : true;
+                                const sizeStock = isStockTracked ? (Number(p.stockCounts[size]) || 0) : null;
+                                const avail = sizeGlobalActive && (!isStockTracked || sizeStock > 0);
+
                                 return (
-                                  <button key={size} disabled={!inStockGlobal || !avail} onClick={() => setSelectedSize(size)} className={`py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}>{size}</button>
+                                  <button 
+                                    key={size} 
+                                    disabled={!inStockGlobal || !avail} 
+                                    onClick={() => setSelectedSize(size)} 
+                                    className={`relative py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5 bg-zinc-900/50 text-zinc-600' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}
+                                  >
+                                    {size}
+                                    {avail && isStockTracked && sizeStock <= 3 && sizeStock > 0 && (
+                                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm animate-pulse shadow-lg">
+                                         {sizeStock} шт
+                                       </span>
+                                    )}
+                                  </button>
                                 );
                               })}
                             </div>
