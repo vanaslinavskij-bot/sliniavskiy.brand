@@ -931,9 +931,6 @@ function MainApp() {
 
   const promoDiscountPercent = useMemo(() => {
     if (activePromo && activePromo.discountPercent > 0) {
-       // Проверка: не истекло ли время действия скидки
-       if (activePromo.expiresAt && new Date(activePromo.expiresAt).getTime() < new Date().getTime()) return 0;
-       
        if (!activePromo.usageLimit || (activePromo.usageCount || 0) < activePromo.usageLimit) {
            return activePromo.discountPercent;
        }
@@ -960,9 +957,7 @@ function MainApp() {
     const code = promoInput.trim().toUpperCase();
     const found = referrals.find(r => r.code.toUpperCase() === code || (r.name && r.name.toUpperCase() === code));
     if (found) {
-        if (found.expiresAt && new Date(found.expiresAt).getTime() < new Date().getTime()) {
-            showToast('❌ Термін дії цього промокоду минув');
-        } else if (found.usageLimit && (found.usageCount || 0) >= found.usageLimit) {
+        if (found.usageLimit && (found.usageCount || 0) >= found.usageLimit) {
             showToast('❌ Ліміт використання цього промокоду вичерпано');
         } else {
             localStorage.setItem('sliniavskiy_ref', found.code);
@@ -981,6 +976,9 @@ function MainApp() {
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
     if (p.sizes && p.sizes[selectedSize] === false) return showToast(`${t('no_size')} ${selectedSize}`);
+    
+    const availableStock = p.stockCounts?.[selectedSize] || 0;
+    if (availableStock <= 0) return showToast(`Розмір ${selectedSize} закінчився на складі`);
 
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
@@ -1001,10 +999,16 @@ function MainApp() {
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
+      const currentQty = idx > -1 ? (Number(prev[idx].quantity) || 0) : 0;
       
+      if (currentQty >= availableStock) {
+        showToast(`На складі доступно лише ${availableStock} шт. цього розміру`);
+        return prev;
+      }
+
       if (idx > -1) {
         const next = [...prev];
-        next[idx].quantity = (Number(next[idx].quantity) || 0) + 1;
+        next[idx].quantity = currentQty + 1;
         showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
         return next;
       }
@@ -1016,7 +1020,15 @@ function MainApp() {
   const updateQuantity = (cartId, delta) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
+        const realProduct = activeProducts.find(p => p.id === item.id);
+        const availableStock = realProduct?.stockCounts?.[item.selectedSize] || 0;
         const newQ = (Number(item.quantity) || 0) + delta;
+        
+        if (delta > 0 && newQ > availableStock) {
+           showToast(`На складі всього ${availableStock} шт.`);
+           return item;
+        }
+
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
@@ -3480,7 +3492,7 @@ function MainApp() {
                                                               showToast('✅ Знижку видалено');
                                                            } catch(e) { showToast('❌ Помилка'); }
                                                         }
-                                                     }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors w-full mt-1">
+                                                     }} className="px-3 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase text-[8px] tracking-widest transition-colors w-full">
                                                         Видалити знижку
                                                      </button>
                                                    )}
