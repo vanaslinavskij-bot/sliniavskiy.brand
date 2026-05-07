@@ -485,12 +485,6 @@ function MainApp() {
   const [refDiscountEdits, setRefDiscountEdits] = useState({});
   const [promoInput, setPromoInput] = useState(() => localStorage.getItem('sliniavskiy_ref') || '');
 
-  // НОВІ СТАНИ ДЛЯ СКЛАДУ
-  const [inventorySearch, setInventorySearch] = useState('');
-  const [inventoryFilter, setInventoryFilter] = useState('all'); 
-  const [inventoryCategory, setInventoryCategory] = useState('all');
-  const [inventoryEdits, setInventoryEdits] = useState({});
-
   const [siteSettings, setSiteSettings] = useState({ 
     heroImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80', 
     heroImageMobile: '', 
@@ -976,9 +970,6 @@ function MainApp() {
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
     if (p.sizes && p.sizes[selectedSize] === false) return showToast(`${t('no_size')} ${selectedSize}`);
-    
-    const availableStock = p.stockCounts?.[selectedSize] || 0;
-    if (availableStock <= 0) return showToast(`Розмір ${selectedSize} закінчився на складі`);
 
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
@@ -999,16 +990,10 @@ function MainApp() {
 
     setCart(prev => {
       const idx = prev.findIndex(i => i.cartId === productToAdd.cartId);
-      const currentQty = idx > -1 ? (Number(prev[idx].quantity) || 0) : 0;
       
-      if (currentQty >= availableStock) {
-        showToast(`На складі доступно лише ${availableStock} шт. цього розміру`);
-        return prev;
-      }
-
       if (idx > -1) {
         const next = [...prev];
-        next[idx].quantity = currentQty + 1;
+        next[idx].quantity = (Number(next[idx].quantity) || 0) + 1;
         showToast(`${t('added_to_cart')}: ${p.name} (${selectedSize})`);
         return next;
       }
@@ -1020,15 +1005,7 @@ function MainApp() {
   const updateQuantity = (cartId, delta) => {
     setCart(prev => prev.map(item => {
       if (item.cartId === cartId) {
-        const realProduct = activeProducts.find(p => p.id === item.id);
-        const availableStock = realProduct?.stockCounts?.[item.selectedSize] || 0;
         const newQ = (Number(item.quantity) || 0) + delta;
-        
-        if (delta > 0 && newQ > availableStock) {
-           showToast(`На складі всього ${availableStock} шт.`);
-           return item;
-        }
-
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
@@ -1176,21 +1153,6 @@ function MainApp() {
 
     setIsProcessingPayment(true);
 
-    // 1. ФІНАЛЬНА ПЕРЕВІРКА НАЯВНОСТІ (Щоб не продати те, чого вже немає)
-    for (const item of pendingOrderData.items) {
-       const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', item.id));
-       if (snap.exists()) {
-         const p = snap.data();
-         const currentStock = p.stockCounts?.[item.selectedSize] || 0;
-         if (currentStock < item.quantity) {
-            showToast(`❌ Помилка: "${item.name}" (Розмір ${item.selectedSize}) залишилось лише ${currentStock} шт. Оновіть кошик.`);
-            setIsProcessingPayment(false);
-            setCheckoutStep(1);
-            return;
-         }
-       }
-    }
-
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -1198,27 +1160,6 @@ function MainApp() {
       const newOrderRef = await addDoc(getOrdersRef(), finalOrderData);
 
       setLocalOrders(prev => [newOrderRef.id, ...prev]);
-
-      // 2. АВТОМАТИЧНЕ СПИСАННЯ ЗІ СКЛАДУ ПІСЛЯ ПОКУПКИ
-      // Групуємо товари, щоб правильно відняти, якщо купили різні розміри однієї речі
-      const updates = {};
-      for (const item of finalOrderData.items) {
-         if (!updates[item.id]) {
-           const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', item.id));
-           updates[item.id] = snap.data()?.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
-         }
-         const current = Number(updates[item.id][item.selectedSize]) || 0;
-         updates[item.id][item.selectedSize] = Math.max(0, current - item.quantity);
-      }
-
-      // Зберігаємо нові залишки в базу даних
-      for (const [prodId, newStock] of Object.entries(updates)) {
-         const totalQty = Object.values(newStock).reduce((a, b) => a + b, 0);
-         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', prodId), {
-           stockCounts: newStock,
-           inStock: totalQty > 0
-         });
-      }
 
       const appliedRef = localStorage.getItem('sliniavskiy_ref') || null;
       
@@ -1505,54 +1446,6 @@ function MainApp() {
     } catch (e) {
       console.warn(e);
       showToast('❌ Помилка збереження знижки');
-    }
-  };
-
-  const handleLocalStockChange = (productId, size, value) => {
-    setInventoryEdits(prev => ({
-      ...prev,
-      [productId]: {
-        ...(prev[productId] || {}),
-        [size]: value
-      }
-    }));
-  };
-
-  const saveInventoryEdits = async (productId) => {
-    const product = dbProducts.find(p => p.id === productId);
-    if (!product) return;
-
-    const currentStock = product.stockCounts || { S: 0, M: 0, L: 0, XL: 0 };
-    const edits = inventoryEdits[productId] || {};
-    const newStock = { ...currentStock };
-    let hasChanges = false;
-
-    SIZES.forEach(s => {
-      if (edits[s] !== undefined) {
-        const newQty = edits[s] === '' ? 0 : Math.max(0, parseInt(edits[s], 10) || 0);
-        if (newStock[s] !== newQty) {
-          newStock[s] = newQty;
-          hasChanges = true;
-        }
-      }
-    });
-
-    if (!hasChanges) {
-      setInventoryEdits(prev => { const next = {...prev}; delete next[productId]; return next; });
-      return;
-    }
-
-    const totalQty = Object.values(newStock).reduce((a, b) => a + b, 0);
-
-    try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productId), {
-        stockCounts: newStock,
-        inStock: totalQty > 0
-      });
-      showToast('✅ Склад успішно оновлено!');
-      setInventoryEdits(prev => { const next = {...prev}; delete next[productId]; return next; });
-    } catch (e) {
-      showToast('❌ Помилка оновлення складу');
     }
   };
 
@@ -2484,7 +2377,6 @@ function MainApp() {
                     {[
                       { id: 'orders', label: 'Замовлення', icon: <Package size={16} /> },
                       { id: 'analytics', label: 'Аналітика', icon: <BarChart size={16} /> },
-                      { id: 'inventory', label: 'Склад', icon: <Database size={16} /> },
                       { id: 'products', label: 'Товари', icon: <Box size={16} /> },
                       { id: 'discounts', label: 'Знижки', icon: <Percent size={16} /> },
                       { id: 'referrals', label: 'Реферали', icon: <Users size={16} /> },
