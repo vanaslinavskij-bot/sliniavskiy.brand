@@ -4155,27 +4155,6 @@ function MainApp() {
                      </div>
                      {cart.length > 0 && (
                         <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
-                           <div className="flex gap-2 mb-4 md:mb-6">
-                              <input 
-                                type="text" 
-                                value={promoInput} 
-                                onChange={e => setPromoInput(e.target.value.toUpperCase())} 
-                                placeholder="ПРОМОКОД АБО РЕФЕРАЛ" 
-                                className="flex-1 bg-black/50 border border-white/10 px-4 py-3 text-xs focus:border-white outline-none transition-colors text-white uppercase font-bold tracking-widest"
-                              />
-                              <button 
-                                onClick={handleApplyPromo} 
-                                className="px-6 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
-                              >
-                                Застосувати
-                              </button>
-                           </div>
-                           {promoDiscountAmount > 0 && (
-                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37]">Знижка (-{promoDiscountPercent}%)</span>
-                                <span className="text-sm font-black text-[#d4af37]">- {promoDiscountAmount} ₴</span>
-                             </div>
-                           )}
                            <div className="flex justify-between items-center mb-6 md:mb-8">
                               <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
                               <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
