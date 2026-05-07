@@ -4067,7 +4067,7 @@ function MainApp() {
 
                         <div className="mt-auto pt-6 md:pt-8 space-y-3 md:space-y-4">
                           <div className="flex justify-between items-center mb-2 md:mb-4">
-                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white">{t('total')}</span>
                             <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
                           </div>
                           <button type="submit" className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 active:scale-95">
@@ -4092,7 +4092,7 @@ function MainApp() {
                           
                           <div className="bg-black border border-white/10 p-6 mb-8 text-center">
                             <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest mb-2">{t('pay_amount')}</p>
-                            <p className="text-3xl md:text-4xl font-black">{cartTotal} ₴</p>
+                            <p className="text-3xl md:text-4xl font-black text-white">{cartTotal} ₴</p>
                           </div>
 
                           <div className="space-y-4">
@@ -4156,7 +4156,7 @@ function MainApp() {
                      {cart.length > 0 && (
                         <div className="mt-auto pt-6 md:pt-10 border-t border-white/5">
                            <div className="flex justify-between items-center mb-6 md:mb-8">
-                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500">{t('total')}</span>
+                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white">{t('total')}</span>
                               <span className="text-lg md:text-xl font-black text-white">{cartTotal} ₴</span>
                            </div>
                            <button onClick={() => setIsCheckoutForm(true)} className="w-full py-4 md:py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-colors active:scale-95">{t('checkout')}</button>
