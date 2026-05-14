@@ -515,7 +515,7 @@ function MainApp() {
 
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm] = useState({ 
-    name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', 
+    name: '', price: '', category: DEFAULT_CATEGORIES[0], description: '', images: '', 
     sizeGuide: DEFAULT_SIZE_GUIDE, sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, 
     sizeMeasurements: { ...DEFAULT_SIZE_MEASUREMENTS },
     isVisible: true, inStock: true, colors: [], sizes: { ...DEFAULT_SIZES } 
@@ -1240,6 +1240,7 @@ function MainApp() {
 
       const productData = {
         name: editForm.name || 'Новий товар',
+        description: editForm.description || '',
         price: Number(editForm.price) || 0,
         category: activeCategories.includes(editForm.category) ? editForm.category : (activeCategories[0] || 'Категорія'),
         images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
@@ -1487,7 +1488,7 @@ function MainApp() {
     }
       
     return { 
-      name: p.name, price: p.price, category: p.category, 
+      name: p.name, price: p.price, category: p.category, description: p.description || '',
       images: p.images ? p.images.join('\n') : '', 
       sizeGuideObj: mappedSizeGuideObj, sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, 
       sizeMeasurements: mappedMeasurements,
@@ -2155,7 +2156,7 @@ function MainApp() {
                           </div>
 
                           <div className="space-y-8 md:space-y-12">
-                             <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose">{t('product_desc')}</p>
+                             <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose whitespace-pre-wrap">{p.description || t('product_desc')}</p>
                              <button onClick={() => addToCart(p)} disabled={!inStockGlobal || !isSizeAvailable} className={`w-full py-5 md:py-6 font-black uppercase tracking-[0.3em] text-[10px] md:text-[11px] transition-all flex items-center justify-center gap-3 md:gap-4 ${(inStockGlobal && isSizeAvailable) ? 'bg-white text-black hover:bg-zinc-200 active:scale-[0.98] shadow-[0_20px_40px_rgba(255,255,255,0.1)]' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>
                               <ShoppingBag size={18} /> {inStockGlobal ? (isSizeAvailable ? t('add_to_cart') : t('no_size')) : t('sold_out')}
                             </button>
@@ -2786,7 +2787,7 @@ function MainApp() {
                           <button onClick={() => { 
                             setEditingProduct({}); 
                             setEditForm({ 
-                              name: '', price: '', category: activeCategories[0] || 'Категорія', 
+                              name: '', price: '', category: activeCategories[0] || 'Категорія', description: '',
                               images: '', sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, sizeMeasurements: { ...DEFAULT_SIZE_MEASUREMENTS }, sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
                               colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
                               sizes: { ...DEFAULT_SIZES } 
@@ -2817,7 +2818,11 @@ function MainApp() {
                                   {activeCategories.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </div>
-                              <div className="flex flex-col justify-center gap-4 bg-black border border-white/10 p-4 w-full">
+                              <div className="md:col-span-2">
+                                <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Опис товару</label>
+                                <textarea value={editForm.description || ''} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-sm focus:border-white outline-none min-h-[100px] transition-colors" placeholder="Залиште порожнім для використання стандартного опису..."></textarea>
+                              </div>
+                              <div className="flex flex-col justify-center gap-4 bg-black border border-white/10 p-4 w-full md:col-span-2">
                                 <label className="flex items-center gap-3 cursor-pointer">
                                   <input type="checkbox" checked={editForm.isVisible} onChange={e => setEditForm({...editForm, isVisible: e.target.checked})} className="accent-white w-4 h-4 cursor-pointer" />
                                   <span className="text-[10px] font-black uppercase tracking-widest">Показувати на вітрині</span>
@@ -3038,7 +3043,7 @@ function MainApp() {
                                       onClick={() => { 
                                         setEditingProduct({}); 
                                         setEditForm({ 
-                                          name: '', price: '', category: cat, 
+                                          name: '', price: '', category: cat, description: '',
                                           images: '', sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, sizeMeasurements: { ...DEFAULT_SIZE_MEASUREMENTS }, sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
                                           colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
                                           sizes: { ...DEFAULT_SIZES } 
