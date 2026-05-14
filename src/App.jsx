@@ -2155,8 +2155,12 @@ function MainApp() {
                             </div>
                           </div>
 
-                          <div className="space-y-8 md:space-y-12">
-                             <p className="text-zinc-500 text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] leading-loose whitespace-pre-wrap">{p.description || t('product_desc')}</p>
+                          <div className="space-y-8 md:space-y-12 w-full max-w-full">
+                             {/* Оновлений дизайн опису товару */}
+                             <div className="text-zinc-300 text-[13px] md:text-[14px] font-light leading-relaxed whitespace-pre-wrap break-words w-full">
+                                {p.description || t('product_desc')}
+                             </div>
+                             
                              <button onClick={() => addToCart(p)} disabled={!inStockGlobal || !isSizeAvailable} className={`w-full py-5 md:py-6 font-black uppercase tracking-[0.3em] text-[10px] md:text-[11px] transition-all flex items-center justify-center gap-3 md:gap-4 ${(inStockGlobal && isSizeAvailable) ? 'bg-white text-black hover:bg-zinc-200 active:scale-[0.98] shadow-[0_20px_40px_rgba(255,255,255,0.1)]' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>
                               <ShoppingBag size={18} /> {inStockGlobal ? (isSizeAvailable ? t('add_to_cart') : t('no_size')) : t('sold_out')}
                             </button>
