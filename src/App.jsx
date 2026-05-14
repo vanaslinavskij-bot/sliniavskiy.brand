@@ -66,12 +66,13 @@ const GROUP_TOP = ['Футболка', 'Футболки', 'Сорочка', 'С
 const GROUP_BOTTOM = ['Брюки', 'Джинси', 'Штани', 'Шорти'];
 const GROUP_ACC = ['Шапка', 'Кепка', 'Капелюх', 'Шарф', 'Рукавички', 'Ремінь', 'Аксесуари', 'Сумка', 'Рюкзак'];
 
-const SIZES = ['S', 'M', 'L', 'XL'];
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const DEFAULT_COLORS = [
   { name: 'Black', hex: '#000000', label: 'Чорний', imageIndexes: [0] },
   { name: 'White', hex: '#ffffff', label: 'Білий', imageIndexes: [0] }
 ];
-const DEFAULT_SIZES_AVAILABILITY = { S: true, M: true, L: true, XL: true };
+const DEFAULT_SIZES_STOCK = { XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0, XXXL: 0 };
+const DEFAULT_SIZE_GUIDE_OBJ = { chest: '', waist: '', hips: '', length: '', notes: '' };
 
 const STATUS_MAP = {
   'new': { label: 'Нове', color: 'text-blue-400' },
@@ -512,7 +513,11 @@ function MainApp() {
   }, [activeCategories]);
 
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, colors: [], sizes: DEFAULT_SIZES_AVAILABILITY });
+  const [editForm, setEditForm] = useState({ 
+    name: '', price: '', category: DEFAULT_CATEGORIES[0], images: '', 
+    sizeGuide: DEFAULT_SIZE_GUIDE, sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, 
+    isVisible: true, inStock: true, colors: [], sizes: { ...DEFAULT_SIZES_STOCK } 
+  });
   
   const [settingsFormUrl, setSettingsFormUrl] = useState('');
   const [settingsFormUrlMobile, setSettingsFormUrlMobile] = useState('');
@@ -969,7 +974,9 @@ function MainApp() {
 
   const addToCart = (p) => {
     if (p.inStock === false) return showToast(t('sold_out'));
-    if (p.sizes && p.sizes[selectedSize] === false) return showToast(`${t('no_size')} ${selectedSize}`);
+    
+    const isSizeAvailable = p.sizes ? (typeof p.sizes[selectedSize] === 'boolean' ? p.sizes[selectedSize] : Number(p.sizes[selectedSize]) > 0) : true;
+    if (!isSizeAvailable) return showToast(`${t('no_size')} ${selectedSize}`);
 
     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
     const activeColor = selectedColor || colors[0];
@@ -1234,16 +1241,12 @@ function MainApp() {
         price: Number(editForm.price) || 0,
         category: activeCategories.includes(editForm.category) ? editForm.category : (activeCategories[0] || 'Категорія'),
         images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/800x1000?text=No+Image'],
-        sizeGuide: editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
+        sizeGuide: editForm.sizeGuideObj?.notes || editForm.sizeGuide || DEFAULT_SIZE_GUIDE,
+        sizeGuideObj: editForm.sizeGuideObj || DEFAULT_SIZE_GUIDE_OBJ,
         isVisible: Boolean(editForm.isVisible !== false),
         inStock: Boolean(editForm.inStock !== false),
         colors: cleanColors.length > 0 ? cleanColors : DEFAULT_COLORS,
-        sizes: {
-          S: Boolean(editForm.sizes?.S !== false),
-          M: Boolean(editForm.sizes?.M !== false),
-          L: Boolean(editForm.sizes?.L !== false),
-          XL: Boolean(editForm.sizes?.XL !== false)
-        },
+        sizes: editForm.sizes || DEFAULT_SIZES_STOCK,
         discountPercent: editingProduct?.discountPercent || null,
         discountEndsAt: editingProduct?.discountEndsAt || null
       };
@@ -1448,6 +1451,31 @@ function MainApp() {
       showToast('❌ Помилка збереження знижки');
     }
   };
+
+  const mapProductToEditForm = useCallback((p) => {
+    const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
+      ...c,
+      imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
+    }));
+    const mappedSizes = { ...DEFAULT_SIZES_STOCK };
+    if (p.sizes) {
+      Object.keys(p.sizes).forEach(s => {
+        if (typeof p.sizes[s] === 'boolean') mappedSizes[s] = p.sizes[s] ? 10 : 0;
+        else mappedSizes[s] = Number(p.sizes[s]) || 0;
+      });
+    }
+    const mappedSizeGuideObj = typeof p.sizeGuideObj === 'object' && p.sizeGuideObj !== null
+      ? p.sizeGuideObj
+      : { ...DEFAULT_SIZE_GUIDE_OBJ, notes: typeof p.sizeGuide === 'string' ? p.sizeGuide : '' };
+      
+    return { 
+      name: p.name, price: p.price, category: p.category, 
+      images: p.images ? p.images.join('\n') : '', 
+      sizeGuideObj: mappedSizeGuideObj, sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, 
+      isVisible: p.isVisible !== false, inStock: p.inStock !== false, 
+      colors: JSON.parse(JSON.stringify(mappedColors)), sizes: mappedSizes 
+    };
+  }, []);
 
   const toggleColorImage = (colorIndex, imgIndex) => {
     const nc = [...editForm.colors];
@@ -2002,7 +2030,7 @@ function MainApp() {
                     const colors = p.colors?.length > 0 ? p.colors : DEFAULT_COLORS;
                     const activeColor = selectedColor || colors[0];
                     const colorLabel = lang === 'uk' ? activeColor.label : activeColor.name;
-                    const isSizeAvailable = p.sizes ? p.sizes[selectedSize] !== false : true;
+                    const isSizeAvailable = p.sizes ? (typeof p.sizes[selectedSize] === 'boolean' ? p.sizes[selectedSize] : Number(p.sizes[selectedSize]) > 0) : true;
                     const inStockGlobal = p.inStock !== false;
                     const priceInfo = getProductPrice(p);
 
@@ -2099,7 +2127,7 @@ function MainApp() {
                             </div>
                             <div className="grid grid-cols-4 gap-3 md:gap-4">
                               {SIZES.map(size => {
-                                const avail = p.sizes ? p.sizes[size] !== false : true;
+                                const avail = p.sizes ? (typeof p.sizes[size] === 'boolean' ? p.sizes[size] : Number(p.sizes[size]) > 0) : true;
                                 return (
                                   <button key={size} disabled={!inStockGlobal || !avail} onClick={() => setSelectedSize(size)} className={`py-3 md:py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all ${(!inStockGlobal || !avail) ? 'opacity-30 cursor-not-allowed border-white/5' : selectedSize === size ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.05)]' : 'border-white/10 text-zinc-400 hover:border-white hover:text-white'}`}>{size}</button>
                                 );
@@ -2740,9 +2768,9 @@ function MainApp() {
                             setEditingProduct({}); 
                             setEditForm({ 
                               name: '', price: '', category: activeCategories[0] || 'Категорія', 
-                              images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
+                              images: '', sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
                               colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
-                              sizes: { ...DEFAULT_SIZES_AVAILABILITY } 
+                              sizes: { ...DEFAULT_SIZES_STOCK } 
                             }); 
                           }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 md:py-3 border border-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
                             <Plus size={14}/> Додати товар
@@ -2838,17 +2866,56 @@ function MainApp() {
 
                               {/* Sizes Settings */}
                               <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
-                                 <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Наявність розмірів</h4>
-                                 <div className="flex flex-wrap gap-6">
-                                   {SIZES.map(s => (
-                                     <label key={s} className="flex items-center gap-2 cursor-pointer text-[10px] font-black uppercase tracking-widest">
-                                       <input type="checkbox" checked={editForm.sizes?.[s] !== false} onChange={e => setEditForm({...editForm, sizes: {...editForm.sizes, [s]: e.target.checked}})} className="accent-white w-4 h-4 cursor-pointer" />
-                                       {s}
-                                     </label>
-                                   ))}
+                                 <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-4">Наявність розмірів та залишки (Stock)</h4>
+                                 <div className="flex flex-col gap-2">
+                                   {SIZES.map(s => {
+                                     const qty = editForm.sizes?.[s] || 0;
+                                     const isEnabled = qty > 0;
+                                     return (
+                                       <div key={s} className={`flex items-center justify-between p-3 border transition-all ${isEnabled ? 'border-white/30 bg-white/5' : 'border-white/5 bg-black/20'}`}>
+                                         <div className="flex items-center gap-4 w-24 md:w-32">
+                                           <span className={`text-xs md:text-sm font-black uppercase tracking-widest ${isEnabled ? 'text-white' : 'text-zinc-600'}`}>{s}</span>
+                                         </div>
+                                         <div className="flex items-center gap-3">
+                                           <span className="text-[8px] md:text-[9px] text-zinc-500 uppercase tracking-widest font-bold hidden sm:inline">Залишок:</span>
+                                           <div className="flex items-center bg-black border border-white/10 rounded-sm">
+                                             <button type="button" onClick={() => setEditForm({...editForm, sizes: {...editForm.sizes, [s]: Math.max(0, qty - 1)}})} className="px-3 py-1.5 md:py-2 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">-</button>
+                                             <input type="number" min="0" value={qty} onChange={e => setEditForm({...editForm, sizes: {...editForm.sizes, [s]: Math.max(0, parseInt(e.target.value) || 0)}})} className="w-10 md:w-12 text-center bg-transparent text-xs font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                             <button type="button" onClick={() => setEditForm({...editForm, sizes: {...editForm.sizes, [s]: qty + 1}})} className="px-3 py-1.5 md:py-2 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">+</button>
+                                           </div>
+                                         </div>
+                                       </div>
+                                     );
+                                   })}
                                  </div>
                               </div>
                               
+                              <div className="md:col-span-2 border border-white/10 p-4 md:p-6 bg-black/50">
+                                <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#d4af37] mb-4">Розмірна сітка товару (см)</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                  <div>
+                                    <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Груди (Chest)</label>
+                                    <input type="text" value={editForm.sizeGuideObj?.chest || ''} onChange={e => setEditForm({...editForm, sizeGuideObj: {...editForm.sizeGuideObj, chest: e.target.value}})} className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none transition-colors" placeholder="напр. 52-58" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Талія (Waist)</label>
+                                    <input type="text" value={editForm.sizeGuideObj?.waist || ''} onChange={e => setEditForm({...editForm, sizeGuideObj: {...editForm.sizeGuideObj, waist: e.target.value}})} className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none transition-colors" placeholder="напр. 40-46" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Стегна (Hips)</label>
+                                    <input type="text" value={editForm.sizeGuideObj?.hips || ''} onChange={e => setEditForm({...editForm, sizeGuideObj: {...editForm.sizeGuideObj, hips: e.target.value}})} className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none transition-colors" placeholder="напр. 50-56" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Довжина (Length)</label>
+                                    <input type="text" value={editForm.sizeGuideObj?.length || ''} onChange={e => setEditForm({...editForm, sizeGuideObj: {...editForm.sizeGuideObj, length: e.target.value}})} className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none transition-colors" placeholder="напр. 70-76" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-[8px] font-black uppercase text-zinc-500 mb-2">Додаткові нотатки / Опис посадки</label>
+                                  <textarea value={editForm.sizeGuideObj?.notes || ''} onChange={e => setEditForm({...editForm, sizeGuideObj: {...editForm.sizeGuideObj, notes: e.target.value}})} className="w-full bg-black border border-white/10 px-3 py-3 text-xs focus:border-white outline-none min-h-[60px] transition-colors" placeholder="Наприклад: Оверсайз крій, рекомендуємо брати на розмір менше..."></textarea>
+                                </div>
+                              </div>
+
                               {/* Image Upload Section */}
                               <div className="md:col-span-2 border border-white/10 p-4 bg-black/50">
                                 <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4 mb-6 rounded-sm">
@@ -2939,10 +3006,6 @@ function MainApp() {
                                 </div>
                               </div>
 
-                              <div className="md:col-span-2">
-                                <label className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#d4af37] mb-2">Індивідуальна розмірна сітка (CSV)</label>
-                                <textarea value={editForm.sizeGuide} onChange={e => setEditForm({...editForm, sizeGuide: e.target.value})} className="w-full bg-black border border-white/10 px-4 py-3 md:py-4 text-xs focus:border-white outline-none min-h-[120px] whitespace-pre" placeholder="Розмір,Груди,Довжина..."></textarea>
-                              </div>
                             </div>
                             <button type="button" onClick={handleSaveProduct} className="w-full py-5 bg-white text-black font-black uppercase text-[10px] md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all flex justify-center items-center">
                               Крок 2. ЗБЕРЕГТИ ТОВАР
@@ -2965,9 +3028,9 @@ function MainApp() {
                                         setEditingProduct({}); 
                                         setEditForm({ 
                                           name: '', price: '', category: cat, 
-                                          images: '', sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
+                                          images: '', sizeGuideObj: { ...DEFAULT_SIZE_GUIDE_OBJ }, sizeGuide: DEFAULT_SIZE_GUIDE, isVisible: true, inStock: true, 
                                           colors: JSON.parse(JSON.stringify(DEFAULT_COLORS)), 
-                                          sizes: { ...DEFAULT_SIZES_AVAILABILITY } 
+                                          sizes: { ...DEFAULT_SIZES_STOCK } 
                                         }); 
                                       }} 
                                       className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
@@ -2988,12 +3051,8 @@ function MainApp() {
                                           <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                                           <div className="flex gap-2 w-full">
                                             <button onClick={() => { 
-                                              const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
-                                                ...c,
-                                                imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
-                                              }));
                                               setEditingProduct(p); 
-                                              setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
+                                              setEditForm(mapProductToEditForm(p)); 
                                             }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
                                             <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                                           </div>
@@ -3023,12 +3082,8 @@ function MainApp() {
                                           <p className="text-zinc-500 text-[9px] mb-4 uppercase tracking-widest">{p.inStock === false ? 'Немає в наявності' : 'В наявності'}</p>
                                           <div className="flex gap-2 w-full">
                                             <button onClick={() => { 
-                                              const mappedColors = (p.colors || DEFAULT_COLORS).map(c => ({
-                                                ...c,
-                                                imageIndexes: Array.isArray(c.imageIndexes) ? [...c.imageIndexes] : (c.imageIndex !== undefined ? [c.imageIndex] : [])
-                                              }));
                                               setEditingProduct(p); 
-                                              setEditForm({ name: p.name, price: p.price, category: p.category, images: p.images ? p.images.join('\n') : '', sizeGuide: p.sizeGuide || DEFAULT_SIZE_GUIDE, isVisible: p.isVisible !== false, inStock: p.inStock !== false, colors: JSON.parse(JSON.stringify(mappedColors)), sizes: p.sizes || { ...DEFAULT_SIZES_AVAILABILITY } }); 
+                                              setEditForm(mapProductToEditForm(p)); 
                                             }} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-white transition-colors flex justify-center w-full"><Edit size={14}/></button>
                                             <button onClick={() => handleDeleteProduct(p.id)} className="flex-1 py-3 border border-white/20 text-[9px] font-black uppercase tracking-widest text-red-500 hover:border-red-500 transition-colors flex justify-center w-full"><Trash2 size={14}/></button>
                                           </div>
@@ -3871,6 +3926,7 @@ function MainApp() {
 
           {/* SIZE GUIDE MODAL */}
           {isSizeGuideOpen && (() => {
+            const hasObj = isSizeGuideOpen.sizeGuideObj && Object.values(isSizeGuideOpen.sizeGuideObj).some(val => val && val.trim() !== '');
             const sizeGuideText = isSizeGuideOpen.sizeGuide || DEFAULT_SIZE_GUIDE;
             const rows = sizeGuideText.split('\n').filter(r => r.trim()).map(r => r.split(','));
             const header = rows[0] || [];
@@ -3879,25 +3935,63 @@ function MainApp() {
             return (
               <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300">
                  <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsSizeGuideOpen(null)} />
-                 <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-6 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300">
+                 <div className="relative bg-[#0a0a0a] border border-white/10 w-full max-w-2xl p-6 md:p-12 shadow-2xl animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]">
                     <button onClick={() => setIsSizeGuideOpen(null)} className="absolute top-4 right-4 md:top-6 md:right-6 text-zinc-500 hover:text-white p-2"><X size={20} className="md:w-6 md:h-6"/></button>
                     <h2 className="text-xl md:text-3xl font-black uppercase tracking-widest mb-6 md:mb-10 text-left pr-8 text-white">{t('size_guide')}</h2>
-                    <div className="overflow-x-auto no-scrollbar">
-                       <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
-                         <thead className="text-white border-b border-white/5">
-                           <tr className="py-2 md:py-4">
-                             {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
-                           </tr>
-                         </thead>
-                         <tbody className="text-white">
-                            {body.map((row, i) => (
-                              <tr key={i} className="border-b border-white/5">
-                                {row.map((cell, j) => <td key={j} className="py-4 md:py-6 pr-2 md:pr-4">{cell.trim()}</td>)}
+                    
+                    {hasObj ? (
+                       <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                             {isSizeGuideOpen.sizeGuideObj.chest && (
+                               <div className="bg-white/5 border border-white/10 p-4">
+                                 <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1">Груди (Chest)</p>
+                                 <p className="font-bold text-sm text-white">{isSizeGuideOpen.sizeGuideObj.chest} см</p>
+                               </div>
+                             )}
+                             {isSizeGuideOpen.sizeGuideObj.waist && (
+                               <div className="bg-white/5 border border-white/10 p-4">
+                                 <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1">Талія (Waist)</p>
+                                 <p className="font-bold text-sm text-white">{isSizeGuideOpen.sizeGuideObj.waist} см</p>
+                               </div>
+                             )}
+                             {isSizeGuideOpen.sizeGuideObj.hips && (
+                               <div className="bg-white/5 border border-white/10 p-4">
+                                 <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1">Стегна (Hips)</p>
+                                 <p className="font-bold text-sm text-white">{isSizeGuideOpen.sizeGuideObj.hips} см</p>
+                               </div>
+                             )}
+                             {isSizeGuideOpen.sizeGuideObj.length && (
+                               <div className="bg-white/5 border border-white/10 p-4">
+                                 <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1">Довжина (Length)</p>
+                                 <p className="font-bold text-sm text-white">{isSizeGuideOpen.sizeGuideObj.length} см</p>
+                               </div>
+                             )}
+                          </div>
+                          {isSizeGuideOpen.sizeGuideObj.notes && (
+                             <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4 mt-4">
+                                <p className="text-[9px] uppercase tracking-widest text-[#d4af37] mb-1">Нотатки / Опис посадки</p>
+                                <p className="text-xs font-medium text-white leading-relaxed">{isSizeGuideOpen.sizeGuideObj.notes}</p>
+                             </div>
+                          )}
+                       </div>
+                    ) : (
+                       <div className="overflow-x-auto no-scrollbar">
+                          <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
+                            <thead className="text-white border-b border-white/5">
+                              <tr className="py-2 md:py-4">
+                                {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
                               </tr>
-                            ))}
-                         </tbody>
-                       </table>
-                    </div>
+                            </thead>
+                            <tbody className="text-white">
+                               {body.map((row, i) => (
+                                 <tr key={i} className="border-b border-white/5">
+                                   {row.map((cell, j) => <td key={j} className="py-4 md:py-6 pr-2 md:pr-4">{cell.trim()}</td>)}
+                                 </tr>
+                               ))}
+                            </tbody>
+                          </table>
+                       </div>
+                    )}
                  </div>
               </div>
             );
