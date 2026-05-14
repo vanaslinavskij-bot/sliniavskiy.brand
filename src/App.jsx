@@ -71,6 +71,7 @@ const DEFAULT_COLORS = [
   { name: 'Black', hex: '#000000', label: 'Чорний', imageIndexes: [0] },
   { name: 'White', hex: '#ffffff', label: 'Білий', imageIndexes: [0] }
 ];
+const DEFAULT_SIZE_GUIDE = ''; // Очистили старий текст за замовчуванням
 const DEFAULT_SIZES = { XS: false, S: false, M: false, L: false, XL: false, XXL: false, XXXL: false };
 const DEFAULT_SIZE_GUIDE_OBJ = { chest: '', waist: '', hips: '', length: '', notes: '' };
 const DEFAULT_MEASUREMENT = { chest: '', waist: '', hips: '', length: '' };
@@ -86,8 +87,6 @@ const STATUS_MAP = {
 
 const TELEGRAM_BOT_TOKEN = '8618039263:AAEiEu3o5TyHpatvjsBU_5CjOJqb0VVHHRA';
 const TELEGRAM_CHAT_ID = '863728460';
-
-const DEFAULT_SIZE_GUIDE = "Розмір,Груди (см),Довжина (см),Плечі (см)\nS,52,70,48\nM,54,72,50\nL,56,74,52\nXL,58,76,54";
 
 const sendTelegramMessage = async (text) => {
   try {
@@ -1467,9 +1466,18 @@ function MainApp() {
         mappedSizes[s] = typeof p.sizes[s] === 'boolean' ? p.sizes[s] : Number(p.sizes[s]) > 0;
       });
     }
+
+    // Перевірка на старий текст-заглушку, щоб він не потрапляв в нотатки в адмінці
+    const isOldDefaultText = (text) => typeof text === 'string' && text.includes('Розмір,Груди (см)');
+    
+    let defaultNotes = '';
+    if (typeof p.sizeGuide === 'string' && !isOldDefaultText(p.sizeGuide)) {
+        defaultNotes = p.sizeGuide;
+    }
+
     const mappedSizeGuideObj = typeof p.sizeGuideObj === 'object' && p.sizeGuideObj !== null
-      ? p.sizeGuideObj
-      : { ...DEFAULT_SIZE_GUIDE_OBJ, notes: typeof p.sizeGuide === 'string' ? p.sizeGuide : '' };
+      ? { ...p.sizeGuideObj, notes: isOldDefaultText(p.sizeGuideObj.notes) ? '' : (p.sizeGuideObj.notes || '') }
+      : { ...DEFAULT_SIZE_GUIDE_OBJ, notes: defaultNotes };
       
     const mappedMeasurements = { ...DEFAULT_SIZE_MEASUREMENTS };
     if (p.sizeMeasurements) {
@@ -3931,8 +3939,13 @@ function MainApp() {
           {isSizeGuideOpen && (() => {
             const hasMeasurements = isSizeGuideOpen.sizeMeasurements && Object.values(isSizeGuideOpen.sizeMeasurements).some(m => m.chest || m.waist || m.hips || m.length);
             const hasObj = isSizeGuideOpen.sizeGuideObj && (isSizeGuideOpen.sizeGuideObj.chest || isSizeGuideOpen.sizeGuideObj.waist || isSizeGuideOpen.sizeGuideObj.hips || isSizeGuideOpen.sizeGuideObj.length);
-            const sizeGuideText = isSizeGuideOpen.sizeGuide || DEFAULT_SIZE_GUIDE;
-            const rows = sizeGuideText.split('\n').filter(r => r.trim()).map(r => r.split(','));
+            
+            // Очищуємо нотатки від старого дефолтного тексту для вітрини
+            const rawNotes = isSizeGuideOpen.sizeGuideObj?.notes || '';
+            const cleanNotes = (typeof rawNotes === 'string' && rawNotes.includes('Розмір,Груди (см)')) ? '' : rawNotes;
+            
+            const sizeGuideText = isSizeGuideOpen.sizeGuide || '';
+            const rows = sizeGuideText.includes('Розмір,Груди (см)') ? [] : sizeGuideText.split('\n').filter(r => r.trim()).map(r => r.split(','));
             const header = rows[0] || [];
             const body = rows.slice(1);
 
@@ -3972,10 +3985,10 @@ function MainApp() {
                               </tbody>
                             </table>
                           </div>
-                          {isSizeGuideOpen.sizeGuideObj?.notes && (
+                          {cleanNotes && (
                              <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4">
                                 <p className="text-[9px] uppercase tracking-widest text-[#d4af37] mb-1">Нотатки / Опис посадки</p>
-                                <p className="text-xs font-medium text-white leading-relaxed whitespace-pre-wrap">{isSizeGuideOpen.sizeGuideObj.notes}</p>
+                                <p className="text-xs font-medium text-white leading-relaxed whitespace-pre-wrap">{cleanNotes}</p>
                              </div>
                           )}
                        </div>
@@ -4007,29 +4020,33 @@ function MainApp() {
                                </div>
                              )}
                           </div>
-                          {isSizeGuideOpen.sizeGuideObj.notes && (
+                          {cleanNotes && (
                              <div className="bg-[#d4af37]/10 border border-[#d4af37]/30 p-4 mt-4">
                                 <p className="text-[9px] uppercase tracking-widest text-[#d4af37] mb-1">Нотатки / Опис посадки</p>
-                                <p className="text-xs font-medium text-white leading-relaxed">{isSizeGuideOpen.sizeGuideObj.notes}</p>
+                                <p className="text-xs font-medium text-white leading-relaxed">{cleanNotes}</p>
                              </div>
                           )}
                        </div>
                     ) : (
                        <div className="overflow-x-auto no-scrollbar">
-                          <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
-                            <thead className="text-white border-b border-white/5">
-                              <tr className="py-2 md:py-4">
-                                {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
-                              </tr>
-                            </thead>
-                            <tbody className="text-white">
-                               {body.map((row, i) => (
-                                 <tr key={i} className="border-b border-white/5">
-                                   {row.map((cell, j) => <td key={j} className="py-4 md:py-6 pr-2 md:pr-4">{cell.trim()}</td>)}
-                                 </tr>
-                               ))}
-                            </tbody>
-                          </table>
+                          {header.length > 0 && body.length > 0 ? (
+                            <table className="w-full text-left text-[9px] md:text-[11px] font-bold uppercase tracking-widest min-w-[300px]">
+                              <thead className="text-white border-b border-white/5">
+                                <tr className="py-2 md:py-4">
+                                  {header.map((h, i) => <th key={i} className="py-2 md:py-4 pr-2 md:pr-4 whitespace-nowrap">{h.trim()}</th>)}
+                                </tr>
+                              </thead>
+                              <tbody className="text-white">
+                                 {body.map((row, i) => (
+                                   <tr key={i} className="border-b border-white/5">
+                                     {row.map((cell, j) => <td key={j} className="py-4 md:py-6 pr-2 md:pr-4">{cell.trim()}</td>)}
+                                   </tr>
+                                 ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="text-zinc-500 text-sm">Інформація про розміри відсутня</p>
+                          )}
                        </div>
                     )}
                  </div>
