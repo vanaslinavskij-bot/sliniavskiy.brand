@@ -436,10 +436,6 @@ function MainApp() {
   const activeProducts = dbProducts;
   const storefrontProducts = useMemo(() => activeProducts.filter(p => p.isVisible !== false), [activeProducts]);
   
-  const randomStorefrontProducts = useMemo(() => {
-    return [...storefrontProducts].sort(() => 0.5 - Math.random());
-  }, [storefrontProducts]);
-  
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('sliniavskiy_cookie_consent_v2'));
   const [cookiePrefs, setCookiePrefs] = useState(() => {
     try { return JSON.parse(localStorage.getItem('sliniavskiy_cookie_prefs') || '{"analytics":true,"marketing":false}'); }
@@ -492,10 +488,24 @@ function MainApp() {
     heroImageMobile: '', 
     brandImage: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
     heroAnimation: true,
+    randomizeCatalog: true,
     categories: DEFAULT_CATEGORIES 
   });
   const activeCategories = siteSettings.categories?.length > 0 ? siteSettings.categories : DEFAULT_CATEGORIES;
   
+  const orderedStorefrontProducts = useMemo(() => {
+    if (siteSettings.randomizeCatalog !== false) {
+      return [...storefrontProducts].sort(() => 0.5 - Math.random());
+    } else {
+      return [...storefrontProducts].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) return timeB - timeA; // Від найновіших до найстаріших
+        return b.id.localeCompare(a.id); // Безпечний запасний варіант
+      });
+    }
+  }, [storefrontProducts, siteSettings.randomizeCatalog]);
+
   const groupedCategories = useMemo(() => {
     const top = [];
     const bottom = [];
@@ -526,6 +536,7 @@ function MainApp() {
   const [settingsBrandUrl, setSettingsBrandUrl] = useState('');
   const [settingsPromoUrl, setSettingsPromoUrl] = useState('');
   const [settingsHeroAnimation, setSettingsHeroAnimation] = useState(true);
+  const [settingsRandomizeCatalog, setSettingsRandomizeCatalog] = useState(true);
   const [settingsCategories, setSettingsCategories] = useState('');
   const [newCustomCategory, setNewCustomCategory] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -720,6 +731,7 @@ function MainApp() {
             brandImage: data.brandImage || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80',
             promoMediaUrl: data.promoMediaUrl || '',
             heroAnimation: data.heroAnimation !== false,
+            randomizeCatalog: data.randomizeCatalog !== false,
             categories: cleanCats
           });
           setSettingsFormUrl(data.heroImage || '');
@@ -727,6 +739,7 @@ function MainApp() {
           setSettingsBrandUrl(data.brandImage || '');
           setSettingsPromoUrl(data.promoMediaUrl || '');
           setSettingsHeroAnimation(data.heroAnimation !== false);
+          setSettingsRandomizeCatalog(data.randomizeCatalog !== false);
           setSettingsCategories(cleanCats.join(', '));
         } else {
           setSettingsCategories(DEFAULT_CATEGORIES.join(', '));
@@ -1258,9 +1271,11 @@ function MainApp() {
       const safeData = JSON.parse(JSON.stringify(productData));
 
       if (editingProduct?.id) {
+        safeData.createdAt = editingProduct.createdAt || new Date().toISOString();
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', editingProduct.id), safeData);
         showToast('✅ Товар успішно оновлено!');
       } else {
+        safeData.createdAt = new Date().toISOString();
         await addDoc(getProductsRef(), safeData);
         showToast('✅ Новий товар успішно додано на сайт!');
       }
@@ -1334,6 +1349,7 @@ function MainApp() {
         heroImageMobile: settingsFormUrlMobile || '',
         brandImage: settingsBrandUrl || '',
         heroAnimation: settingsHeroAnimation,
+        randomizeCatalog: settingsRandomizeCatalog,
         categories: parsedCategories.length > 0 ? parsedCategories : DEFAULT_CATEGORIES
       };
       
@@ -1646,7 +1662,7 @@ function MainApp() {
                       <button onClick={() => navigate('catalog')} className="hidden md:block px-12 py-5 bg-white text-black text-[12px] font-black uppercase tracking-widest hover:scale-110 transition-all active:scale-95">{t('view_all')}</button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 md:gap-10 lg:px-16 xl:px-32">
-                      {randomStorefrontProducts.slice(0, 6).map((p, idx) => {
+                      {orderedStorefrontProducts.slice(0, 6).map((p, idx) => {
                         const priceInfo = getProductPrice(p);
                         return (
                         <div 
@@ -1677,7 +1693,7 @@ function MainApp() {
                         </div>
                       )})}
                     </div>
-                    {randomStorefrontProducts.length > 6 && (
+                    {orderedStorefrontProducts.length > 6 && (
                       <div className="mt-12 md:mt-16 flex justify-center w-full">
                         <button onClick={() => navigate('catalog')} className="group flex flex-col items-center gap-3 pb-2">
                           <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-zinc-500 group-hover:text-white transition-colors">
@@ -1780,7 +1796,7 @@ function MainApp() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
                       {(() => {
-                        const baseProducts = routeParams.category ? storefrontProducts : randomStorefrontProducts;
+                        const baseProducts = routeParams.category ? storefrontProducts : orderedStorefrontProducts;
                         const filteredProducts = baseProducts.filter(p => !routeParams.category || p.category === routeParams.category);
                         
                         if (filteredProducts.length === 0) {
@@ -3718,42 +3734,8 @@ function MainApp() {
                               ) : null}
                             </div>
 
-                            {/* ЗАГРУЗКА ДЛЯ РОЗДІЛУ БРЕНД */}
-                            <div className="border border-white/10 p-4 bg-black/50 mt-2">
-                              <label className="block text-[10px] font-black uppercase mb-2 text-[#d4af37]">Медіа для розділу "Бренд"</label>
-                              <p className="text-[8px] text-zinc-500 mb-2">Вставте посилання або завантажте файл. Рекомендований розмір: 1920x1080 (або 16:9).</p>
-                              
-                              <input 
-                                type="url" 
-                                placeholder="https://..." 
-                                value={settingsBrandUrl} 
-                                onChange={e => setSettingsBrandUrl(e.target.value)}
-                                className="w-full bg-black border border-white/10 px-4 py-3 text-xs focus:border-white outline-none text-white mb-2 transition-colors"
-                              />
-
-                              <div className="flex gap-2 mb-2">
-                                <input 
-                                  type="file" 
-                                  accept="image/*,video/mp4,video/webm" 
-                                  onChange={(e) => handleImageSettingUpload(e, 'brand')}
-                                  disabled={isUploadingFile}
-                                  className="w-full text-xs text-zinc-500 file:mr-4 file:py-3 file:px-6 file:rounded-none file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-white file:text-black hover:file:bg-zinc-200 cursor-pointer transition-colors"
-                                />
-                                {settingsBrandUrl && (
-                                  <button type="button" onClick={() => setSettingsBrandUrl('')} className="px-4 py-3 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest shrink-0">
-                                    Видалити
-                                  </button>
-                                )}
-                              </div>
-                              {settingsBrandUrl ? (
-                                <div className="mt-2 w-full h-48 md:h-64 border border-white/10 overflow-hidden bg-zinc-900">
-                                   <MediaElement src={settingsBrandUrl} className="w-full h-full object-cover opacity-80" />
-                                </div>
-                              ) : null}
-                            </div>
-
-                            {/* АНІМАЦІЯ НА ГОЛОВНІЙ */}
-                            <div className="border border-white/10 p-4 bg-black/50 mt-2 mb-4">
+                            {/* АНІМАЦІЯ ТА РАНДОМ НА ГОЛОВНІЙ */}
+                            <div className="border border-white/10 p-4 bg-black/50 mt-2 mb-4 flex flex-col gap-4">
                               <label className="flex items-center gap-3 cursor-pointer">
                                 <input
                                   type="checkbox"
@@ -3764,6 +3746,19 @@ function MainApp() {
                                 <div>
                                   <span className="block text-[10px] font-black uppercase text-[#d4af37]">Плавна анімація фото/відео на головній</span>
                                   <span className="text-[8px] text-zinc-500 block mt-1">Вмикає ефект повільного наближення та віддалення (як в YouTube Music).</span>
+                                </div>
+                              </label>
+
+                              <label className="flex items-center gap-3 cursor-pointer pt-4 border-t border-white/10">
+                                <input
+                                  type="checkbox"
+                                  checked={settingsRandomizeCatalog}
+                                  onChange={(e) => setSettingsRandomizeCatalog(e.target.checked)}
+                                  className="w-4 h-4 accent-[#d4af37] bg-black border-white/10 cursor-pointer shrink-0"
+                                />
+                                <div>
+                                  <span className="block text-[10px] font-black uppercase text-[#d4af37]">Випадковий порядок товарів у каталозі</span>
+                                  <span className="text-[8px] text-zinc-500 block mt-1">Якщо вимкнено, товари показуватимуться від найновіших до найстаріших (хронологічно).</span>
                                 </div>
                               </label>
                             </div>
